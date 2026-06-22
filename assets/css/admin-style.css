@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Helvetica";
 }
 .awesome-food-delivery {
   margin: 0 30px;
@@ -55,7 +56,6 @@
   display: block;
   padding: 15px 25px;
   font-size: 17px;
-  font-family: "Helvetica";
 }
 .afd-left-tabs li {
   border-bottom: 1px solid #ddd;
@@ -79,7 +79,7 @@
     padding: 20px;
 }
 .afd-right-box .nav-tab-wrapper .nav-tab.nav-tab-active {
-  background-color: #e53935;
+  background-color: #003376;
   color: #fff;
 }
 .afd-right-box .nav-tab-wrapper .nav-tab {
@@ -91,7 +91,7 @@
 /* --------------- */
 
 /* General Layout */
-        .afon-wrap { margin-top: 20px; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; }
+        .afon-wrap { margin-top: 20px;}
         .afon-profile-header { background: #fff; border: 1px solid #dcdcde; border-radius: 12px; padding: 30px; display: flex; align-items: center; gap: 25px; margin-bottom: 30px; }
         
         /* Avatars & Stats */
@@ -130,7 +130,7 @@
         .afon-text-right { text-align: right; }
 
         /* Reports Layout */
-.afon-reports-wrap { margin-top: 20px; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; }
+.afon-reports-wrap { margin-top: 20px; }
 .afon-flex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
 
 /* Analytics Cards */
@@ -192,7 +192,7 @@
 .afon-empty-state { padding: 40px; color: #646970; text-align: center; }
 
 /* Add/Edit Extra Layout */
-.afon-extra-wrapper { display: grid; grid-template-columns: 1fr 300px; gap: 30px; max-width: 1000px; margin: 30px 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+.afon-extra-wrapper { display: grid; grid-template-columns: 1fr 300px; gap: 30px; max-width: 1000px; margin: 30px 0; }
 .afon-conf-card { background: #fff; border: 1px solid #dcdcde; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); overflow: hidden; }
 .afon-conf-header { padding: 20px 25px; border-bottom: 1px solid #f0f0f1; background: #fff; }
 .afon-conf-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: #1d2327; }
@@ -228,7 +228,7 @@
     --res-border: #ccd0d4; 
 }
 
-.afon-wrap { margin-top: 20px; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+.afon-wrap { margin-top: 20px;}
 
 /* --- Table & Directory Layout --- */
 .afon-extras-table { border: 1px solid var(--res-border); border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px; border-collapse: separate; width: 100%; }
@@ -281,7 +281,7 @@
 
 /* View Page Layout */
 .afon-view-header { padding: 20px 25px; border-bottom: 1px solid #f0f0f1; display: flex; justify-content: space-between; align-items: center; }
-.afon-id-badge { background: #f0f0f1; color: #646970; padding: 4px 12px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+.afon-id-badge { background: #f0f0f1; color: #646970; padding: 4px 12px; border-radius: 4px;font-size: 13px; }
 .afon-view-grid { display: grid; grid-template-columns: 240px 1fr; gap: 40px; }
 
 /* Visual Asset Area */

@@ -126,7 +126,7 @@ function arms_physiotherapy_tab() {
         .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px !important; font-weight: 500; }
 
         .arms-submit-btn { background: #0ea5e9; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; }
-        .arms-submit-btn:hover { background: #0284c7; }
+        .arms-submit-btn:hover { background: #003376; }
         
         .session-counter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 500px; margin-bottom: 24px; }
         .session-badge-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 16px; }
@@ -141,7 +141,7 @@ function arms_physiotherapy_tab() {
         .arms-action-btn-group { display: flex; gap: 4px; justify-content: flex-end; }
         .arms-action-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
         .btn-view { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-        .btn-edit { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
+        .btn-edit { background: #f0f9ff; color: #003376; border: 1px solid #bae6fd; }
         .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
         .btn-view:hover { background:#e2e8f0; } .btn-edit:hover { background:#e0f2fe; } .btn-delete:hover { background:#fee2e2; }
     </style>

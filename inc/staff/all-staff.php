@@ -2,7 +2,6 @@
 
 <div class="arms-card-box">
     <div class="arms-card-header-flex">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700;">Active System Operators Matrix</h3>
         <input type="text" id="armsStaffTableSearch" class="arms-search-input-field" placeholder="Search staff registry entries...">
     </div>
     
@@ -10,14 +9,12 @@
         <table class="arms-data-table" id="armsStaffSystemDirectoryTable">
             <thead>
                 <tr>
-                    <th>Staff Reference Name</th>
-                    <th>Assigned Track</th>
-                    <th>Email Address</th>
-                    <th>Primary Contact</th>
-                    <th>Registry Code</th>
-                    <th>Joining Date</th>
-                    <th>Status Matrix</th>
-                    <th style="text-align: right; padding-right: 24px;">Controls Panel</th>
+                    <th>Name</th>
+                    <th>Designation</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th style="text-align: right; padding-right: 24px;">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,8 +46,6 @@
                             <td><span class="arms-role-badge <?php echo $badge_class; ?>"><?php echo esc_html( str_replace('_', ' ', $staff->role_category) ); ?></span></td>
                             <td><?php echo esc_html( $staff->email ); ?></td>
                             <td><?php echo esc_html( $staff->phone ); ?></td>
-                            <td><code><?php echo ! empty($staff->license_number) ? esc_html($staff->license_number) : 'N/A'; ?></code></td>
-                            <td><?php echo esc_html( date('M j, Y', strtotime($staff->joining_date)) ); ?></td>
                             <td>
                                 <span class="arms-status-dot <?php echo ($staff->status === 'active') ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo ($staff->status === 'active') ? 'Active' : 'Inactive'; ?>

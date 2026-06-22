@@ -301,28 +301,27 @@ function arms_create_system_tables() {
     dbDelta( $sql_audit );
 
     // Medical Inventory, Stock & Equipment Registry
-    $table_inventory = $wpdb->prefix . 'arms_inventory';
-    $sql_inventory = "CREATE TABLE $table_inventory (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        item_code varchar(100) NOT NULL,
-        item_name varchar(255) NOT NULL,
-        generic_name varchar(255) DEFAULT '' NOT NULL,
-        category varchar(100) DEFAULT 'General' NOT NULL,
-        sku varchar(100) DEFAULT '' NOT NULL,
-        available_stock int(11) DEFAULT '0' NOT NULL,
-        min_required_stock int(11) DEFAULT '10' NOT NULL,
-        unit_type varchar(50) DEFAULT 'pieces' NOT NULL,
-        purchase_price decimal(10,2) DEFAULT '0.00' NOT NULL,
-        sale_price decimal(10,2) DEFAULT '0.00' NOT NULL,
-        supplier_info text DEFAULT NULL,
-        batch_number varchar(100) DEFAULT '' NOT NULL,
-        expiry_date date DEFAULT '1970-01-01' NOT NULL,
-        status varchar(50) DEFAULT 'In Stock' NOT NULL,
-        updated_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        PRIMARY KEY  (id),
-        UNIQUE KEY item_code (item_code)
-    ) $charset_collate;";
-    dbDelta( $sql_inventory );
+$table_inventory = $wpdb->prefix . 'arms_inventory';
+$sql_inventory = "CREATE TABLE $table_inventory (
+    id bigint(20) NOT NULL AUTO_INCREMENT,
+    item_code varchar(100) NOT NULL,
+    item_name varchar(255) NOT NULL,
+    generic_name varchar(255) DEFAULT '' NOT NULL,
+    category varchar(100) DEFAULT 'General' NOT NULL,
+    sku varchar(100) DEFAULT '' NOT NULL,
+    available_stock int(11) DEFAULT '0' NOT NULL,
+    min_required_stock int(11) DEFAULT '10' NOT NULL,
+    unit_type varchar(50) DEFAULT 'pieces' NOT NULL,
+    purchase_price decimal(10,2) DEFAULT '0.00' NOT NULL,
+    sale_price decimal(10,2) DEFAULT '0.00' NOT NULL,
+    supplier_info text DEFAULT NULL,
+    batch_number varchar(100) DEFAULT '' NOT NULL,
+    expiry_date date DEFAULT '1970-01-01' NOT NULL,
+    status varchar(50) DEFAULT 'In Stock' NOT NULL,
+    updated_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+    PRIMARY KEY  (id)
+) $charset_collate;";
+dbDelta( $sql_inventory );
 
     // Stock Movement Logs (Inward/Outward/Wastage)
     $table_stock_logs = $wpdb->prefix . 'arms_stock_movements';
@@ -501,20 +500,65 @@ function arms_main_router_page() {
             <div class="arms-sidebar-container">
                 
                 <div class="arms-author-profile">
-                    <div class="profile-avatar">
-                        <?php 
-                        if ( ! empty( $custom_avatar ) ) {
-                            echo '<img src="' . esc_url( $custom_avatar ) . '" alt="' . esc_attr( $display_name ) . '" width="64" height="64" />';
-                        } else {
-                            echo get_avatar( $user_id, 64 ); 
-                        }
-                        ?>
-                    </div>
-                    <div class="profile-meta">
-                        <h4 class="profile-name"><?php echo esc_html( $display_name ); ?></h4>
-                        <span class="profile-designation"><?php echo esc_html( $designation ); ?></span>
-                    </div>
-                </div>
+    <div class="profile-avatar">
+        <?php 
+        global $wpdb;
+        $current_user_id = get_current_user_id();
+        $current_user    = wp_get_current_user();
+        
+        // Initialize fallback layout defaults
+        $display_name  = ! empty( $current_user->display_name ) ? $current_user->display_name : $current_user->user_login;
+        $designation   = 'Staff Member';
+        $custom_avatar = '';
+
+        // Check if the current user is an Administrator
+        if ( in_array( 'administrator', (array) $current_user->roles ) ) {
+            // --- ADMIN STRATEGY: Use pure WordPress Defaults ---
+            $designation = 'Administrator';
+        } else {
+            // --- STAFF STRATEGY: Fetch metadata metrics from custom DB matrix table ---
+            $table_name = $wpdb->prefix . 'arms_staff';
+            
+            // Query the row matching this WordPress User ID
+            $staff_row = $wpdb->get_row( $wpdb->prepare( 
+                "SELECT first_name, last_name, role_category, profile_image FROM $table_name WHERE wp_user_id = %d", 
+                $current_user_id 
+            ) );
+
+            if ( $staff_row ) {
+                // Construct real name dynamically from table columns
+                if ( ! empty( $staff_row->first_name ) ) {
+                    $display_name = trim( $staff_row->first_name . ' ' . $staff_row->last_name );
+                }
+                
+                // Format the role category designation slug string smoothly
+                if ( ! empty( $staff_row->role_category ) ) {
+                    $designation = ucwords( str_replace( '_', ' ', $staff_row->role_category ) );
+                }
+                
+                // Extract custom file upload source target
+                if ( ! empty( $staff_row->profile_image ) ) {
+                    $custom_avatar = $staff_row->profile_image;
+                }
+            } else {
+                // Secondary fallback if the user is staff but doesn't have a database row map yet
+                $designation = ! empty( $current_user->roles ) ? ucfirst( reset( $current_user->roles ) ) : 'Staff Member';
+            }
+        }
+
+        // Render clean structural image markup output
+        if ( ! empty( $custom_avatar ) ) {
+            echo '<img src="' . esc_url( $custom_avatar ) . '" alt="' . esc_attr( $display_name ) . '" width="64" height="64" style="border-radius: 50%; object-fit: cover;" />';
+        } else {
+            echo get_avatar( $current_user_id, 64, '', '', array( 'class' => 'avatar-round' ) ); 
+        }
+        ?>
+    </div>
+    <div class="profile-meta">
+        <h4 class="profile-name"><?php echo esc_html( $display_name ); ?></h4>
+        <span class="profile-designation"><?php echo esc_html( $designation ); ?></span>
+    </div>
+</div>
 
                 <ul class="arms-left-tabs">
                     <?php 
@@ -603,26 +647,43 @@ add_action( 'admin_head', function() {
                 min-height: 100vh;
             }
 
-            .arms-left-tabs {
+            .arms-left-tabs, .arms-author-profile {
                 width: 240px;
                 margin: 0;
-                padding: 30px 0 0 0;
                 list-style: none;
                 flex-shrink: 0;
                 background: #fff;
                 border-right: 1px solid #e2e8f0;
             }
 
+.arms-author-profile {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+}
+.arms-author-profile img {
+  width: 60px !important;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid #4f46e5;
+}
+.arms-author-profile .profile-name {
+  margin-bottom: 0;
+  font-size: 16px
+}
             .arms-left-tabs li a {
-                display: flex;
-                align-items: center;
-                padding: 14px 24px;
-                color: #475569;
-                text-decoration: none;
-                font-weight: 500;
-                font-size: 14px;
-                transition: all 0.2s ease;
-            }
+	display: flex;
+	align-items: center;
+	padding: 10px 24px;
+	color: #333;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 15px;
+	transition: all 0.2s ease;
+}
 
             .arms-left-tabs li a svg {
                 width: 18px;
@@ -639,11 +700,11 @@ add_action( 'admin_head', function() {
             }
 
             .arms-left-tabs li a:hover svg {
-                fill: #e53935;
+                fill: #003376;
             }
 
             .arms-left-tabs li a.active {
-                background: #e53935;
+                background: #003376;
                 color: #fff;
                 font-weight: 600;
             }

@@ -20,7 +20,6 @@ function arms_patients_tab() {
     $tabs = array(
         'all'     => 'All Patients',
         'add'     => 'Add Patient',
-        'history' => 'Medical History',
     );
 
     echo '<h2 class="nav-tab-wrapper arms-sub-tab-wrapper">';

@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Dashboard Tab - Clinical Operations & Financial Control Panel
- * Database Mapping: arms_billing, arms_admissions, arms_ledger
+ * Database Mapping: arms_billing, arms_admissions, arms_ledger, arms_inventory
  */
 function arms_dashboard_tab() {
     global $wpdb;
@@ -14,6 +14,7 @@ function arms_dashboard_tab() {
     $table_billing    = $wpdb->prefix . 'arms_billing';
     $table_admissions = $wpdb->prefix . 'arms_admissions';
     $table_ledger     = $wpdb->prefix . 'arms_ledger';
+    $table_inventory  = $wpdb->prefix . 'arms_inventory';
 
     // Time Frames & Ranges
     $today_start = current_time( 'Y-m-d 00:00:00' );
@@ -89,9 +90,11 @@ function arms_dashboard_tab() {
     ) );
 
     /* =========================================================================
-       5. INVENTORY STOCK LOGIC FALLBACK 
+       5. DYNAMIC INVENTORY STOCK MONITORING ENGINE
        ========================================================================= */
-    $low_stock_alerts_count = 0; 
+    $low_stock_alerts_count = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM $table_inventory WHERE CAST(available_stock AS SIGNED) <= CAST(min_required_stock AS SIGNED)"
+    );
 
     // Admin redirection routing anchors
     $patient_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=patients&sub=add' );
@@ -144,7 +147,7 @@ function arms_dashboard_tab() {
             margin: 0;
             color: var(--arms-muted);
             font-size: 13px;
-        }
+            }
         .arms-live-timer-container {
             display: flex;
             align-items: center;
@@ -334,18 +337,26 @@ function arms_dashboard_tab() {
     <div class="arms-dashboard-wrapper">
         
         <div class="arms-header-block">
-            <div>
-                <h1>Real-Time Operations Monitor</h1>
-                <p>Live framework tracking architectural patients data flow, active occupancy arrays, and system accounting ledgers.</p>
-            </div>
-            <div class="arms-live-timer-container">
-                <div><span class="dashicons dashicons-calendar-alt" style="font-size:16px; vertical-align:middle;"></span> <?php echo date( 'l, jS F Y' ); ?></div>
-                <div class="arms-ticker-digits">
-                    <span class="dashicons dashicons-clock" style="font-size:14px; vertical-align:middle; margin-right:2px;"></span>
-                    <span id="armsLiveTickerClock">00:00:00</span>
-                </div>
-            </div>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <img src="<?php echo esc_url( get_template_directory_uri() . '/assets/images/logo.png' ); ?>" 
+             alt="System Logo" style="height: 60px; width: auto;">
+        
+        <div>
+            <h1 style="margin: 0;"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
+            <p style="margin: 0; color: var(--arms-muted); font-size: 13px;">
+                <?php echo esc_html( get_bloginfo( 'description' ) ); ?>
+            </p>
         </div>
+    </div>
+    
+    <div class="arms-live-timer-container">
+        <div><span class="dashicons dashicons-calendar-alt" style="font-size:16px; vertical-align:middle;"></span> <?php echo date( 'l, jS F Y' ); ?></div>
+        <div class="arms-ticker-digits">
+            <span class="dashicons dashicons-clock" style="font-size:14px; vertical-align:middle; margin-right:2px;"></span>
+            <span id="armsLiveTickerClock">00:00:00</span>
+        </div>
+    </div>
+</div>
 
         <div class="arms-quick-actions-bar">
             <div style="display:flex; flex-direction:column;">

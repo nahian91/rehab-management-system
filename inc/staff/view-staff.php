@@ -5,7 +5,7 @@ $initial_char = ! empty( $staff->first_name ) ? strtoupper( substr( $staff->firs
 ?>
 <div class="arms-card-box">
     <div class="arms-card-header-flex">
-        <h3 style="margin:0; font-size:18px; font-weight:700;">Clinical Staff Record Profile Sheet</h3>
+        <h3 style="margin:0; font-size:18px; font-weight:700;">Clinical Staff Profile</h3>
         <a href="<?php echo esc_url($list_url); ?>" class="arms-submit-btn" style="padding: 8px 16px;">
             <span class="dashicons dashicons-arrow-left-alt" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Back to Roster
         </a>

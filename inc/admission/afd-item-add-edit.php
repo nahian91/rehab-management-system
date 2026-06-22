@@ -231,7 +231,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
         .btn-primary:hover { background: #4338ca; }
         .btn-secondary { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
         .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
-        .btn-success { background: #16a34a; color: #ffffff; }
+        .btn-success { background: #003376; color: #ffffff; }
         .btn-success:hover { background: #15803d; }
     </style>
 
@@ -404,7 +404,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
                     <div style="border-left: 1px solid #e2e8f0;"></div>
                     <div>
                         <div style="font-size:11px; font-weight:700; color:#64748b; uppercase">Payments Logged</div>
-                        <div style="font-size:22px; font-weight:800; color:#16a34a; margin-top:4px;">$3,200.00</div>
+                        <div style="font-size:22px; font-weight:800; color:#003376; margin-top:4px;">$3,200.00</div>
                     </div>
                     <div style="border-left: 1px solid #e2e8f0;"></div>
                     <div>

@@ -75,6 +75,10 @@ function arms_patients_list_table() {
 
     // Dynamic sorting toggle states
     $toggle_order = ($order === 'ASC') ? 'desc' : 'asc';
+
+    // Include DataTables CSS and JavaScript dynamically from CDNs
+    wp_enqueue_style('datatables-css', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', [], '1.13.6');
+    wp_enqueue_script('datatables-js', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', ['jquery'], '1.13.6', true);
     ?>
     <style>
         .arms-container { margin: 20px 20px 0 0; max-width: 100%; }
@@ -115,6 +119,14 @@ function arms_patients_list_table() {
         .arms-page-link:hover { background: #f0f6fa; border-color: #2271b1; }
         .arms-page-link.arms-active-page { background: #2271b1; border-color: #2271b1; color: #fff; font-weight: 600; cursor: default; }
         .arms-page-link.disabled { color: #a7aaad; background: #f6f7f7; border-color: #dcdcde; cursor: not-allowed; pointer-events: none; }
+
+        /* DataTables overrides to keep style consistency with your CSS rules */
+        .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_paginate, .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_info {
+            display: none !important; /* Hide native datatable search/pagination since we use your pristine custom server setup */
+        }
+        table.dataTable {
+            border-collapse: collapse !important;
+        }
     </style>
 
     <div class="arms-container">
@@ -252,5 +264,17 @@ function arms_patients_list_table() {
             </div>
         </div>
     </div>
+
+    <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $('.arms-patient-table').DataTable({
+                "paging": false,       // Handled by your existing PHP engine
+                "ordering": false,     // Handled by your existing PHP header links
+                "info": false,         // Handled by your existing custom pagination text
+                "searching": true,     // Keeps client-side continuous filtering active for loaded page sets
+                "responsive": true
+            });
+        });
+    </script>
     <?php
 }
