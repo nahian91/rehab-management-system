@@ -424,6 +424,11 @@ function arms_main_router_page() {
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M464 128H48c-26.5 0-48 21.5-48 48v240c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V176c0-26.5-21.5-48-48-48zm-16 240c0 13.3-10.7 24-24 24H96c-13.3 0-24-10.7-24-24V216c0-13.3 10.7-24 24-24h304c13.3 0 24 10.7 24 24v152zm-88-104c-22.1 0-40 17.9-40 40s17.9 40 40 40 40-17.9 40-40-17.9-40-40-40zM400 64H48c-8.8 0-16 7.2-16 16v16h448V80c0-8.8-7.2-16-16-16z"/></svg>',
             'roles' => array('accountant', 'admin_manager')
         ),
+        'payroll' => array(
+            'label' => 'Payroll',
+            'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M112 112c0-8.8 7.2-16 16-16H448c8.8 0 16 7.2 16 16v16H112V112zM48 224H528c26.5 0 48 21.5 48 48v144c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V272c0-26.5 21.5-48 48-48zm56 64c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V312c0-13.3-10.7-24-24-24H104zm216 9.4c0-5.2-4.2-9.4-9.4-9.4H198.1c-12.6 0-24.3 6.9-30.4 17.9L152 318.4c-5.2 9.4-5.2 20.8 0 30.3l15.6 26.6c6.1 11 17.8 17.9 30.4 17.9h112.5c5.2 0 9.4-4.2 9.4-9.4V297.4zM400 288c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V312c0-13.3-10.7-24-24-24H400z"/></svg>',
+            'roles' => array( 'admin_manager', 'accountant' )
+        ),
         'inventory' => array(
             'label' => 'Inventory',
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M501.5 141.2c-5.8-11.4-16-19.4-28-21.8L285.8 81.7c-19.6-4-40 4-51.5 20L51.9 336.5c-7.9 11-10.7 24.8-7.6 38.2l31.5 137.3c4 17.5 19.4 30 37.5 30H440c22.1 0 40-17.9 40-40V166.8c0-9.8-3.6-19.3-10.1-26.6zM272 131.1l157 32.1-157 78.5V131.1zm-32 23.3v110.1L94.6 343.3 240 154.4zm208 317.6H112l-22.4-97.6L272 268v204h176V472z"/></svg>',
@@ -439,9 +444,9 @@ function arms_main_router_page() {
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M610.5 343.3l-34.7-18.6c-11.8-6.3-26.7-2.1-33.4 9.3L512 384h-40v-82l52-64.7c7.1-8.8 6.2-21.6-1.9-29.3L492.8 180c-8.4-8-21.7-7.3-29.3 1.5L424 224.6V102h-40c-12.2 0-23.8 4.7-32.5 13.1l-40 38.6c-5.8-11.4-16-19.4-28-21.8L100.8 102H48C21.5 102 0 123.5 0 150v260c0 26.5 21.5 48 48 48h240c13.3 0 24-10.7 24-24v-64h112v96c0 17.7 14.3 32 32 32h24c13.3 0 24-10.7 24-24v-160h43.3c7.2 0 14-3.9 17.6-10.2l20.4-34.3c4.2-6.9 3-15.7-3.2-21.5zM128 48c0 26.5-21.5 48-48 48S32 74.5 32 48 53.5 0 80 0s48 21.5 48 48zm352 0c0 26.5-21.5 48-48 48s-48-21.5-48-48 21.5-48 48-48 48 21.5 48 48z"/></svg>',
             'roles' => array('admin_manager')
         ),
-        'settings' => array(
-            'label' => 'Administration',
-            'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M496 384H160v-16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h80v16c0 8.8 7.2 16 16 16h32c0 8.8 7.2 16 16-16v-16h336c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm0-192H288v-16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h208v16c0 8.8 7.2 16 16 16h32c0 8.8 7.2 16 16-16v-16h208c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm0-192H416V-16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16C7.2 0 0 7.2 0 16v32c0 8.8 7.2 16 16 16h336v16c0 8.8 7.2 16 16 16h32c0 8.8 7.2 16 16-16V64h80c8.8 0 16-7.2 16-16V16c0-8.8-7.2-16-16-16z"/></svg>',
+        'logout' => array(
+            'label' => 'Log Out',
+            'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96C43 32 0 75 0 128v256c0 53 43 96 96 96h64c17.7 0 32-14.3 32-32s-14.3-32-32-32H96c-17.7 0-32-14.3-32-32V128c0-17.7 14.3-32 32-32h64zm273 135L313 111c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l123 123H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h198.7L267.7 401.7c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l120-120c12.5-12.5 12.5-32.8 0-45.3z"/></svg>',
             'roles' => array()
         ),
     );
@@ -458,82 +463,116 @@ function arms_main_router_page() {
     }
 
     $is_print_mode = ( isset( $_GET['action'] ) && $_GET['action'] === 'print' );
+
+    // Custom data extraction logic mapping for the user context
+    global $wpdb;
+    $user_id       = get_current_user_id();
+    $display_name  = '';
+    $designation   = '';
+    $custom_avatar = '';
+
+    // Fetch information from Staff module storage table
+    $staff_row = $wpdb->get_row( $wpdb->prepare( "SELECT full_name, designation, profile_image FROM {$wpdb->prefix}arms_staff WHERE wp_user_id = %d", $user_id ) );
+    
+    if ( $staff_row ) {
+        $display_name  = $staff_row->full_name;
+        $designation   = $staff_row->designation;
+        $custom_avatar = $staff_row->profile_image;
+    } else {
+        // Fallback to core metadata if no unique staff profile record exists
+        $display_name  = get_user_meta( $user_id, 'arms_staff_full_name', true );
+        $designation   = get_user_meta( $user_id, 'arms_staff_designation', true );
+        $custom_avatar = get_user_meta( $user_id, 'arms_staff_profile_image', true );
+    }
+
+    // Secondary core structural fallback defaults
+    if ( empty( $display_name ) ) {
+        $current_user = wp_get_current_user();
+        $display_name = $current_user->display_name ? $current_user->display_name : 'Staff Member';
+    }
+    if ( empty( $designation ) ) {
+        $designation = 'Medical Specialist';
+    }
     ?>
 
     <div id="arms-wrapper" class="rehab-management-system <?php echo $is_print_mode ? 'arms-print' : ''; ?>">
         
         <?php if ( ! $is_print_mode ) : ?>
-            <ul class="arms-left-tabs">
-                <?php 
-                foreach ( $all_tabs as $slug => $config ) : 
-                    if ( ! arms_has_access( $config['roles'] ) ) {
-                        continue; 
-                    }
-                    $active_class = ( $active_tab === $slug ) ? 'active' : '';
-                    ?>
-                    <li>
-                        <a class="<?php echo esc_attr( $active_class ); ?>" 
-                           href="<?php echo esc_url( admin_url( 'admin.php?page=rehab_management_system&tab=' . $slug ) ); ?>">
-                            <?php echo $config['svg']; ?>
-                            <span><?php echo esc_html( $config['label'] ); ?></span>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <div class="arms-sidebar-container">
+                
+                <div class="arms-author-profile">
+                    <div class="profile-avatar">
+                        <?php 
+                        if ( ! empty( $custom_avatar ) ) {
+                            echo '<img src="' . esc_url( $custom_avatar ) . '" alt="' . esc_attr( $display_name ) . '" width="64" height="64" />';
+                        } else {
+                            echo get_avatar( $user_id, 64 ); 
+                        }
+                        ?>
+                    </div>
+                    <div class="profile-meta">
+                        <h4 class="profile-name"><?php echo esc_html( $display_name ); ?></h4>
+                        <span class="profile-designation"><?php echo esc_html( $designation ); ?></span>
+                    </div>
+                </div>
+
+                <ul class="arms-left-tabs">
+                    <?php 
+                    foreach ( $all_tabs as $slug => $config ) : 
+                        if ( ! arms_has_access( $config['roles'] ) ) {
+                            continue; 
+                        }
+                        $active_class = ( $active_tab === $slug ) ? 'active' : '';
+                        
+                        if ( $slug === 'logout' ) {
+                            $target_url = wp_logout_url( admin_url( 'admin.php?page=rehab_management_system' ) );
+                        } else {
+                            $target_url = admin_url( 'admin.php?page=rehab_management_system&tab=' . $slug );
+                        }
+                        ?>
+                        <li class="<?php echo esc_attr( 'tab-' . $slug ); ?>">
+                            <a class="<?php echo esc_attr( $active_class ); ?>" href="<?php echo esc_url( $target_url ); ?>">
+                                <?php echo $config['svg']; ?>
+                                <span><?php echo esc_html( $config['label'] ); ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         <?php endif; ?>
 
         <div class="arms-right-box">
             <?php
             switch ( $active_tab ) {
                 case 'dashboard':
-                    if ( function_exists( 'arms_dashboard_tab' ) ) {
-                        arms_dashboard_tab();
-                    }
+                    if ( function_exists( 'arms_dashboard_tab' ) ) { arms_dashboard_tab(); }
                     break;
                 case 'patients':
-                    if ( function_exists( 'arms_patients_tab' ) ) {
-                        arms_patients_tab();
-                    }
+                    if ( function_exists( 'arms_patients_tab' ) ) { arms_patients_tab(); }
                     break;
                 case 'physiotherapy':
-                    if ( function_exists( 'arms_physiotherapy_tab' ) ) {
-                        arms_physiotherapy_tab();
-                    }
+                    if ( function_exists( 'arms_physiotherapy_tab' ) ) { arms_physiotherapy_tab(); }
                     break;
                 case 'nursing':
-                    if ( function_exists( 'arms_nursing_tab' ) ) {
-                        arms_nursing_tab();
-                    }
+                    if ( function_exists( 'arms_nursing_tab' ) ) { arms_nursing_tab(); }
                     break;
                 case 'inventory':
-                    if ( function_exists( 'arms_inventory_tab' ) ) {
-                        arms_inventory_tab();
-                    }
+                    if ( function_exists( 'arms_inventory_tab' ) ) { arms_inventory_tab(); }
                     break;
                 case 'admission':
-                    if ( function_exists( 'arms_admission_tab' ) ) {
-                        arms_admission_tab();
-                    }
+                    if ( function_exists( 'arms_admission_tab' ) ) { arms_admission_tab(); }
                     break;
                 case 'finance':
-                    if ( function_exists( 'arms_finance_tab' ) ) {
-                        arms_finance_tab();
-                    }
+                    if ( function_exists( 'arms_finance_tab' ) ) { arms_finance_tab(); }
+                    break;
+                case 'payroll':
+                    if ( function_exists( 'arms_payroll_tab' ) ) { arms_payroll_tab(); }
                     break;
                 case 'reports':
-                    if ( function_exists( 'arms_reports_tab' ) ) {
-                        arms_reports_tab();
-                    }
+                    if ( function_exists( 'arms_reports_tab' ) ) { arms_reports_tab(); }
                     break;
                 case 'staff':
-                    if ( function_exists( 'arms_staff_tab' ) ) {
-                        arms_staff_tab();
-                    }
-                    break;
-                case 'settings':
-                    if ( function_exists( 'arms_render_global_settings_module' ) ) {
-                        arms_render_global_settings_module();
-                    }
+                    if ( function_exists( 'arms_staff_tab' ) ) { arms_staff_tab(); }
                     break;
             }
             ?>
