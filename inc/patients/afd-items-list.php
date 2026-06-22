@@ -2,7 +2,6 @@
 
 function arms_patients_list_table() {
     global $wpdb;
-    // Updated to target your real table structure
     $table_name = $wpdb->prefix . 'arms_patients'; 
 
     // Handle Delete Security and Action Execution
@@ -20,10 +19,9 @@ function arms_patients_list_table() {
 
     // Server-Side Processing Setup (Sanitizing Filters)
     $search_query  = isset($_GET['arms_search']) ? sanitize_text_field(trim($_GET['arms_search'])) : '';
-    $status_filter = isset($_GET['arms_status']) ? sanitize_text_field(trim($_GET['arms_status'])) : '';
     
-    // Server-Side Sorting Setup matched to valid schema columns
-    $orderby_allowed = ['id', 'name', 'mobile', 'admission_date', 'status', 'room_no'];
+    // Server-Side Sorting Setup matched to your valid schema columns
+    $orderby_allowed = ['id', 'name', 'mobile', 'admission_date'];
     $orderby         = isset($_GET['orderby']) && in_array($_GET['orderby'], $orderby_allowed) ? $_GET['orderby'] : 'id';
     $order           = isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC';
     
@@ -32,20 +30,14 @@ function arms_patients_list_table() {
     $current_page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
     $offset       = ($current_page - 1) * $per_page;
 
-    // 3. DYNAMIC SQL COMPOSITION
+    // DYNAMIC SQL COMPOSITION
     $where_clauses = [];
     $where_params  = [];
 
     if (!empty($search_query)) {
-        // Updated to search real schema columns
-        $where_clauses[] = "(id LIKE %s OR name LIKE %s OR mobile LIKE %s OR initial_diagnosis LIKE %s OR custom_diagnosis LIKE %s)";
+        $where_clauses[] = "(id LIKE %s OR name LIKE %s OR mobile LIKE %s)";
         $wildcard = '%' . $wpdb->esc_like($search_query) . '%';
-        array_push($where_params, $wildcard, $wildcard, $wildcard, $wildcard, $wildcard);
-    }
-
-    if (!empty($status_filter)) {
-        $where_clauses[] = "status = %s";
-        $where_params[]  = $status_filter;
+        array_push($where_params, $wildcard, $wildcard, $wildcard);
     }
 
     $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
@@ -71,7 +63,6 @@ function arms_patients_list_table() {
     $base_admin_url = admin_url('admin.php?page=rehab_management_system&tab=patients');
     $filter_url_params = '';
     if (!empty($search_query))  $filter_url_params .= '&arms_search=' . urlencode($search_query);
-    if (!empty($status_filter)) $filter_url_params .= '&arms_status=' . urlencode($status_filter);
 
     // Dynamic sorting toggle states
     $toggle_order = ($order === 'ASC') ? 'desc' : 'asc';
@@ -91,7 +82,7 @@ function arms_patients_list_table() {
         .arms-filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
         .arms-filters-form { display: flex; gap: 10px; align-items: center; width: 100%; }
         
-        .arms-input-search, .arms-select-filter { padding: 0 8px; font-size: 14px; border: 1px solid #8c8f94; border-radius: 4px; min-width: 220px; height: 32px; box-sizing: border-box; background-color: #fff; color: #2c3338; }
+        .arms-input-search { padding: 0 8px; font-size: 14px; border: 1px solid #8c8f94; border-radius: 4px; min-width: 220px; height: 32px; box-sizing: border-box; background-color: #fff; color: #2c3338; }
         .arms-btn-filter { height: 32px; background: #f6f7f7; color: #2271b1; border: 1px solid #2271b1; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; }
         .arms-btn-filter:hover { background: #f0f6fa; }
         
@@ -99,18 +90,32 @@ function arms_patients_list_table() {
         .wp-list-table.arms-patient-table th.sorted.asc a::after { content: '▲'; position: absolute; right: 0; font-size: 10px; top: 2px; }
         .wp-list-table.arms-patient-table th.sorted.desc a::after { content: '▼'; position: absolute; right: 0; font-size: 10px; top: 2px; }
         .wp-list-table.arms-patient-table td { vertical-align: middle; }
-        
-        .arms-status-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; display: inline-block; line-height: 1; text-transform: uppercase; letter-spacing: 0.3px; }
-        .arms-status-active { background-color: #edfaec; color: #135e1e; border: 1px solid #b8e6b9; }
-        .arms-status-review { background-color: #fff8e5; color: #8a5300; border: 1px solid #f6d173; }
-        .arms-status-discharged { background-color: #f6f7f7; color: #646970; border: 1px solid #dcdcde; }
 
-        .arms-actions-wrapper { display: flex; gap: 6px; }
-        .arms-action-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 4px; border: 1px solid #8c8f94; background: #fff; cursor: pointer; text-decoration: none; }
-        .arms-action-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-        .arms-btn-view { color: #2271b1; } .arms-btn-view:hover { background: #f0f6fa; border-color: #2271b1; }
-        .arms-btn-edit { color: #8a5300; } .arms-btn-edit:hover { background: #fff8e5; border-color: #c58200; }
-        .arms-btn-delete { color: #b32d2e; } .arms-btn-delete:hover { background: #fcf0f1; border-color: #b32d2e; }
+        .arms-actions-wrapper { display: flex; gap: 8px; align-items: center; }
+        .arms-action-btn { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            padding: 10px 15px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px; 
+            border: 1px solid #8c8f94; 
+            background: #fff; 
+            cursor: pointer; 
+            text-decoration: none; 
+            line-height: 1;
+        }
+        .arms-action-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        
+        .arms-btn-view { color: #fff;background-color: #003376} 
+        .arms-btn-view:hover { background: #2271b1; color: #fff; }
+        
+        .arms-btn-edit { color: #fff; background-color: #198754; } 
+        .arms-btn-edit:hover { background: #8a5300; color: #fff; border-color: #8a5300; }
+        
+        .arms-btn-delete { color: #fff; background-color: #b32d2e; } 
+        .arms-btn-delete:hover { background: #b32d2e; color: #fff; }
 
         .arms-pagination-nav { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
         .arms-pagination-info { color: #646970; font-size: 13px; }
@@ -120,9 +125,8 @@ function arms_patients_list_table() {
         .arms-page-link.arms-active-page { background: #2271b1; border-color: #2271b1; color: #fff; font-weight: 600; cursor: default; }
         .arms-page-link.disabled { color: #a7aaad; background: #f6f7f7; border-color: #dcdcde; cursor: not-allowed; pointer-events: none; }
 
-        /* DataTables overrides to keep style consistency with your CSS rules */
         .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_paginate, .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_info {
-            display: none !important; /* Hide native datatable search/pagination since we use your pristine custom server setup */
+            display: none !important; 
         }
         table.dataTable {
             border-collapse: collapse !important;
@@ -130,14 +134,6 @@ function arms_patients_list_table() {
     </style>
 
     <div class="arms-container">
-        <div class="arms-title-wrapper">
-            <div class="arms-title-left">
-                <h2><?php echo esc_html__('All Patients List', 'arms-textdomain'); ?></h2>
-                <a href="<?php echo esc_url($base_admin_url . '&action=add'); ?>" class="arms-btn-add-new">
-                    <?php echo esc_html__('Add New Patient', 'arms-textdomain'); ?>
-                </a>
-            </div>
-        </div>
         
         <div class="arms-filter-bar">
             <form method="GET" action="<?php echo esc_url(admin_url('admin.php')); ?>" class="arms-filters-form">
@@ -145,29 +141,18 @@ function arms_patients_list_table() {
                 <input type="hidden" name="tab" value="patients">
                 
                 <input type="text" name="arms_search" class="arms-input-search" value="<?php echo esc_attr($search_query); ?>" placeholder="<?php echo esc_attr__('Search ID, Name, Mobile...', 'arms-textdomain'); ?>">
-                
-                <select name="arms_status" class="arms-select-filter">
-                    <option value=""><?php echo esc_html__('All Statuses', 'arms-textdomain'); ?></option>
-                    <option value="Active Stay" <?php selected($status_filter, 'Active Stay'); ?>><?php echo esc_html__('Active Stay', 'arms-textdomain'); ?></option>
-                    <option value="Discharged" <?php selected($status_filter, 'Discharged'); ?>><?php echo esc_html__('Discharged', 'arms-textdomain'); ?></option>
-                </select>
-                
-                <button type="submit" class="arms-btn-filter"><?php echo esc_html__('Apply Filter', 'arms-textdomain'); ?></button>
-                <?php if (!empty($search_query) || !empty($status_filter)) : ?>
-                    <a href="<?php echo esc_url($base_admin_url); ?>" class="arms-page-link"><?php echo esc_html__('Clear', 'arms-textdomain'); ?></a>
-                <?php endif; ?>
             </form>
         </div>
 
         <table class="wp-list-table widefat fixed striped table-view-list arms-patient-table">
             <thead>
                 <tr>
-                    <th scope="col" class="sortable <?php echo ($orderby === 'id') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 10%;">
+                    <th scope="col" class="sortable <?php echo ($orderby === 'id') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 15%;">
                         <a href="<?php echo esc_url($base_admin_url . '&orderby=id&order=' . $toggle_order . $filter_url_params); ?>">
-                            <span><?php echo esc_html__('ID', 'arms-textdomain'); ?></span>
+                            <span><?php echo esc_html__('Patient ID', 'arms-textdomain'); ?></span>
                         </a>
                     </th>
-                    <th scope="col" class="sortable <?php echo ($orderby === 'name') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 18%;">
+                    <th scope="col" class="sortable <?php echo ($orderby === 'name') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 20%;">
                         <a href="<?php echo esc_url($base_admin_url . '&orderby=name&order=' . $toggle_order . $filter_url_params); ?>">
                             <span><?php echo esc_html__('Name', 'arms-textdomain'); ?></span>
                         </a>
@@ -177,62 +162,53 @@ function arms_patients_list_table() {
                             <span><?php echo esc_html__('Mobile', 'arms-textdomain'); ?></span>
                         </a>
                     </th>
-                    <th scope="col" style="width: 12%;"><?php echo esc_html__('Age / Gender', 'arms-textdomain'); ?></th>
-                    <th scope="col" style="width: 12%;"><?php echo esc_html__('Room Details', 'arms-textdomain'); ?></th>
-                    <th scope="col" style="width: 18%;"><?php echo esc_html__('Diagnosis', 'arms-textdomain'); ?></th>
-                    <th scope="col" class="sortable <?php echo ($orderby === 'admission_date') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 15%;">
+                    <th scope="col" class="sortable <?php echo ($orderby === 'admission_date') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 25%;">
                         <a href="<?php echo esc_url($base_admin_url . '&orderby=admission_date&order=' . $toggle_order . $filter_url_params); ?>">
-                            <span><?php echo esc_html__('Admission Date', 'arms-textdomain'); ?></span>
+                            <span><?php echo esc_html__('Admission Date & Time', 'arms-textdomain'); ?></span>
                         </a>
                     </th>
-                    <th scope="col" class="sortable <?php echo ($orderby === 'status') ? 'sorted ' . strtolower($order) : ''; ?>" style="width: 12%;">
-                        <a href="<?php echo esc_url($base_admin_url . '&orderby=status&order=' . $toggle_order . $filter_url_params); ?>">
-                            <span><?php echo esc_html__('Status', 'arms-textdomain'); ?></span>
-                        </a>
-                    </th>
-                    <th scope="col" style="width: 110px; text-align: left;"><?php echo esc_html__('Actions', 'arms-textdomain'); ?></th>
+                    <th scope="col" style="width: 25%; text-align: left;"><?php echo esc_html__('Actions', 'arms-textdomain'); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($patients)) : ?>
                     <?php foreach ($patients as $patient): 
-                        $status_clean = esc_attr($patient['status']);
-                        $status_class = 'arms-status-discharged';
-                        if ($status_clean === 'Active Stay') $status_class = 'arms-status-active';
-                        
                         $action_base_url = admin_url('admin.php?page=rehab_management_system&tab=patients&id=' . urlencode($patient['id']));
                         $delete_nonce = wp_create_nonce('arms_delete_patient_' . $patient['id']);
+                        
+                        // Modified key targets to map directly onto schema field: admission_date
+                        $admission_raw = !empty($patient['admission_date']) ? $patient['admission_date'] : '';
+                        $formatted_admission = !empty($admission_raw) ? date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($admission_raw)) : esc_html__('N/A', 'arms-textdomain');
                     ?>
                         <tr>
-                            <td><span class="arms-patient-id" style="font-weight: 600; color: #1d2327;">#<?php echo esc_html($patient['id']); ?></span></td>
-                            <td><strong><?php echo esc_html($patient['name']); ?></strong></td>
-                            <td><?php echo esc_html($patient['mobile']); ?></td>
-                            <td><?php echo esc_html($patient['age'] . ' Yrs / ' . $patient['gender']); ?></td>
-                            <td><?php echo esc_html($patient['room_type'] . ' (' . $patient['room_no'] . ')'); ?></td>
-                            <td><?php echo esc_html(!empty($patient['custom_diagnosis']) ? $patient['custom_diagnosis'] : wp_trim_words($patient['initial_diagnosis'], 6)); ?></td>
-                            <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($patient['admission_date']))); ?></td>
                             <td>
-                                <span class="arms-status-badge <?php echo $status_class; ?>">
-                                    <?php echo esc_html($patient['status']); ?>
+                                <span class="arms-patient-id" style="font-weight: 600; color: #1d2327;">
+                                    #ARMS-<?php echo esc_html(str_pad($patient['id'], 5, '0', STR_PAD_LEFT)); ?>
                                 </span>
                             </td>
+                            <td><strong><?php echo esc_html($patient['name']); ?></strong></td>
+                            <td><?php echo esc_html($patient['mobile']); ?></td>
+                            <td><span class="arms-admission-date" style="color: #50575e; font-size: 13px;"><?php echo esc_html($formatted_admission); ?></span></td>
                             <td>
                                 <div class="arms-actions-wrapper">
                                     <a href="<?php echo esc_url($action_base_url . '&action=view'); ?>" class="arms-action-btn arms-btn-view" title="<?php echo esc_attr__('View Patient Details', 'arms-textdomain'); ?>">
                                         <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <span><?php echo esc_html__('View', 'arms-textdomain'); ?></span>
                                     </a>
                                     <a href="<?php echo esc_url($action_base_url . '&action=edit'); ?>" class="arms-action-btn arms-btn-edit" title="<?php echo esc_attr__('Edit Patient Info', 'arms-textdomain'); ?>">
                                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                        <span><?php echo esc_html__('Edit', 'arms-textdomain'); ?></span>
                                     </a>
                                     <a href="<?php echo esc_url($action_base_url . '&action=delete&_wpnonce=' . $delete_nonce); ?>" class="arms-action-btn arms-btn-delete" title="<?php echo esc_attr__('Delete Patient', 'arms-textdomain'); ?>" onclick="return confirm('<?php echo esc_js(__('Are you sure you want to permanently delete this patient record?', 'arms-textdomain')); ?>');">
                                         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                        <span><?php echo esc_html__('Delete', 'arms-textdomain'); ?></span>
                                     </a>
                                 </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" style="text-align: center; padding: 30px; color: #646970; font-style: italic;"><?php echo esc_html__('No dynamic data found matching filter requirements.', 'arms-textdomain'); ?></td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 30px; color: #646970; font-style: italic;"><?php echo esc_html__('No dynamic data found matching filter requirements.', 'arms-textdomain'); ?></td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -268,10 +244,10 @@ function arms_patients_list_table() {
     <script type="text/javascript">
         jQuery(document).ready(function($) {
             $('.arms-patient-table').DataTable({
-                "paging": false,       // Handled by your existing PHP engine
-                "ordering": false,     // Handled by your existing PHP header links
-                "info": false,         // Handled by your existing custom pagination text
-                "searching": true,     // Keeps client-side continuous filtering active for loaded page sets
+                "paging": false,       
+                "ordering": false,     
+                "info": false,         
+                "searching": true,     
                 "responsive": true
             });
         });

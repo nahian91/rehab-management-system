@@ -184,26 +184,26 @@ function fd_add_edit_item_tab($edit_item_id = 0) {
                     </div>
 
                     <div class="afd-card">
-    <div class="afd-card-head"><h3>Configuration</h3></div>
-    <div class="afd-card-body">
-        <div style="margin-bottom: 20px;">
-            <div>
-                <label class="afd-sidebar-label">Item Code</label>
-                <input type="text" name="fd_item_code" class="afd-header-input" style="font-size:14px; padding:8px; margin:0;" value="<?php echo esc_attr($item_code_val); ?>" placeholder="E.g. FD-01">
-            </div>
-        </div>
+                        <div class="afd-card-head"><h3>Configuration</h3></div>
+                        <div class="afd-card-body">
+                            <div style="margin-bottom: 20px;">
+                                <div>
+                                    <label class="afd-sidebar-label">Item Code</label>
+                                    <input type="text" name="fd_item_code" class="afd-header-input" style="font-size:14px; padding:8px; margin:0;" value="<?php echo esc_attr($item_code_val); ?>" placeholder="E.g. FD-01">
+                                </div>
+                            </div>
 
-        <label class="afd-sidebar-label">Base Price (£)</label>
-        <input type="number" step="0.01" name="fd_item_price" class="afd-header-input" style="font-size:16px; padding:10px; margin-bottom:20px;" value="<?php echo esc_attr($price_val); ?>" placeholder="0.00">
+                            <label class="afd-sidebar-label">Base Price (£)</label>
+                            <input type="number" step="0.01" name="fd_item_price" class="afd-header-input" style="font-size:16px; padding:10px; margin-bottom:20px;" value="<?php echo esc_attr($price_val); ?>" placeholder="0.00">
 
-        <label class="afd-sidebar-label">Menu Category</label>
-        <select name="fd_item_cat" style="width:100%; height:40px; border-radius:5px; border-color:var(--afd-border);">
-            <?php foreach ($categories as $c) : ?>
-                <option value="<?php echo $c->term_id; ?>" <?php selected($cat_id, $c->term_id); ?>><?php echo $c->name; ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-</div>
+                            <label class="afd-sidebar-label">Menu Category</label>
+                            <select name="fd_item_cat" style="width:100%; height:40px; border-radius:5px; border-color:var(--afd-border);">
+                                <?php foreach ($categories as $c) : ?>
+                                    <option value="<?php echo $c->term_id; ?>" <?php selected($cat_id, $c->term_id); ?>><?php echo $c->name; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -312,3 +312,4 @@ function afd_render_row_html($data = []) {
     </div>
     <?php
 }
+?>

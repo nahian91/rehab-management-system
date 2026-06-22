@@ -390,3 +390,10 @@
 .fd-action-btn.fd-delete-btn span {
   font-size: 7px;
 }
+
+.nav-tab-active, .nav-tab-active:focus, .nav-tab-active:focus:active, .nav-tab-active:hover {
+	border-bottom: 1px solid #f0f0f1;
+	background: #003376 !important;
+	color: #fff;
+  border: 0;
+}

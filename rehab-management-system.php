@@ -66,11 +66,8 @@ function arms_admin_enqueue_assets( $hook ) {
        Styles
     ===================== */
     wp_enqueue_style( 'bootstrap', $plugin_uri . 'assets/css/bootstrap.min.css', array(), ARMS_VERSION );
-    wp_enqueue_style( 'swiper', $plugin_uri . 'assets/css/swiper-bundle.min.css', array(), ARMS_VERSION );
-    wp_enqueue_style( 'validnavs', $plugin_uri . 'assets/css/validnavs.css', array(), ARMS_VERSION );
-    wp_enqueue_style( 'helper', $plugin_uri . 'assets/css/helper.css', array(), ARMS_VERSION );
+    wp_enqueue_style( 'datatables', $plugin_uri . 'assets/css/jquery.dataTables.min.css', array(), ARMS_VERSION );
     wp_enqueue_style( 'main-style', $plugin_uri . 'assets/css/style.css', array(), ARMS_VERSION );
-    wp_enqueue_style( 'responsive-style', $plugin_uri . 'assets/css/responsive.css', array(), ARMS_VERSION );
     wp_enqueue_style( 'rehab-management-system-admin-style', $plugin_uri . 'assets/css/admin-style.css', array(), ARMS_VERSION );
 
     /* =====================
@@ -78,27 +75,8 @@ function arms_admin_enqueue_assets( $hook ) {
     ===================== */
     wp_enqueue_script( 'jquery' );
     wp_enqueue_script( 'bootstrap', $plugin_uri . 'assets/js/bootstrap.bundle.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'appear', $plugin_uri . 'assets/js/jquery.appear.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'swiper', $plugin_uri . 'assets/js/swiper-bundle.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'progress-bar', $plugin_uri . 'assets/js/progress-bar.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'wow', $plugin_uri . 'assets/js/wow.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'isotope', $plugin_uri . 'assets/js/isotope.pkgd.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'imagesloaded', $plugin_uri . 'assets/js/imagesloaded.pkgd.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'magnific-popup', $plugin_uri . 'assets/js/magnific-popup.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'count-to', $plugin_uri . 'assets/js/count-to.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'nice-select', $plugin_uri . 'assets/js/jquery.nice-select.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'ytplayer', $plugin_uri . 'assets/js/YTPlayer.min.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'loopcounter', $plugin_uri . 'assets/js/loopcounter.js', array('jquery'), ARMS_VERSION, true );
-    wp_enqueue_script( 'validnavs', $plugin_uri . 'assets/js/validnavs.js', array('jquery'), ARMS_VERSION, true );
+    wp_enqueue_script( 'datatables', $plugin_uri . 'assets/js/jquery.dataTables.min.js', array('jquery'), ARMS_VERSION, true );
     wp_enqueue_script( 'datepicker', $plugin_uri . 'assets/js/bootstrap-datepicker.js', array('jquery'), ARMS_VERSION, true );
-    
-    // GSAP Core & Plugins
-    wp_enqueue_script( 'gsap', $plugin_uri . 'assets/js/gsap.js', array(), ARMS_VERSION, true );
-    wp_enqueue_script( 'scrolltrigger', $plugin_uri . 'assets/js/ScrollTrigger.min.js', array('gsap'), ARMS_VERSION, true );
-    wp_enqueue_script( 'splittext', $plugin_uri . 'assets/js/SplitText.min.js', array('gsap'), ARMS_VERSION, true );
-    
-    // System Scripts
-    wp_enqueue_script( 'items', $plugin_uri . 'assets/js/items.js', array('jquery'), ARMS_VERSION, true );
     wp_enqueue_script( 'rehab-management-system-main', $plugin_uri . 'assets/js/main.js', array('jquery'), ARMS_VERSION, true );
     wp_enqueue_script( 'rehab-management-system-admin-script', $plugin_uri . 'assets/js/admin-script.js', array('jquery'), ARMS_VERSION, true );
 }
@@ -131,11 +109,11 @@ function arms_create_system_tables() {
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
     // Core Consolidated Inpatient Registry
-    $table_patients = $wpdb->prefix . 'arms_patients';
-   $sql_patients = "CREATE TABLE $table_patients (
+$table_patients = $wpdb->prefix . 'arms_patients';
+$sql_patients = "CREATE TABLE $table_patients (
     id bigint(20) NOT NULL AUTO_INCREMENT,
     name varchar(255) NOT NULL,
-    age int(3) UNSIGNED NOT NULL,
+    age int(3) unsigned NOT NULL,
     gender varchar(30) DEFAULT 'Male' NOT NULL,
     mobile varchar(50) NOT NULL,
     emergency_contact_name varchar(255) DEFAULT '' NOT NULL,
@@ -154,7 +132,9 @@ function arms_create_system_tables() {
     PRIMARY KEY  (id),
     KEY status_idx (status)
 ) $charset_collate;";
-    dbDelta( $sql_patients );
+
+require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+dbDelta( $sql_patients );
 
     // Clinical HR Registry & Profile Desk
     $table_staff = $wpdb->prefix . 'arms_staff';
@@ -403,7 +383,7 @@ function arms_main_router_page() {
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4zM160 48h48v48h-48V48zm128 336H160v-48h128v48z"/></svg>',
             'roles' => array('admin_manager', 'doctor', 'physiotherapist', 'nurse')
         ),
-        'admission' => array(
+        'opd' => array(
             'label' => 'OPD Billing',
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M436 160H12c-6.6 0-12-5.4-12-12v-36c0-26.5 21.5-48 48-48h48V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h128V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h48c26.5 0 48 21.5 48 48v36c0 6.6-5.4 12-12 12zM0 192v272c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V192H0zm308 176c0 4.4-3.6 8-8 8h-48v48c0 4.4-3.6 8-8 8h-40c-4.4 0-8-3.6-8-8v-48h-48c-4.4 0-8-3.6-8-8v-40c0-4.4 3.6-8 8-8h48v-48c0-4.4 3.6-8 8-8h40c4.4 0 8 3.6 8 8v48h48c4.4 0 8 3.6 8 8v40z"/></svg>',
             'roles' => array('admin_manager', 'doctor')
@@ -617,6 +597,9 @@ function arms_main_router_page() {
                     break;
                 case 'staff':
                     if ( function_exists( 'arms_staff_tab' ) ) { arms_staff_tab(); }
+                    break;
+                case 'opd':
+                    if ( function_exists( 'arms_opd_tab' ) ) { arms_opd_tab(); }
                     break;
             }
             ?>

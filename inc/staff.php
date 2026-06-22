@@ -120,7 +120,35 @@ function arms_staff_tab() {
 
         <?php
         /* =========================================================================
-           3. ROUTER MAP LOADERS
+           3. EXTRACT MEDICAL PRACTITIONERS & CALCULATE CONSULTATION FEES
+           ========================================================================= */
+        // Pull all active medical practitioners to identify Doctors and Physiotherapists
+        $all_active_staff = $wpdb->get_results( "SELECT id, first_name, last_name, role_category, salary FROM $table_staff WHERE status = 'active'" );
+        $medical_practitioners = array();
+
+        if ( ! empty( $all_active_staff ) ) {
+            foreach ( $all_active_staff as $member ) {
+                $role_lower = strtolower( $member->role_category );
+                
+                // Isolate Doctors, Physios, and Therapists
+                if ( strpos( $role_lower, 'doc' ) !== false || strpos( $role_lower, 'physio' ) !== false || strpos( $role_lower, 'therapist' ) !== false ) {
+                    
+                    // Dynamic Fallback Fee Field Rule: Calculate base visit fee using 1.5% of salary metric
+                    $calculated_fee = ( floatval( $member->salary ) > 0 ) ? round( floatval( $member->salary ) * 0.015 ) : 1000;
+                    if ( $calculated_fee < 500 ) { $calculated_fee = 500; } // Floor baseline
+
+                    $medical_practitioners[] = array(
+                        'name' => 'Dr./Pt. ' . $member->first_name . ' ' . $member->last_name,
+                        'role' => $member->role_category,
+                        'fee'  => $calculated_fee . ' BDT'
+                    );
+                }
+            }
+        }
+
+        
+        /* =========================================================================
+           4. ROUTER MAP LOADERS
            ========================================================================= */
         switch ( $current_sub ) {
             case 'add':
