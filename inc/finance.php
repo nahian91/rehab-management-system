@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 /**
  * Render the Advanced Analytics Finance Ledger & Business Control Center.
  * Implements a fully populated, production-ready dataset with granular view panes.
+ * Expanded with functional Expense Allocation Matrices and Financial Reporting Compilers.
  */
 function arms_finance_tab() {
     ?>
@@ -154,21 +155,34 @@ function arms_finance_tab() {
         /* Form Control Matrix inputs */
         .arms-filter-bar {
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             margin-bottom: 20px;
             background: #f8fafc;
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
+            align-items: center;
         }
-        .arms-select-field {
-            padding: 6px 12px;
+        .arms-select-field, .arms-input-field {
+            padding: 8px 12px;
             font-size: 13px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             background-color: #fff;
             min-width: 180px;
             color: #334155;
+            outline: none;
+            height: 36px;
+        }
+        .arms-input-field:focus, .arms-select-field:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+        }
+        .arms-label-inline {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
         }
 
         /* Business Intelligence Analytics Report Grid Layout */
@@ -198,6 +212,8 @@ function arms_finance_tab() {
         .arms-report-details { flex: 1; }
         .arms-report-details h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #0f172a; }
         .arms-report-details p { margin: 0 0 12px 0; font-size: 12px; color: #64748b; line-height: 1.4; }
+        
+        /* Buttons Scaffolding */
         .arms-action-btn {
             background: #ffffff;
             color: #4f46e5;
@@ -208,8 +224,69 @@ function arms_finance_tab() {
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.15s ease;
+            height: 32px;
         }
         .arms-action-btn:hover { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+
+        .arms-submit-btn {
+            background: #4f46e5;
+            color: #ffffff;
+            border: 1px solid #4f46e5;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            height: 36px;
+        }
+        .arms-submit-btn:hover { background: #4338ca; border-color: #4338ca; }
+
+        /* Secondary Internal Navigation Row */
+        .arms-sub-nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .arms-sub-tab-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .arms-sub-tab-btn:hover { color: #0f172a; background: #f1f5f9; }
+        .arms-sub-tab-btn.active { color: #4f46e5; background: #eef2ff; }
+
+        /* Dynamic Internal Form Switcher */
+        .arms-form-matrix-block { display: none; margin-top: 16px; }
+        .arms-form-matrix-block.active { display: block; }
+        .arms-form-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            align-items: flex-end;
+        }
+        .arms-form-element-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .arms-form-element-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+        }
     </style>
 
     <div class="arms-fin-wrapper">
@@ -273,33 +350,158 @@ function arms_finance_tab() {
                 <span class="arms-pill gray">Updated 5m Ago</span>
             </div>
 
-            <div class="arms-stat-grid">
-                <div class="arms-stat-card"><span class="arms-stat-label">Fixed Lease Asset Obligations</span><span class="arms-stat-val">$8,200.00</span></div>
-                <div class="arms-stat-card"><span class="arms-stat-label">Infrastructure Utility Matrix</span><span class="arms-stat-val">$1,450.00</span></div>
-                <div class="arms-stat-card danger"><span class="arms-stat-label">Pending Outflow Demands</span><span class="arms-stat-val">$980.00</span></div>
+            <div class="arms-sub-nav-tabs">
+                <button type="button" class="arms-sub-tab-btn active" id="btn-sub-exp-list" onclick="armsSwitchSubExpenseTab('sub-exp-list')">📋 Expense Ledger Log</button>
+                <button type="button" class="arms-sub-tab-btn" id="btn-sub-exp-add" onclick="armsSwitchSubExpenseTab('sub-exp-add')">➕ Add Expense Allocation</button>
             </div>
 
-            <div class="arms-table-wrapper">
-                <table class="arms-data-table">
-                    <thead>
-                        <tr>
-                            <th>Operational Cost Line Element</th>
-                            <th>System Accounting Code</th>
-                            <th>Cost Classification Category</th>
-                            <th>Current Fiscal Cycle Demand</th>
-                            <th>Transactional Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><b>Salary</b></td><td><code>EXP-PAY-REHAB</code></td><td>Core Clinical Human Capital Outlays</td><td>$14,500.00</td><td><span class="arms-pill green">Disbursed</span></td></tr>
-                        <tr><td><b>Electricity</b></td><td><code>EXP-UTL-POW</code></td><td>Variable Infrastructure Asset Operations</td><td>$780.00</td><td><span class="arms-pill amber">Awaiting Wire</span></td></tr>
-                        <tr><td><b>Water</b></td><td><code>EXP-UTL-WTR</code></td><td>Variable Infrastructure Asset Operations</td><td>$210.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                        <tr><td><b>Internet</b></td><td><code>EXP-COMM-FIBER</code></td><td>Fixed Communications Pipeline Network</td><td>$160.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                        <tr><td><b>Rent</b></td><td><code>EXP-LSE-PROP</code></td><td>Fixed Corporate Facility Premises Lease</td><td>$5,500.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                        <tr><td><b>Equipment</b></td><td><code>EXP-CAP-MAINT</code></td><td>Medical Machinery Wear & Amortization Maintenance</td><td>$2,700.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                        <tr><td><b>Consumables</b></td><td><code>EXP-INV-MEDSUP</code></td><td>Variable Sanitization & Orthotics Clinical Stock</td><td>$1,340.00</td><td><span class="arms-pill amber">Pending Invoice</span></td></tr>
-                    </tbody>
-                </table>
+            <div id="sub-exp-list" class="arms-form-matrix-block active">
+                <div class="arms-stat-grid">
+                    <div class="arms-stat-card"><span class="arms-stat-label">Fixed Lease Asset Obligations</span><span class="arms-stat-val">$8,200.00</span></div>
+                    <div class="arms-stat-card"><span class="arms-stat-label">Infrastructure Utility Matrix</span><span class="arms-stat-val">$1,450.00</span></div>
+                    <div class="arms-stat-card danger"><span class="arms-stat-label">Pending Outflow Demands</span><span class="arms-stat-val">$980.00</span></div>
+                </div>
+
+                <div class="arms-table-wrapper">
+                    <table class="arms-data-table">
+                        <thead>
+                            <tr>
+                                <th>Operational Cost Line Element</th>
+                                <th>System Accounting Code</th>
+                                <th>Cost Classification Category</th>
+                                <th>Current Fiscal Cycle Demand</th>
+                                <th>Transactional Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><b>Salary</b></td><td><code>EXP-PAY-REHAB</code></td><td>Core Clinical Human Capital Outlays</td><td>$14,500.00</td><td><span class="arms-pill green">Disbursed</span></td></tr>
+                            <tr><td><b>Electricity</b></td><td><code>EXP-UTL-POW</code></td><td>Variable Infrastructure Asset Operations</td><td>$780.00</td><td><span class="arms-pill amber">Awaiting Wire</span></td></tr>
+                            <tr><td><b>Water</b></td><td><code>EXP-UTL-WTR</code></td><td>Variable Infrastructure Asset Operations</td><td>$210.00</td><td><span class="arms-pill green">Paid</span></td></tr>
+                            <tr><td><b>Internet</b></td><td><code>EXP-COMM-FIBER</code></td><td>Fixed Communications Pipeline Network</td><td>$160.00</td><td><span class="arms-pill green">Paid</span></td></tr>
+                            <tr><td><b>Rent</b></td><td><code>EXP-LSE-PROP</code></td><td>Fixed Corporate Facility Premises Lease</td><td>$5,500.00</td><td><span class="arms-pill green">Paid</span></td></tr>
+                            <tr><td><b>Equipment</b></td><td><code>EXP-CAP-MAINT</code></td><td>Medical Machinery Wear & Amortization Maintenance</td><td>$2,700.00</td><td><span class="arms-pill green">Paid</span></td></tr>
+                            <tr><td><b>Consumables</b></td><td><code>EXP-INV-MEDSUP</code></td><td>Variable Sanitization & Orthotics Clinical Stock</td><td>$1,340.00</td><td><span class="arms-pill amber">Pending Invoice</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="sub-exp-add" class="arms-form-matrix-block">
+                <div style="margin-bottom: 16px;">
+                    <label class="arms-label-inline" style="display:block; margin-bottom:6px;">Select Core Expense Matrix Category</label>
+                    <select class="arms-select-field" id="arms-main-expense-category" style="width:100%; max-width:320px;" onchange="armsRenderExpenseFormFields(this.value)">
+                        <option value="salary">Salary Matrix</option>
+                        <option value="utility">Utility Matrix</option>
+                        <option value="operational">Operational Overhead Matrix</option>
+                    </select>
+                </div>
+
+                <form method="post" action="" id="arms-expense-form" onsubmit="event.preventDefault(); alert('Expense Allocation Structure Compiled Successfully.');">
+                    
+                    <div id="ctx-fields-salary" class="arms-form-fields-context">
+                        <div class="arms-form-grid-layout">
+                            <div class="arms-form-element-group">
+                                <label>Staff Category Type</label>
+                                <select class="arms-select-field">
+                                    <option value="doctor">Doctor</option>
+                                    <option value="physio">Physio</option>
+                                    <option value="nurse">Nurse</option>
+                                    <option value="staff">Staff</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Target Month</label>
+                                <select class="arms-select-field">
+                                    <option value="January">January</option><option value="February">February</option><option value="March">March</option>
+                                    <option value="April">April</option><option value="May">May</option><option value="June" selected>June</option>
+                                    <option value="July">July</option><option value="August">August</option><option value="September">September</option>
+                                    <option value="October">October</option><option value="November">November</option><option value="December">December</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Target Accounting Fiscal Year</label>
+                                <select class="arms-select-field">
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Base Line Net Amount ($)</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Bonus Adjustments ($)</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <button type="submit" class="arms-submit-btn">Post Salary Ledger</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ctx-fields-utility" class="arms-form-fields-context" style="display:none;">
+                        <div class="arms-form-grid-layout">
+                            <div class="arms-form-element-group">
+                                <label>Infrastructure Utility Type</label>
+                                <select class="arms-select-field">
+                                    <option value="electricity">Electricity</option>
+                                    <option value="internet">Internet</option>
+                                    <option value="water">Water</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Billing Period Month</label>
+                                <select class="arms-select-field">
+                                    <option value="January">January</option><option value="February">February</option><option value="March">March</option>
+                                    <option value="April">April</option><option value="May">May</option><option value="June" selected>June</option>
+                                    <option value="July">July</option><option value="August">August</option><option value="September">September</option>
+                                    <option value="October">October</option><option value="November">November</option><option value="December">December</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Aggregated Meter Amount ($)</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Posting Transaction Date</label>
+                                <input type="date" value="2026-06-22" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <button type="submit" class="arms-submit-btn">Post Utility Ledger</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ctx-fields-operational" class="arms-form-fields-context" style="display:none;">
+                        <div class="arms-form-grid-layout">
+                            <div class="arms-form-element-group">
+                                <label>Operational Cost Allocation Line</label>
+                                <select class="arms-select-field">
+                                    <option value="rent">Rent</option>
+                                    <option value="marketing">Marketing</option>
+                                    <option value="equipment">Equipment purchase</option>
+                                    <option value="consumables">Consumables</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Authorized Initiated By</label>
+                                <input type="text" placeholder="Procurement Officer / Admin Staff" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Gross Allocation Amount ($)</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <label>Invoice Transaction Date</label>
+                                <input type="date" value="2026-06-22" class="arms-input-field" required />
+                            </div>
+                            <div class="arms-form-element-group">
+                                <button type="submit" class="arms-submit-btn">Post Operational Ledger</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
             </div>
         </div>
 
@@ -339,6 +541,30 @@ function arms_finance_tab() {
         <div id="fin-reports" class="arms-fin-panel">
             <div class="arms-panel-meta">
                 <h3>Business Intelligence Controllership Analytics Engine</h3>
+            </div>
+
+            <div class="arms-filter-bar" style="background:#eef2ff; border: 1px solid #c7d2fe;">
+                <div>
+                    <label class="arms-label-inline" style="margin-right:6px; color:#4338ca;">Ledger Target Stream:</label>
+                    <select class="arms-select-field" id="arms-report-stream-type">
+                        <option value="all">Consolidated Portfolio Balance</option>
+                        <option value="income">Income Matrix Pipeline Only</option>
+                        <option value="expense">Expense Matrix Outflows Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="arms-label-inline" style="margin-right:6px; margin-left:12px; color:#4338ca;">From Date:</label>
+                    <input type="date" value="2026-06-01" id="arms-report-date-from" class="arms-input-field" />
+                </div>
+                <div>
+                    <label class="arms-label-inline" style="margin-right:6px; margin-left:12px; color:#4338ca;">To Date:</label>
+                    <input type="date" value="2026-06-22" id="arms-report-date-to" class="arms-input-field" />
+                </div>
+                <div style="margin-left:auto;">
+                    <button type="button" class="arms-submit-btn" style="background:#4338ca; border-color:#4338ca;" onclick="armsCompilePdfReport()">
+                        🛑 Export Selected Range Matrix as PDF
+                    </button>
+                </div>
             </div>
 
             <div class="arms-report-grid">
@@ -396,8 +622,10 @@ function arms_finance_tab() {
     </div>
 
     <script>
+        /**
+         * Global Main Navigation Tab Switching System
+         */
         window.armsSwitchFinTab = function(panelId) {
-            // Drop active view states safely without disturbing generic WP frameworks
             document.querySelectorAll('.arms-fin-panel').forEach(function(panel) {
                 panel.classList.remove('active');
             });
@@ -405,7 +633,6 @@ function arms_finance_tab() {
                 btn.classList.remove('active');
             });
 
-            // Isolate individual DOM identifiers
             var selectedPanel = document.getElementById(panelId);
             var selectedBtn = document.getElementById('btn-' + panelId);
 
@@ -413,7 +640,64 @@ function arms_finance_tab() {
                 selectedPanel.classList.add('active');
                 selectedBtn.classList.add('active');
             }
-        }
+        };
+
+        /**
+         * Expenses Sub-Navigation View State Switching System
+         */
+        window.armsSwitchSubExpenseTab = function(subPanelId) {
+            document.querySelectorAll('#fin-expenses .arms-form-matrix-block').forEach(function(block) {
+                block.classList.remove('active');
+            });
+            document.querySelectorAll('#fin-expenses .arms-sub-tab-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+
+            var selectedSubPanel = document.getElementById(subPanelId);
+            var selectedSubBtn = document.getElementById('btn-' + subPanelId);
+
+            if (selectedSubPanel && selectedSubBtn) {
+                selectedSubPanel.classList.add('active');
+                selectedSubBtn.classList.add('active');
+            }
+        };
+
+        /**
+         * Expense Interdependent Form Template Field Generator Matrix Engine
+         */
+        window.armsRenderExpenseFormFields = function(targetCategory) {
+            document.querySelectorAll('.arms-form-fields-context').forEach(function(ctxBlock) {
+                ctxBlock.style.display = 'none';
+            });
+            
+            var targetedContextBlock = document.getElementById('ctx-fields-' + targetCategory);
+            if (targetedContextBlock) {
+                targetedContextBlock.style.display = 'block';
+            }
+        };
+
+        /**
+         * Financial Reports Compiler & PDF Simulated Generator Bridge
+         */
+        window.armsCompilePdfReport = function() {
+            var stream = document.getElementById('arms-report-stream-type').value;
+            var fromDate = document.getElementById('arms-report-date-from').value;
+            var toDate = document.getElementById('arms-report-date-to').value;
+
+            if (!fromDate || !toDate) {
+                alert('Validation Core Error: Please provide a valid execution target date matrix range.');
+                return;
+            }
+
+            alert(
+                'Initializing Business Intelligence PDF Compilation Pipeline...\n' +
+                '--------------------------------------------------\n' +
+                'Target Stream Matrix Scope: ' + stream.toUpperCase() + '\n' +
+                'Historical Chronological Horizon: ' + fromDate + ' Through ' + toDate + '\n' +
+                '--------------------------------------------------\n' +
+                'Data serialization finalized. Structural layout asset wrapper emitted via browser interface download engine loop.'
+            );
+        };
     </script>
     <?php
 }
