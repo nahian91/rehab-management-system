@@ -175,6 +175,24 @@ function arms_create_system_tables() {
     ) $charset_collate;";
     dbDelta( $sql_staff );
 
+    // Physiotherapy Rehabilitation & Session Tracking logs
+    $table_physio = $wpdb->prefix . 'arms_physio_logs';
+    $sql_physio = "CREATE TABLE $table_physio (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        patient_id bigint(20) NOT NULL,
+        log_date date NOT NULL,
+        initial_assessment longtext DEFAULT NULL,
+        rehab_goals longtext DEFAULT NULL,
+        daily_plan longtext DEFAULT NULL,
+        sessions_completed int(11) DEFAULT '0' NOT NULL,
+        sessions_remaining int(11) DEFAULT '0' NOT NULL,
+        progress_notes longtext DEFAULT NULL,
+        created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        PRIMARY KEY  (id),
+        KEY patient_log_idx (patient_id, log_date)
+    ) $charset_collate;";
+    dbDelta( $sql_physio );
+
     // Nursing Care & Clinical Logs
     $table_nursing = $wpdb->prefix . 'arms_nursing_logs';
     $sql_nursing = "CREATE TABLE $table_nursing (
@@ -478,8 +496,8 @@ function arms_main_router_page() {
                     }
                     break;
                 case 'physiotherapy':
-                    if ( function_exists( 'arms_render_physiotherapy_module' ) ) {
-                        arms_render_physiotherapy_module();
+                    if ( function_exists( 'arms_physiotherapy_tab' ) ) {
+                        arms_physiotherapy_tab();
                     }
                     break;
                 case 'nursing':
