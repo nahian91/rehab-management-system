@@ -115,7 +115,7 @@ function fd_add_edit_item_tab($edit_item_id = 0) {
         .afd-repeater-row input { border: 1px solid #ddd; padding: 8px; border-radius: 4px; font-size: 14px; }
         .btn-remove-row { color: #d63638; cursor: pointer; font-size: 18px; text-align: center; opacity: 0.6; transition: 0.2s; }
         .btn-remove-row:hover { opacity: 1; transform: scale(1.1); }
-        .btn-add-row { background: #2271b1; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .btn-add-row { background: #003376; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
 
         /* Sidebar UI */
         .afd-sidebar-label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px; color: #50575e; }

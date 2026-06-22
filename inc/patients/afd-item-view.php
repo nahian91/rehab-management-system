@@ -146,7 +146,7 @@ function arms_view_patient_profile($item_id) {
         .arms-p-btn { padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: none; }
         .btn-p-sec { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
         .btn-p-sec:hover { background: #f8fafc; color: #0f172a; }
-        .btn-p-prime { background: #4f46e5; color: #ffffff; }
+        .btn-p-prime { background: #003376; color: #ffffff; }
         .btn-p-prime:hover { background: #4338ca; }
 
         /* Print profile settings fallback override rules */

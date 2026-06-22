@@ -336,19 +336,19 @@ function arms_dashboard_tab() {
 
     <div class="arms-dashboard-wrapper">
         
-        <div class="arms-header-block">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <img src="<?php echo esc_url( get_template_directory_uri() . '/assets/images/logo.png' ); ?>" 
-             alt="System Logo" style="height: 60px; width: auto;">
+        <div class="arms-header-block" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="arms-header-logo">
+            <img src="<?php echo esc_url( plugins_url( 'img/logo.png', __FILE__ ) ); ?>" 
+                 alt="System Logo" style="height: 60px; width: auto; display: block;">
+        </div>
         
         <div>
-            <h1 style="margin: 0;"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
-            <p style="margin: 0; color: var(--arms-muted); font-size: 13px;">
-                <?php echo esc_html( get_bloginfo( 'description' ) ); ?>
-            </p>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #1d2327;">Real-Time Operations Monitor</h1>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #646970;">Live framework tracking architectural patients data flow, active occupancy arrays, and system accounting ledgers.</p>
         </div>
     </div>
-    
+
     <div class="arms-live-timer-container">
         <div><span class="dashicons dashicons-calendar-alt" style="font-size:16px; vertical-align:middle;"></span> <?php echo date( 'l, jS F Y' ); ?></div>
         <div class="arms-ticker-digits">

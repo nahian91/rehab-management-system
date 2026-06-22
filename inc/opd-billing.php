@@ -70,7 +70,7 @@ function arms_opd_tab() {
         
         .arms-input, .arms-select, .arms-textarea { width: 100%; height: 36px; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; background-color: #fff; font-size: 14px; color: #2c3338; }
         .arms-textarea { height: 70px; resize: vertical; }
-        .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: 2px solid transparent; }
+        .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #003376; box-shadow: 0 0 0 1px #003376; outline: 2px solid transparent; }
 
         .arms-services-list { border: 1px solid #dcdcde; border-radius: 4px; padding: 12px; max-height: 220px; overflow-y: auto; background: #f6f7f7; }
         .arms-service-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e5e5e5; }
@@ -90,7 +90,7 @@ function arms_opd_tab() {
         .receipt-item-line { display: grid; grid-template-columns: 3fr 1fr; gap: 5px; margin-bottom: 4px; }
         .receipt-val-right { text-align: right; }
         
-        .arms-print-action-btn { width: 100%; height: 40px; margin-top: 15px; background: #2271b1; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 1px 0 #0a4b78; }
+        .arms-print-action-btn { width: 100%; height: 40px; margin-top: 15px; background: #003376; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 1px 0 #0a4b78; }
         .arms-print-action-btn:hover { background: #135e96; border-color: #0a4b78; color: #fff; }
         .arms-print-action-btn svg { width: 16px; height: 16px; fill: currentColor; }
 
@@ -167,7 +167,7 @@ function arms_opd_tab() {
             <div class="arms-opd-form-panel">
                 <form id="arms-opd-billing-form" onsubmit="return false;" autocomplete="off">
                     
-                    <h3 style="margin-top:0; border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#2271b1; font-weight:500; font-size:16px;"><?php echo esc_html__('Patient Demographics & Practitioner Selection', 'arms-textdomain'); ?></h3>
+                    <h3 style="margin-top:0; border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#003376; font-weight:500; font-size:16px;"><?php echo esc_html__('Patient Demographics & Practitioner Selection', 'arms-textdomain'); ?></h3>
                     
                     <div class="arms-form-row" style="grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="arms-form-group">
@@ -208,7 +208,7 @@ function arms_opd_tab() {
                         <textarea id="patient_address" class="arms-textarea" placeholder="Patient residential address..."></textarea>
                     </div>
 
-                    <h3 style="border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#2271b1; margin-top:25px; font-weight:500; font-size:16px;"><?php echo esc_html__('Services & Interventions', 'arms-textdomain'); ?></h3>
+                    <h3 style="border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#003376; margin-top:25px; font-weight:500; font-size:16px;"><?php echo esc_html__('Services & Interventions', 'arms-textdomain'); ?></h3>
                     
                     <div class="arms-form-group">
                         <div class="arms-services-list">
@@ -226,7 +226,7 @@ function arms_opd_tab() {
                         </div>
                     </div>
 
-                    <h3 style="border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#2271b1; margin-top:25px; font-weight:500; font-size:16px;"><?php echo esc_html__('Billing & Settlement', 'arms-textdomain'); ?></h3>
+                    <h3 style="border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#003376; margin-top:25px; font-weight:500; font-size:16px;"><?php echo esc_html__('Billing & Settlement', 'arms-textdomain'); ?></h3>
                     
                     <div class="arms-form-row" style="grid-template-columns: 1fr 1fr;">
                         <div class="arms-form-group">
@@ -248,9 +248,9 @@ function arms_opd_tab() {
             <div class="arms-opd-preview-panel">
                 <div id="arms-receipt-print-target" class="receipt-ticket-box">
                     <div class="receipt-center">
-                        <h4 class="receipt-header-title">REHAB CARE NETWORK</h4>
-                        <div>122/A Bluecrest Medical Strip, Dhaka</div>
-                        <div>Hotline: +880-1700-000000</div>
+                        <h4 class="receipt-header-title">Advanced Rehab & Wellness</h4>
+                        <div> Garden Tower, Shahjalal Uposhahar, Sylhet</div>
+                        <div>Hotline: +880 13 2476 3317</div>
                         <div style="font-weight: bold; margin-top: 4px; text-transform: uppercase; letter-spacing: 0px;">OPD CASH RECEIPT</div>
                     </div>
 

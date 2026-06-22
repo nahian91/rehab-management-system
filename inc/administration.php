@@ -361,7 +361,7 @@ function fd_settings_tab() {
         .currency-input input { width: 100%; padding: 8px 8px 8px 28px; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; }
         label { display: block; font-weight: 600; color: #1e293b; margin-bottom: 5px; font-size: 13px; }
         textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; font-size: 13px; resize: none; transition: 0.2s; }
-        .afd-save-button { width: 100%; padding: 14px; background: #2271b1; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .afd-save-button { width: 100%; padding: 14px; background: #003376; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
         .afd-save-button:hover { background: #135e96; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34, 113, 177, 0.2); }
         @media (max-width: 850px) { .afd-grid { grid-template-columns: 1fr; } }
     </style>

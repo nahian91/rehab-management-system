@@ -101,7 +101,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
             background: #f1f5f9;
         }
         .arms-nav-btn.active {
-            color: #4f46e5;
+            color: #003376;
             background: #ffffff;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
@@ -150,7 +150,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
         }
         .arms-input:focus, .arms-select:focus, .arms-textarea:focus {
             background: #ffffff;
-            border-color: #4f46e5;
+            border-color: #003376;
             outline: none;
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
         }
@@ -173,7 +173,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
             grid-column: span 12;
             font-size: 14px;
             font-weight: 700;
-            color: #4f46e5;
+            color: #003376;
             margin: 10px 0 0 0;
             border-bottom: 1px dashed #e2e8f0;
             padding-bottom: 6px;
@@ -227,7 +227,7 @@ function arms_add_edit_admission_form( $patient_id = 0 ) {
             text-decoration: none;
             border: none;
         }
-        .btn-primary { background: #4f46e5; color: #ffffff; }
+        .btn-primary { background: #003376; color: #ffffff; }
         .btn-primary:hover { background: #4338ca; }
         .btn-secondary { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
         .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }

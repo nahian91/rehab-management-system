@@ -588,7 +588,6 @@ function arms_inventory_form_view( $item_id = 0 ) {
 # 5. Fallback Structural Automation & Data Seeding System
 --------------------------------------------------------------*/
 function arms_seed_static_inventory_data_fallback() {
-    // All static dummy data array definitions completely dropped.
-    // System initializes purely clear, relying entirely on direct post user inputs.
+
     return;
 }

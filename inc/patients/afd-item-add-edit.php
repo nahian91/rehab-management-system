@@ -77,8 +77,8 @@ function arms_add_edit_patient_form( $patient_id = 0 ) {
         .arms-form-container input:focus, 
         .arms-form-container select:focus, 
         .arms-form-container textarea:focus {
-            border-color: #2271b1;
-            box-shadow: 0 0 0 1px #2271b1;
+            border-color: #003376;
+            box-shadow: 0 0 0 1px #003376;
         }
         .arms-id-display-box {
             background: #f8fafc;

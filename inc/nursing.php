@@ -103,7 +103,7 @@ function arms_nursing_tab() {
         .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px !important; font-weight: 500; }
 
         .arms-submit-btn { background: #6366f1; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; margin-top: 20px; }
-        .arms-submit-btn:hover { background: #4f46e5; }
+        .arms-submit-btn:hover { background: #003376; }
         
         .arms-repeater-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .arms-repeater-table th { background: #f1f5f9; padding: 8px 12px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; border: 1px solid #e2e8f0; }
@@ -220,7 +220,7 @@ function arms_nursing_tab() {
                         </div>
                     </div>
 
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 20px;">
+                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #003376; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 20px;">
                         Patient Facility Location assignment
                     </h4>
                     <div class="arms-form-grid">
@@ -255,7 +255,7 @@ function arms_nursing_tab() {
                         </div>
                     </div>
 
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 30px;">
+                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #003376; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 30px;">
                         <span>Active Patient Vitals Tracking Grid</span>
                         <button type="button" class="repeater-add-btn" id="armsAddVitalsRow">+ Add Vitals Check Entry</button>
                     </h4>

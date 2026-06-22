@@ -40,7 +40,7 @@ function arms_ajax_save_expense_data() {
     
     // Safe evaluation matching DEFAULT '1970-01-01' NOT NULL schema logic
     if (empty($transaction_date) || !strtotime($transaction_date)) {
-        $transaction_date = '1970-01-01';
+        $transaction_date = current_time('Y-m-d');
     }
 
     global $wpdb;
@@ -59,7 +59,7 @@ function arms_ajax_save_expense_data() {
             'total_amount'      => $total_amount,
             'authorized_by'     => !empty($authorized_by) ? $authorized_by : '',
             'transaction_date'  => $transaction_date,
-            'notes'             => null, // schema configured with text DEFAULT NULL
+            'notes'             => null, 
             'created_by'        => intval(get_current_user_id()),
             'created_at'        => current_time('mysql')
         ),
@@ -94,7 +94,33 @@ function arms_ajax_save_expense_data() {
  * Render the Advanced Analytics Finance Ledger & Business Control Center.
  */
 function arms_finance_tab() {
+    global $wpdb;
+    $table_expenses = $wpdb->prefix . 'arms_expenses';
     $security_nonce = wp_create_nonce('arms_finance_secure_nonce');
+
+    // Fetch live entries from the database
+    $expenses_log = array();
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_expenses'") === $table_expenses) {
+        $expenses_log = $wpdb->get_results("SELECT * FROM $table_expenses ORDER BY id DESC", ARRAY_A);
+    }
+
+    // Dynamic Aggregations from live table records
+    $fixed_lease_total = 0;
+    $utility_matrix_total = 0;
+    $pending_outflow_total = 0;
+
+    if (!empty($expenses_log)) {
+        foreach ($expenses_log as $row) {
+            $amt = floatval($row['total_amount']);
+            if ($row['expense_category'] === 'operational' && $row['expense_type'] === 'rent') {
+                $fixed_lease_total += $amt;
+            } elseif ($row['expense_category'] === 'utility') {
+                $utility_matrix_total += $amt;
+            } else {
+                $pending_outflow_total += $amt;
+            }
+        }
+    }
     ?>
     <style>
         /* Modernized Dashboard Scaffolding */
@@ -110,27 +136,6 @@ function arms_finance_tab() {
             box-sizing: border-box;
         }
         .arms-fin-wrapper * { box-sizing: border-box; }
-
-        /* Module Header Section */
-        .arms-fin-main-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 20px;
-            margin-bottom: 24px;
-        }
-        .arms-fin-title h2 {
-            margin: 0 0 4px 0;
-            font-size: 22px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .arms-fin-title p {
-            margin: 0;
-            font-size: 13px;
-            color: #64748b;
-        }
 
         /* Top Navigation pill strip */
         .arms-fin-nav {
@@ -158,7 +163,7 @@ function arms_finance_tab() {
             transition: all 0.2s ease;
         }
         .arms-fin-btn:hover { color: #0f172a; background: #e2e8f0; }
-        .arms-fin-btn.active { color: #4f46e5; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .arms-fin-btn.active { color: #003376; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
 
         /* Dynamic Panes Switch */
         .arms-fin-panel { display: none; animation: armsFinFadeIn 0.25s ease-out; }
@@ -192,7 +197,7 @@ function arms_finance_tab() {
         }
         .arms-stat-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
         .arms-stat-val { font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 6px; }
-        .arms-stat-card.accent { border-left: 4px solid #4f46e5; background: #f8fafc; }
+        .arms-stat-card.accent { border-left: 4px solid #003376; background: #f8fafc; }
         .arms-stat-card.success { border-left: 4px solid #10b981; }
         .arms-stat-card.danger { border-left: 4px solid #ef4444; }
 
@@ -252,7 +257,7 @@ function arms_finance_tab() {
             height: 36px;
         }
         .arms-input-field:focus, .arms-select-field:focus {
-            border-color: #4f46e5;
+            border-color: #003376;
             box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
         }
         .arms-label-inline {
@@ -262,9 +267,9 @@ function arms_finance_tab() {
         }
         
         .arms-submit-btn {
-            background: #4f46e5;
+            background: #003376;
             color: #ffffff;
-            border: 1px solid #4f46e5;
+            border: 1px solid #003376;
             padding: 8px 16px;
             font-size: 13px;
             font-weight: 600;
@@ -296,7 +301,7 @@ function arms_finance_tab() {
             transition: all 0.2s ease;
         }
         .arms-sub-tab-btn:hover { color: #0f172a; background: #f1f5f9; }
-        .arms-sub-tab-btn.active { color: #4f46e5; background: #eef2ff; }
+        .arms-sub-tab-btn.active { color: #003376; background: #eef2ff; }
 
         /* Dynamic Internal Form Switcher */
         .arms-form-matrix-block { display: none; margin-top: 16px; }
@@ -324,16 +329,6 @@ function arms_finance_tab() {
     </style>
 
     <div class="arms-fin-wrapper">
-        
-        <div class="arms-fin-main-header">
-            <div class="arms-fin-title">
-                <h2>Financial Operations Ledger</h2>
-                <p>Comprehensive ecosystem balance controller, revenue audits, expenditures tracking, and corporate payroll metrics.</p>
-            </div>
-            <div>
-                <span class="arms-pill blue" style="padding:6px 12px; font-size:12px;">Fiscal Year 2026 Active</span>
-            </div>
-        </div>
 
         <div class="arms-fin-nav">
             <button type="button" class="arms-fin-btn active" id="btn-fin-income" onclick="armsSwitchFinTab('fin-income')">💵 Income</button>
@@ -347,10 +342,10 @@ function arms_finance_tab() {
             </div>
 
             <div class="arms-stat-grid">
-                <div class="arms-stat-card accent"><span class="arms-stat-label">Clinical Core Stream</span><span class="arms-stat-val">$24,950.00</span></div>
-                <div class="arms-stat-card"><span class="arms-stat-label">Commercial Auxiliary Sales</span><span class="arms-stat-val">$3,420.00</span></div>
-                <div class="arms-stat-card"><span class="arms-stat-label">Academy & Training Income</span><span class="arms-stat-val">$6,800.00</span></div>
-                <div class="arms-stat-card success"><span class="arms-stat-label">Gross Consolidated Flow</span><span class="arms-stat-val">$35,170.00</span></div>
+                <div class="arms-stat-card accent"><span class="arms-stat-label">Clinical Core Stream</span><span class="arms-stat-val">৳০.০০</span></div>
+                <div class="arms-stat-card"><span class="arms-stat-label">Commercial Auxiliary Sales</span><span class="arms-stat-val">৳০.০০</span></div>
+                <div class="arms-stat-card"><span class="arms-stat-label">Academy & Training Income</span><span class="arms-stat-val">৳০.০০</span></div>
+                <div class="arms-stat-card success"><span class="arms-stat-label">Gross Consolidated Flow</span><span class="arms-stat-val">৳০.০০</span></div>
             </div>
 
             <div class="arms-table-wrapper">
@@ -365,12 +360,7 @@ function arms_finance_tab() {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td><b>Patient revenue</b></td><td><code>REV-PAT-BASE</code></td><td>General Outpatient Assessment Fees</td><td>$15,400.00</td><td><span class="arms-pill green">Settled</span></td></tr>
-                        <tr><td><b>Admission income</b></td><td><code>REV-ADM-STAY</code></td><td>In-Patient Residential Room Post-Op Care</td><td>$9,550.00</td><td><span class="arms-pill green">Settled</span></td></tr>
-                        <tr><td><b>OPD billing</b></td><td><code>REV-OPD-CLINIC</code></td><td>Direct Diagnostic Physiological Evaluations</td><td>$3,420.00</td><td><span class="arms-pill green">Settled</span></td></tr>
-                        <tr><td><b>Product sales</b></td><td><code>REV-SUPP-STOCK</code></td><td>Orthopedic Splints, Compression Sleeves, Inventory</td><td>$1,210.00</td><td><span class="arms-pill amber">In Audit</span></td></tr>
-                        <tr><td><b>Training income</b></td><td><code>REV-EDU-ACADEMY</code></td><td>Clinical Fellowship Program Enrolments</td><td>$4,500.00</td><td><span class="arms-pill green">Settled</span></td></tr>
-                        <tr><td><b>Other income</b></td><td><code>REV-MISC-FACIL</code></td><td>Cafeteria Franchise Spatial Lease Yields</td><td>$1,090.00</td><td><span class="arms-pill gray">Reconciled</span></td></tr>
+                        <tr><td colspan="5" style="text-align:center; color:#94a3b8;">No live income data discovered.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -379,7 +369,7 @@ function arms_finance_tab() {
         <div id="fin-expenses" class="arms-fin-panel">
             <div class="arms-panel-meta">
                 <h3>Operational Overhead Encumbrances</h3>
-                <span class="arms-pill gray">Updated 5m Ago</span>
+                <span class="arms-pill gray" id="arms-live-sync-indicator">Sync Live</span>
             </div>
 
             <div class="arms-sub-nav-tabs">
@@ -389,30 +379,36 @@ function arms_finance_tab() {
 
             <div id="sub-exp-list" class="arms-form-matrix-block active">
                 <div class="arms-stat-grid">
-                    <div class="arms-stat-card"><span class="arms-stat-label">Fixed Lease Asset Obligations</span><span class="arms-stat-val">$8,200.00</span></div>
-                    <div class="arms-stat-card"><span class="arms-stat-label">Infrastructure Utility Matrix</span><span class="arms-stat-val">$1,450.00</span></div>
-                    <div class="arms-stat-card danger"><span class="arms-stat-label">Pending Outflow Demands</span><span class="arms-stat-val">$980.00</span></div>
+                    <div class="arms-stat-card"><span class="arms-stat-label">Fixed Lease Asset Obligations</span><span class="arms-stat-val" id="kpi-fixed-lease">৳<?php echo number_format($fixed_lease_total, 2); ?></span></div>
+                    <div class="arms-stat-card"><span class="arms-stat-label">Infrastructure Utility Matrix</span><span class="arms-stat-val" id="kpi-utility-matrix">৳<?php echo number_format($utility_matrix_total, 2); ?></span></div>
+                    <div class="arms-stat-card danger"><span class="arms-stat-label">Other Outflow Demands</span><span class="arms-stat-val" id="kpi-pending-outflow">৳<?php echo number_format($pending_outflow_total, 2); ?></span></div>
                 </div>
 
                 <div class="arms-table-wrapper">
-                    <table class="arms-data-table">
+                    <table class="arms-data-table" id="arms-expenses-log-table">
                         <thead>
                             <tr>
                                 <th>Operational Cost Line Element</th>
                                 <th>System Accounting Code</th>
                                 <th>Cost Classification Category</th>
                                 <th>Current Fiscal Cycle Demand</th>
-                                <th>Transactional Status</th>
+                                <th>Transactional Date</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td><b>Salary</b></td><td><code>EXP-PAY-REHAB</code></td><td>Core Clinical Human Capital Outlays</td><td>$14,500.00</td><td><span class="arms-pill green">Disbursed</span></td></tr>
-                            <tr><td><b>Electricity</b></td><td><code>EXP-UTL-POW</code></td><td>Variable Infrastructure Asset Operations</td><td>$780.00</td><td><span class="arms-pill amber">Awaiting Wire</span></td></tr>
-                            <tr><td><b>Water</b></td><td><code>EXP-UTL-WTR</code></td><td>Variable Infrastructure Asset Operations</td><td>$210.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                            <tr><td><b>Internet</b></td><td><code>EXP-COMM-FIBER</code></td><td>Fixed Communications Pipeline Network</td><td>$160.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                            <tr><td><b>Rent</b></td><td><code>EXP-LSE-PROP</code></td><td>Fixed Corporate Facility Premises Lease</td><td>$5,500.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                            <tr><td><b>Equipment</b></td><td><code>EXP-CAP-MAINT</code></td><td>Medical Machinery Wear & Amortization Maintenance</td><td>$2,700.00</td><td><span class="arms-pill green">Paid</span></td></tr>
-                            <tr><td><b>Consumables</b></td><td><code>EXP-INV-MEDSUP</code></td><td>Variable Sanitization & Orthotics Clinical Stock</td><td>$1,340.00</td><td><span class="arms-pill amber">Pending Invoice</span></td></tr>
+                            <?php if (!empty($expenses_log)): ?>
+                                <?php foreach ($expenses_log as $row): ?>
+                                    <tr>
+                                        <td><b><?php echo esc_html(ucfirst($row['expense_type'])); ?></b></td>
+                                        <td><code>EXP-<?php echo esc_html(strtoupper(substr($row['expense_category'], 0, 3))); ?></code></td>
+                                        <td><?php echo esc_html(ucfirst($row['expense_category'])); ?> Matrix</td>
+                                        <td>৳<?php echo number_format(floatval($row['total_amount']), 2); ?></td>
+                                        <td><?php echo esc_html($row['transaction_date']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr class="no-records-row"><td colspan="5" style="text-align:center; color:#94a3b8;">No records saved yet. Add fields through the form array matrix.</td></tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -458,11 +454,11 @@ function arms_finance_tab() {
                                 </select>
                             </div>
                             <div class="arms-form-element-group">
-                                <label>Base Line Net Amount ($)</label>
+                                <label>Base Line Net Amount (৳)</label>
                                 <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" required />
                             </div>
                             <div class="arms-form-element-group">
-                                <label>Bonus Adjustments ($)</label>
+                                <label>Bonus Adjustments (৳)</label>
                                 <input type="number" step="0.01" placeholder="0.00" class="arms-data-adjustment arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
@@ -491,12 +487,12 @@ function arms_finance_tab() {
                                 </select>
                             </div>
                             <div class="arms-form-element-group">
-                                <label>Aggregated Meter Amount ($)</label>
+                                <label>Aggregated Meter Amount (৳)</label>
                                 <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Posting Transaction Date</label>
-                                <input type="date" value="2026-06-22" class="arms-data-date arms-input-field" />
+                                <input type="date" value="<?php echo current_time('Y-m-d'); ?>" class="arms-data-date arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <button type="submit" class="arms-submit-btn">Post Utility Ledger</button>
@@ -520,12 +516,12 @@ function arms_finance_tab() {
                                 <input type="text" placeholder="Procurement Officer" class="arms-data-auth arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
-                                <label>Gross Allocation Amount ($)</label>
+                                <label>Gross Allocation Amount (৳)</label>
                                 <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Invoice Transaction Date</label>
-                                <input type="date" value="2026-06-22" class="arms-data-date arms-input-field" />
+                                <input type="date" value="<?php echo current_time('Y-m-d'); ?>" class="arms-data-date arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <button type="submit" class="arms-submit-btn">Post Operational Ledger</button>
@@ -542,7 +538,8 @@ function arms_finance_tab() {
     <script type="text/javascript">
         var arms_fin_meta = { 
             nonce: '<?php echo esc_js($security_nonce); ?>',
-            ajaxurl: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>'
+            ajaxurl: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>',
+            current_date: '<?php echo current_time('Y-m-d'); ?>'
         };
 
         window.armsSwitchFinTab = function(panelId) {
@@ -612,7 +609,7 @@ function arms_finance_tab() {
                     base_amount      : $activeContext.find('.arms-data-base').val() || 0,
                     adjustment_amount: $activeContext.find('.arms-data-adjustment').val() || 0,
                     authorized_by    : $activeContext.find('.arms-data-auth').val() || '',
-                    transaction_date : $activeContext.find('.arms-data-date').val() || ''
+                    transaction_date : $activeContext.find('.arms-data-date').val() || arms_fin_meta.current_date
                 };
 
                 $btn.text('Saving...').prop('disabled', true);
@@ -628,12 +625,54 @@ function arms_finance_tab() {
                     },
                     success: function(response) {
                         if (response.success) {
-                            alert('Expense Matrix Entry Stored Successfully.');
+                            // Calculate values on the fly to append to table structure dynamically
+                            var calculatedTotal = parseFloat(dataFields.base_amount) + parseFloat(dataFields.adjustment_amount);
+                            var formattedTotal = calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            var cleanLabel = dataFields.expense_type.charAt(0).toUpperCase() + dataFields.expense_type.slice(1);
+                            var codePrefix = 'EXP-' + activeCategory.substring(0, 3).toUpperCase();
+                            
+                            var newRowHtml = '<tr>' +
+                                '<td><b>' + cleanLabel + '</b></td>' +
+                                '<td><code>' + codePrefix + '</code></td>' +
+                                '<td>' + activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1) + ' Matrix</td>' +
+                                '<td>৳' + formattedTotal + '</td>' +
+                                '<td>' + dataFields.transaction_date + '</td>' +
+                            '</tr>';
+                            
+                            // Remove empty information row container if existing
+                            $('#arms-expenses-log-table tbody .no-records-row').remove();
+                            
+                            // Prepend row array inside the list architecture matrix
+                            $('#arms-expenses-log-table tbody').prepend(newRowHtml);
+                            
+                            // Dynamic real-time calculation update for the KPI card layers
+                            if (activeCategory === 'operational' && dataFields.expense_type === 'rent') {
+                                var currentFixed = parseFloat($('#kpi-fixed-lease').text().replace(/[^0-9.-]+/g,"")) || 0;
+                                $('#kpi-fixed-lease').text('৳' + (currentFixed + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                            } else if (activeCategory === 'utility') {
+                                var currentUtil = parseFloat($('#kpi-utility-matrix').text().replace(/[^0-9.-]+/g,"")) || 0;
+                                $('#kpi-utility-matrix').text('৳' + (currentUtil + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                            } else {
+                                var currentOther = parseFloat($('#kpi-pending-outflow').text().replace(/[^0-9.-]+/g,"")) || 0;
+                                $('#kpi-pending-outflow').text('৳' + (currentOther + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                            }
+
+                            // Flash operational state confirmation notice indicator
+                            var $indicator = $('#arms-live-sync-indicator');
+                            $indicator.text('Entry Saved!').css({'background':'#10b981', 'color':'#fff'});
+                            setTimeout(function(){
+                                $indicator.text('Sync Live').css({'background':'#f1f5f9', 'color':'#475569'});
+                            }, 3000);
+
+                            // Purge configurations back to core defaults
                             $form[0].reset();
                             document.querySelectorAll('.arms-data-date').forEach(function(el) {
-                                el.value = '2026-06-22';
+                                el.value = arms_fin_meta.current_date;
                             });
                             armsRenderExpenseFormFields(activeCategory);
+                            
+                            // Route navigation back to visual display log pane block
+                            armsSwitchSubExpenseTab('sub-exp-list');
                         } else {
                             alert('Submission Error: ' + response.data);
                         }
