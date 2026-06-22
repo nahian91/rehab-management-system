@@ -74,14 +74,6 @@ function arms_patients_tab() {
             arms_patients_list_table();
         }
     }
-    elseif ( $sub === 'history' ) {
-        $patient_id = isset( $_GET['id'] ) ? intval( preg_replace( '/[^0-9]/', '', $_GET['id'] ) ) : 0;
-        if ( function_exists( 'arms_render_patient_history_timeline' ) ) {
-            arms_render_patient_history_timeline( $patient_id );
-        } else {
-            echo '<div class="notice notice-info"><p>Select a patient from the registry desk to run deep health record logs audits.</p></div>';
-        }
-    } 
     else {
         // Primary fallback node: tabular records listing component
         if ( function_exists( 'arms_patients_list_table' ) ) {

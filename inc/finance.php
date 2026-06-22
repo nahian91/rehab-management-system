@@ -2,11 +2,99 @@
 if (!defined('ABSPATH')) exit;
 
 /**
+ * Hook Core WP Admin Action Endpoints for Expense Tracking Data Save Routing
+ */
+add_action('wp_ajax_arms_save_expense_data', 'arms_ajax_save_expense_data');
+add_action('wp_ajax_nopriv_arms_save_expense_data', 'arms_ajax_save_expense_data'); 
+
+function arms_ajax_save_expense_data() {
+    // 1. Verify Nonce Security Context
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'arms_finance_secure_nonce')) {
+        wp_send_json_error('Security validation failed.');
+    }
+
+    // 2. Access User System Control Capability Check
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized operation execution rejected.');
+    }
+
+    // 3. Destructure and Sanitize Request Fields
+    if (!isset($_POST['fields']) || !is_array($_POST['fields'])) {
+        wp_send_json_error('No valid ledger data array found.');
+    }
+
+    $raw_fields = $_POST['fields'];
+    
+    // String data constraints matched to schema varchar allocations
+    $expense_category  = substr(sanitize_text_field($raw_fields['expense_category']), 0, 50);
+    $expense_type      = substr(sanitize_text_field($raw_fields['expense_type']), 0, 100);
+    $target_month      = substr(sanitize_text_field($raw_fields['target_month']), 0, 30);
+    $target_year       = substr(sanitize_text_field($raw_fields['target_year']), 0, 10);
+    $authorized_by     = substr(sanitize_text_field($raw_fields['authorized_by']), 0, 255);
+    $transaction_date  = sanitize_text_field($raw_fields['transaction_date']);
+    
+    // Decimal float values formatting extraction
+    $base_amount       = isset($raw_fields['base_amount']) && is_numeric($raw_fields['base_amount']) ? floatval($raw_fields['base_amount']) : 0.00;
+    $adjustment_amount = isset($raw_fields['adjustment_amount']) && is_numeric($raw_fields['adjustment_amount']) ? floatval($raw_fields['adjustment_amount']) : 0.00;
+    $total_amount      = $base_amount + $adjustment_amount;
+    
+    // Safe evaluation matching DEFAULT '1970-01-01' NOT NULL schema logic
+    if (empty($transaction_date) || !strtotime($transaction_date)) {
+        $transaction_date = '1970-01-01';
+    }
+
+    global $wpdb;
+    $table_expenses = $wpdb->prefix . 'arms_expenses';
+
+    // 4. Ingestion Matrix matching the exact schema configurations
+    $inserted = $wpdb->insert(
+        $table_expenses,
+        array(
+            'expense_category'  => !empty($expense_category) ? $expense_category : 'general',
+            'expense_type'      => !empty($expense_type) ? $expense_type : 'unclassified',
+            'target_month'      => !empty($target_month) ? $target_month : '',
+            'target_year'       => !empty($target_year) ? $target_year : '',
+            'base_amount'       => $base_amount,
+            'adjustment_amount' => $adjustment_amount,
+            'total_amount'      => $total_amount,
+            'authorized_by'     => !empty($authorized_by) ? $authorized_by : '',
+            'transaction_date'  => $transaction_date,
+            'notes'             => null, // schema configured with text DEFAULT NULL
+            'created_by'        => intval(get_current_user_id()),
+            'created_at'        => current_time('mysql')
+        ),
+        array(
+            '%s', // expense_category (varchar(50))
+            '%s', // expense_type (varchar(100))
+            '%s', // target_month (varchar(30))
+            '%s', // target_year (varchar(10))
+            '%f', // base_amount (decimal(10,2))
+            '%f', // adjustment_amount (decimal(10,2))
+            '%f', // total_amount (decimal(10,2))
+            '%s', // authorized_by (varchar(255))
+            '%s', // transaction_date (date)
+            '%s', // notes (text DEFAULT NULL)
+            '%d', // created_by (bigint(20))
+            '%s'  // created_at (datetime)
+        )
+    );
+
+    if ($inserted !== false) {
+        wp_send_json_success(array('row_id' => $wpdb->insert_id));
+    } else {
+        if (!empty($wpdb->last_error)) {
+            wp_send_json_error('Database failure: ' . $wpdb->last_error);
+        } else {
+            wp_send_json_error('Database failure: Row validation failed against schema logic.');
+        }
+    }
+}
+
+/**
  * Render the Advanced Analytics Finance Ledger & Business Control Center.
- * Implements a fully populated, production-ready dataset with granular view panes.
- * Expanded with functional Expense Allocation Matrices and Financial Reporting Compilers.
  */
 function arms_finance_tab() {
+    $security_nonce = wp_create_nonce('arms_finance_secure_nonce');
     ?>
     <style>
         /* Modernized Dashboard Scaffolding */
@@ -152,18 +240,6 @@ function arms_finance_tab() {
         .arms-pill.blue { background: #e0f2fe; color: #0369a1; }
         .arms-pill.gray { background: #f1f5f9; color: #475569; }
 
-        /* Form Control Matrix inputs */
-        .arms-filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 20px;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            align-items: center;
-        }
         .arms-select-field, .arms-input-field {
             padding: 8px 12px;
             font-size: 13px;
@@ -184,50 +260,7 @@ function arms_finance_tab() {
             font-weight: 600;
             color: #475569;
         }
-
-        /* Business Intelligence Analytics Report Grid Layout */
-        .arms-report-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 16px;
-        }
-        .arms-report-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            display: flex;
-            gap: 16px;
-            align-items: flex-start;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .arms-report-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-        .arms-report-icon {
-            font-size: 24px;
-            background: #f1f5f9;
-            padding: 12px;
-            border-radius: 8px;
-            line-height: 1;
-        }
-        .arms-report-details { flex: 1; }
-        .arms-report-details h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #0f172a; }
-        .arms-report-details p { margin: 0 0 12px 0; font-size: 12px; color: #64748b; line-height: 1.4; }
         
-        /* Buttons Scaffolding */
-        .arms-action-btn {
-            background: #ffffff;
-            color: #4f46e5;
-            border: 1px solid #e2e8f0;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            height: 32px;
-        }
-        .arms-action-btn:hover { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
-
         .arms-submit-btn {
             background: #4f46e5;
             color: #ffffff;
@@ -241,6 +274,7 @@ function arms_finance_tab() {
             height: 36px;
         }
         .arms-submit-btn:hover { background: #4338ca; border-color: #4338ca; }
+        .arms-submit-btn:disabled { background: #cbd5e1; border-color: #cbd5e1; cursor: not-allowed; }
 
         /* Secondary Internal Navigation Row */
         .arms-sub-nav-tabs {
@@ -304,8 +338,6 @@ function arms_finance_tab() {
         <div class="arms-fin-nav">
             <button type="button" class="arms-fin-btn active" id="btn-fin-income" onclick="armsSwitchFinTab('fin-income')">💵 Income</button>
             <button type="button" class="arms-fin-btn" id="btn-fin-expenses" onclick="armsSwitchFinTab('fin-expenses')">💸 Expenses</button>
-            <button type="button" class="arms-fin-btn" id="btn-fin-payroll" onclick="armsSwitchFinTab('fin-payroll')">👨‍💼 Payroll</button>
-            <button type="button" class="arms-fin-btn" id="btn-fin-reports" onclick="armsSwitchFinTab('fin-reports')">📊 Financial Reports</button>
         </div>
 
         <div id="fin-income" class="arms-fin-panel active">
@@ -396,13 +428,13 @@ function arms_finance_tab() {
                     </select>
                 </div>
 
-                <form method="post" action="" id="arms-expense-form" onsubmit="event.preventDefault(); alert('Expense Allocation Structure Compiled Successfully.');">
+                <form method="post" action="" id="arms-expense-form">
                     
                     <div id="ctx-fields-salary" class="arms-form-fields-context">
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Staff Category Type</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-type arms-select-field">
                                     <option value="doctor">Doctor</option>
                                     <option value="physio">Physio</option>
                                     <option value="nurse">Nurse</option>
@@ -411,7 +443,7 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Target Month</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-month arms-select-field">
                                     <option value="January">January</option><option value="February">February</option><option value="March">March</option>
                                     <option value="April">April</option><option value="May">May</option><option value="June" selected>June</option>
                                     <option value="July">July</option><option value="August">August</option><option value="September">September</option>
@@ -420,18 +452,18 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Target Accounting Fiscal Year</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-year arms-select-field">
                                     <option value="2026" selected>2026</option>
                                     <option value="2027">2027</option>
                                 </select>
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Base Line Net Amount ($)</label>
-                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" required />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Bonus Adjustments ($)</label>
-                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" />
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-adjustment arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <button type="submit" class="arms-submit-btn">Post Salary Ledger</button>
@@ -443,7 +475,7 @@ function arms_finance_tab() {
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Infrastructure Utility Type</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-type arms-select-field">
                                     <option value="electricity">Electricity</option>
                                     <option value="internet">Internet</option>
                                     <option value="water">Water</option>
@@ -451,7 +483,7 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Billing Period Month</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-month arms-select-field">
                                     <option value="January">January</option><option value="February">February</option><option value="March">March</option>
                                     <option value="April">April</option><option value="May">May</option><option value="June" selected>June</option>
                                     <option value="July">July</option><option value="August">August</option><option value="September">September</option>
@@ -460,11 +492,11 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Aggregated Meter Amount ($)</label>
-                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Posting Transaction Date</label>
-                                <input type="date" value="2026-06-22" class="arms-input-field" required />
+                                <input type="date" value="2026-06-22" class="arms-data-date arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <button type="submit" class="arms-submit-btn">Post Utility Ledger</button>
@@ -476,7 +508,7 @@ function arms_finance_tab() {
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Operational Cost Allocation Line</label>
-                                <select class="arms-select-field">
+                                <select class="arms-data-type arms-select-field">
                                     <option value="rent">Rent</option>
                                     <option value="marketing">Marketing</option>
                                     <option value="equipment">Equipment purchase</option>
@@ -485,15 +517,15 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Authorized Initiated By</label>
-                                <input type="text" placeholder="Procurement Officer / Admin Staff" class="arms-input-field" required />
+                                <input type="text" placeholder="Procurement Officer" class="arms-data-auth arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Gross Allocation Amount ($)</label>
-                                <input type="number" step="0.01" placeholder="0.00" class="arms-input-field" required />
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Invoice Transaction Date</label>
-                                <input type="date" value="2026-06-22" class="arms-input-field" required />
+                                <input type="date" value="2026-06-22" class="arms-data-date arms-input-field" />
                             </div>
                             <div class="arms-form-element-group">
                                 <button type="submit" class="arms-submit-btn">Post Operational Ledger</button>
@@ -505,126 +537,14 @@ function arms_finance_tab() {
             </div>
         </div>
 
-        <div id="fin-payroll" class="arms-fin-panel">
-            <div class="arms-panel-meta">
-                <h3>Personnel Compensation Management Logs</h3>
-                <span class="arms-pill blue">Direct Deposit System Online</span>
-            </div>
-
-            <div class="arms-filter-bar">
-                <select class="arms-select-field"><option>Current Pay Cycle (June 2026)</option><option>May 2026</option></select>
-                <select class="arms-select-field"><option>All Active Departments</option><option>Clinical Consultants</option><option>Therapists</option></select>
-            </div>
-
-            <div class="arms-table-wrapper">
-                <table class="arms-data-table">
-                    <thead>
-                        <tr>
-                            <th>Staff Identity Profile</th>
-                            <th>Employee Salary (Base)</th>
-                            <th>Bonus Adjustments</th>
-                            <th>Performance Incentives</th>
-                            <th>Deductions Ledger</th>
-                            <th>Salary History Tracking</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><b>Dr. Asif Rahman</b><br><small style="color:#64748b;">Chief Clinical Consultant</small></td><td>$5,500.00</td><td>$750.00</td><td>$300.00</td><td>-$200.00</td><td><span class="arms-pill green">Paid ($6,350.00)</span></td></tr>
-                        <tr><td><b>Fatima Khatun</b><br><small style="color:#64748b;">Nursing Director Exec</small></td><td>$3,200.00</td><td>$250.00</td><td>$100.00</td><td>-$120.00</td><td><span class="arms-pill green">Paid ($3,430.00)</span></td></tr>
-                        <tr><td><b>Sajid Hasan</b><br><small style="color:#64748b;">Lead Physiotherapist Specialist</small></td><td>$4,100.00</td><td>$400.00</td><td>$250.00</td><td>-$150.00</td><td><span class="arms-pill green">Paid ($4,600.00)</span></td></tr>
-                        <tr><td><b>Ananya Ray</b><br><small style="color:#64748b;">Occupational Therapist Assistant</small></td><td>$2,800.00</td><td>$150.00</td><td>$0.00</td><td>-$90.00</td><td><span class="arms-pill amber">Processing</span></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="fin-reports" class="arms-fin-panel">
-            <div class="arms-panel-meta">
-                <h3>Business Intelligence Controllership Analytics Engine</h3>
-            </div>
-
-            <div class="arms-filter-bar" style="background:#eef2ff; border: 1px solid #c7d2fe;">
-                <div>
-                    <label class="arms-label-inline" style="margin-right:6px; color:#4338ca;">Ledger Target Stream:</label>
-                    <select class="arms-select-field" id="arms-report-stream-type">
-                        <option value="all">Consolidated Portfolio Balance</option>
-                        <option value="income">Income Matrix Pipeline Only</option>
-                        <option value="expense">Expense Matrix Outflows Only</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="arms-label-inline" style="margin-right:6px; margin-left:12px; color:#4338ca;">From Date:</label>
-                    <input type="date" value="2026-06-01" id="arms-report-date-from" class="arms-input-field" />
-                </div>
-                <div>
-                    <label class="arms-label-inline" style="margin-right:6px; margin-left:12px; color:#4338ca;">To Date:</label>
-                    <input type="date" value="2026-06-22" id="arms-report-date-to" class="arms-input-field" />
-                </div>
-                <div style="margin-left:auto;">
-                    <button type="button" class="arms-submit-btn" style="background:#4338ca; border-color:#4338ca;" onclick="armsCompilePdfReport()">
-                        🛑 Export Selected Range Matrix as PDF
-                    </button>
-                </div>
-            </div>
-
-            <div class="arms-report-grid">
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">📝</div>
-                    <div class="arms-report-details">
-                        <h4>Daily Transaction Matrix Log</h4>
-                        <p>Real-time transaction log tracks input velocity trails and current point-of-sale collections.</p>
-                        <button type="button" class="arms-action-btn">Compile Log</button>
-                    </div>
-                </div>
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">📅</div>
-                    <div class="arms-report-details">
-                        <h4>Monthly Consolidated Closing Statement</h4>
-                        <p>Aggregates system-wide monthly ledgers against predefined performance metrics.</p>
-                        <button type="button" class="arms-action-btn">Run Report</button>
-                    </div>
-                </div>
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">🏛️</div>
-                    <div class="arms-report-details">
-                        <h4>Annual Comprehensive Performance Matrix</h4>
-                        <p>Longitudinal structural fiscal profile auditing corporate performance margins across cycles.</p>
-                        <button type="button" class="arms-action-btn">Build Matrix</button>
-                    </div>
-                </div>
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">💸</div>
-                    <div class="arms-report-details">
-                        <h4>Cash Flow Statement Analyzer</h4>
-                        <p>Evaluates asset fluid velocities to track liquid positions against operational obligations.</p>
-                        <button type="button" class="arms-action-btn">Track Flow</button>
-                    </div>
-                </div>
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">📈</div>
-                    <div class="arms-report-details">
-                        <h4>Profit & Loss (P&L) Ledger Balance</h4>
-                        <p>Contrasts live raw institutional revenues directly against active operational costs.</p>
-                        <button type="button" class="arms-action-btn">Calculate Margin</button>
-                    </div>
-                </div>
-                <div class="arms-report-card">
-                    <div class="arms-report-icon">⚖️</div>
-                    <div class="arms-report-details">
-                        <h4>Balance Sheet Assets Evaluation Matrix</h4>
-                        <p>Consolidates value models of clinical machinery and physical inventory against long-term liabilities.</p>
-                        <button type="button" class="arms-action-btn">Verify Balance</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        /**
-         * Global Main Navigation Tab Switching System
-         */
+    <script type="text/javascript">
+        var arms_fin_meta = { 
+            nonce: '<?php echo esc_js($security_nonce); ?>',
+            ajaxurl: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>'
+        };
+
         window.armsSwitchFinTab = function(panelId) {
             document.querySelectorAll('.arms-fin-panel').forEach(function(panel) {
                 panel.classList.remove('active');
@@ -642,9 +562,6 @@ function arms_finance_tab() {
             }
         };
 
-        /**
-         * Expenses Sub-Navigation View State Switching System
-         */
         window.armsSwitchSubExpenseTab = function(subPanelId) {
             document.querySelectorAll('#fin-expenses .arms-form-matrix-block').forEach(function(block) {
                 block.classList.remove('active');
@@ -662,42 +579,75 @@ function arms_finance_tab() {
             }
         };
 
-        /**
-         * Expense Interdependent Form Template Field Generator Matrix Engine
-         */
         window.armsRenderExpenseFormFields = function(targetCategory) {
             document.querySelectorAll('.arms-form-fields-context').forEach(function(ctxBlock) {
                 ctxBlock.style.display = 'none';
+                jQuery(ctxBlock).find('.arms-input-field, .arms-select-field').removeAttr('required');
             });
             
             var targetedContextBlock = document.getElementById('ctx-fields-' + targetCategory);
             if (targetedContextBlock) {
                 targetedContextBlock.style.display = 'block';
+                jQuery(targetedContextBlock).find('.arms-data-base').attr('required', 'required');
             }
         };
 
-        /**
-         * Financial Reports Compiler & PDF Simulated Generator Bridge
-         */
-        window.armsCompilePdfReport = function() {
-            var stream = document.getElementById('arms-report-stream-type').value;
-            var fromDate = document.getElementById('arms-report-date-from').value;
-            var toDate = document.getElementById('arms-report-date-to').value;
+        jQuery(document).ready(function($) {
+            armsRenderExpenseFormFields($('#arms-main-expense-category').val());
 
-            if (!fromDate || !toDate) {
-                alert('Validation Core Error: Please provide a valid execution target date matrix range.');
-                return;
-            }
+            $('#arms-expense-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                var $form = $(this);
+                var activeCategory = $('#arms-main-expense-category').val();
+                var $activeContext = $('#ctx-fields-' + activeCategory);
+                var $btn = $activeContext.find('.arms-submit-btn');
+                var originalBtnText = $btn.text();
+                
+                var dataFields = {
+                    expense_category : activeCategory,
+                    expense_type     : $activeContext.find('.arms-data-type').val() || '',
+                    target_month     : $activeContext.find('.arms-data-month').val() || '',
+                    target_year      : $activeContext.find('.arms-data-year').val() || '2026',
+                    base_amount      : $activeContext.find('.arms-data-base').val() || 0,
+                    adjustment_amount: $activeContext.find('.arms-data-adjustment').val() || 0,
+                    authorized_by    : $activeContext.find('.arms-data-auth').val() || '',
+                    transaction_date : $activeContext.find('.arms-data-date').val() || ''
+                };
 
-            alert(
-                'Initializing Business Intelligence PDF Compilation Pipeline...\n' +
-                '--------------------------------------------------\n' +
-                'Target Stream Matrix Scope: ' + stream.toUpperCase() + '\n' +
-                'Historical Chronological Horizon: ' + fromDate + ' Through ' + toDate + '\n' +
-                '--------------------------------------------------\n' +
-                'Data serialization finalized. Structural layout asset wrapper emitted via browser interface download engine loop.'
-            );
-        };
+                $btn.text('Saving...').prop('disabled', true);
+
+                $.ajax({
+                    url: arms_fin_meta.ajaxurl,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'arms_save_expense_data',
+                        nonce: arms_fin_meta.nonce,
+                        fields: dataFields
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Expense Matrix Entry Stored Successfully.');
+                            $form[0].reset();
+                            document.querySelectorAll('.arms-data-date').forEach(function(el) {
+                                el.value = '2026-06-22';
+                            });
+                            armsRenderExpenseFormFields(activeCategory);
+                        } else {
+                            alert('Submission Error: ' + response.data);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('ARMS Trace Exception:', xhr.responseText);
+                        alert('Server processing trace lost. Check dev console log output.');
+                    },
+                    complete: function() {
+                        $btn.text(originalBtnText).prop('disabled', false);
+                    }
+                });
+            });
+        });
     </script>
     <?php
 }

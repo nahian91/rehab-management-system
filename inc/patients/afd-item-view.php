@@ -7,29 +7,52 @@ if(!defined('ABSPATH')) exit;
 function arms_view_patient_profile($item_id) {
     $item_id = intval($item_id);
     if ($item_id <= 0) {
-        echo '<div class="notice notice-error"><p>Invalid Patient Case File requested.</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Invalid Patient Case File requested.', 'arms-textdomain') . '</p></div>';
         return;
     }
 
     global $wpdb;
-    
-    // --- Data Baseline Query Zone ---
-    // Substitute this mock block with your native structural database queries
+    $table_name = $wpdb->prefix . 'arms_patients';
+
+    // Fetch the actual patient database row securely
+    $patient_row = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item_id), 
+        ARRAY_A
+    );
+
+    if (!$patient_row) {
+        echo '<div class="notice notice-error"><p>' . esc_html__('Patient record not found in the management system database.', 'arms-textdomain') . '</p></div>';
+        return;
+    }
+
+    // Unpack, map, and process conditions safely (handles JSON arrays or strings)
+    $raw_conditions = [];
+    if (!empty($patient_row['conditions'])) {
+        $decoded = json_decode($patient_row['conditions'], true);
+        if (is_array($decoded)) {
+            $raw_conditions = $decoded;
+        } else {
+            // Fallback: splitting string fields clean if stored comma-separated
+            $raw_conditions = array_map('trim', explode(',', $patient_row['conditions']));
+        }
+    }
+
+    // Build the clean runtime layout data dictionary mapped to your database columns
     $patient = array(
-        'id'                 => $item_id,
-        'status'             => 'Active Stay',
-        'name'               => 'Abul Kashem',
-        'age'                => 45,
-        'gender'             => 'Male',
-        'mobile'             => '01712345678',
-        'emergency'          => '01812345679 (Spouse)',
-        'address'            => 'House 42, Road 11, Dhanmondi, Dhaka',
-        'room_type'          => 'Cabin',
-        'room_no'            => '402',
-        'admission_date'     => '2026-06-12',
-        'initial_diagnosis'  => 'Patient presented with acute lower lumbar pain, localized muscle spasms, and limited range of mobility following a lifting strain.',
-        'custom_diagnosis'   => 'L4-L5 disc protrusion noted with secondary nerve compression landmark metrics. Lower limbs reflex responses currently rated at 3/5.',
-        'conditions'         => array('plid', 'osteoarthritis')
+        'id'                => intval($patient_row['id']),
+        'status'            => !empty($patient_row['status']) ? $patient_row['status'] : 'Active Stay',
+        'name'              => $patient_row['name'],
+        'age'               => intval($patient_row['age']),
+        'gender'            => $patient_row['gender'],
+        'mobile'            => $patient_row['mobile'],
+        'emergency'         => $patient_row['emergency'],
+        'address'           => $patient_row['address'],
+        'room_type'         => $patient_row['room_type'],
+        'room_no'           => $patient_row['room_no'],
+        'admission_date'    => $patient_row['admission_date'],
+        'initial_diagnosis' => $patient_row['initial_diagnosis'],
+        'custom_diagnosis'  => $patient_row['custom_diagnosis'],
+        'conditions'        => $raw_conditions
     );
 
     $conditions_map = [
@@ -39,6 +62,16 @@ function arms_view_patient_profile($item_id) {
         'sci'             => 'SCI',
         'osteoarthritis'  => 'Osteoarthritis'
     ];
+
+    // Determine status design elements
+    $status_clean = esc_attr($patient['status']);
+    $status_class = 'badge-stay-status status-discharged';
+    $status_icon  = '⚪';
+    
+    if ($status_clean === 'Active Stay') {
+        $status_class = 'badge-stay-status status-active';
+        $status_icon  = '🟢';
+    }
     ?>
     <style>
         .arms-profile-wrapper {
@@ -66,7 +99,7 @@ function arms_view_patient_profile($item_id) {
         .p-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: #f1f5f9; border: 3px solid #e2e8f0; }
         .p-title-meta h2 { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; }
         .p-title-meta p { font-size: 13px; color: #64748b; margin: 0; display: flex; gap: 12px; }
-        .p-action-row { display: flex; gap: 10px; }
+        .p-action-row { display: flex; gap: 10px; align-items: center; }
         
         /* Grid Architecture */
         .arms-p-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
@@ -109,7 +142,9 @@ function arms_view_patient_profile($item_id) {
         .btn-p-prime { background: #4f46e5; color: #ffffff; }
         .btn-p-prime:hover { background: #4338ca; }
         
-        .badge-stay-status { background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .badge-stay-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .badge-stay-status.status-active { background: #dcfce7; color: #15803d; }
+        .badge-stay-status.status-discharged { background: #f1f5f9; color: #475569; }
 
         /* Print Override Ruleset */
         @media print {
@@ -125,7 +160,6 @@ function arms_view_patient_profile($item_id) {
         <!-- Header Ribbon Component -->
         <div class="arms-p-card">
             <div class="p-identity-block">
-                <img src="<?php echo esc_url(get_avatar_url(0, ['default' => 'mystery'])); ?>" class="p-avatar" alt="Patient Avatar" />
                 <div class="p-title-meta">
                     <h2><?php echo esc_html($patient['name']); ?></h2>
                     <p>
@@ -138,12 +172,12 @@ function arms_view_patient_profile($item_id) {
                 </div>
             </div>
             <div class="p-action-row">
-                <span class="badge-stay-status">🟢 <?php echo esc_html($patient['status']); ?></span>
+                <span class="<?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_icon . ' ' . $patient['status']); ?></span>
                 <button type="button" class="arms-p-btn btn-p-sec" onclick="window.print();">
-                    <i class="fa-solid fa-print"></i> Print Summary
+                    <i class="fa-solid fa-print"></i> <?php echo esc_html__('Print Summary', 'arms-textdomain'); ?>
                 </button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=rehab-management-system&action=edit&id=' . $patient['id'])); ?>" class="arms-p-btn btn-p-prime">
-                    <i class="fa-solid fa-user-pen"></i> Edit Profile
+                <a href="<?php echo esc_url(admin_url('admin.php?page=rehab_management_system&tab=patients&id=' . $patient['id'] . '&action=edit')); ?>" class="arms-p-btn btn-p-prime">
+                    <i class="fa-solid fa-user-pen"></i> <?php echo esc_html__('Edit Profile', 'arms-textdomain'); ?>
                 </a>
             </div>
         </div>
@@ -154,20 +188,20 @@ function arms_view_patient_profile($item_id) {
             <!-- Left Grid: Patient Administrative Profile Data -->
             <div class="col-4">
                 <div class="arms-v-block" style="margin-bottom: 24px;">
-                    <h3 class="block-h3"><i class="fa-solid fa-id-card"></i> Demographics</h3>
+                    <h3 class="block-h3"><i class="fa-solid fa-id-card"></i> <?php echo esc_html__('Demographics', 'arms-textdomain'); ?></h3>
                     <ul class="info-strip-list">
-                        <li><span class="lbl">Mobile Number</span><span class="val"><?php echo esc_html($patient['mobile']); ?></span></li>
-                        <li><span class="lbl">Emergency Line</span><span class="val"><?php echo esc_html($patient['emergency']); ?></span></li>
-                        <li><span class="lbl">Residential Location</span><span class="val" style="max-width:65%;"><?php echo esc_html($patient['address']); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Mobile Number', 'arms-textdomain'); ?></span><span class="val"><?php echo esc_html($patient['mobile']); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Emergency Line', 'arms-textdomain'); ?></span><span class="val"><?php echo esc_html($patient['emergency']); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Residential Location', 'arms-textdomain'); ?></span><span class="val" style="max-width:65%;"><?php echo esc_html($patient['address']); ?></span></li>
                     </ul>
                 </div>
 
                 <div class="arms-v-block">
-                    <h3 class="block-h3"><i class="fa-solid fa-bed"></i> Bed Assignment</h3>
+                    <h3 class="block-h3"><i class="fa-solid fa-bed"></i> <?php echo esc_html__('Bed Assignment', 'arms-textdomain'); ?></h3>
                     <ul class="info-strip-list">
-                        <li><span class="lbl">Classification Style</span><span class="val"><?php echo esc_html($patient['room_type']); ?></span></li>
-                        <li><span class="lbl">Assigned Space ID</span><span class="val"><?php echo esc_html($patient['room_no']); ?></span></li>
-                        <li><span class="lbl">Admission Date</span><span class="val"><?php echo esc_html(date('M d, Y', strtotime($patient['admission_date']))); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Classification Style', 'arms-textdomain'); ?></span><span class="val"><?php echo esc_html($patient['room_type']); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Assigned Space ID', 'arms-textdomain'); ?></span><span class="val"><?php echo esc_html($patient['room_no']); ?></span></li>
+                        <li><span class="lbl"><?php echo esc_html__('Admission Date', 'arms-textdomain'); ?></span><span class="val"><?php echo esc_html(!empty($patient['admission_date']) ? date_i18n(get_option('date_format'), strtotime($patient['admission_date'])) : 'N/A'); ?></span></li>
                     </ul>
                 </div>
             </div>
@@ -175,7 +209,7 @@ function arms_view_patient_profile($item_id) {
             <!-- Right Grid: Clinical Status Records Logs -->
             <div class="col-8">
                 <div class="arms-v-block" style="height: 100%; box-sizing: border-box;">
-                    <h3 class="block-h3"><i class="fa-solid fa-notes-medical"></i> Medical & Diagnostic Profile</h3>
+                    <h3 class="block-h3"><i class="fa-solid fa-notes-medical"></i> <?php echo esc_html__('Medical & Diagnostic Profile', 'arms-textdomain'); ?></h3>
                     
                     <div class="badge-grid">
                         <?php 
@@ -188,14 +222,14 @@ function arms_view_patient_profile($item_id) {
                         ?>
                     </div>
 
-                    <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin: 20px 0 8px 0; text-transform: uppercase;">Initial Admission Summary</h4>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin: 20px 0 8px 0; text-transform: uppercase;"><?php echo esc_html__('Initial Admission Summary', 'arms-textdomain'); ?></h4>
                     <div class="clinical-narrative">
-                        <?php echo nl2br(esc_html($patient['initial_diagnosis'])); ?>
+                        <?php echo !empty($patient['initial_diagnosis']) ? nl2br(esc_html($patient['initial_diagnosis'])) : esc_html__('No initial admission summary recorded.', 'arms-textdomain'); ?>
                     </div>
 
-                    <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin: 20px 0 8px 0; text-transform: uppercase;">Spinal & Musculoskeletal Structural Log</h4>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin: 20px 0 8px 0; text-transform: uppercase;"><?php echo esc_html__('Spinal & Musculoskeletal Structural Log', 'arms-textdomain'); ?></h4>
                     <div class="clinical-narrative" style="border-left: 3px solid #4f46e5; background: #f0fdf4;">
-                        <?php echo nl2br(esc_html($patient['custom_diagnosis'])); ?>
+                        <?php echo !empty($patient['custom_diagnosis']) ? nl2br(esc_html($patient['custom_diagnosis'])) : esc_html__('No detailed structural diagnosis log recorded.', 'arms-textdomain'); ?>
                     </div>
                 </div>
             </div>

@@ -132,25 +132,28 @@ function arms_create_system_tables() {
 
     // Core Consolidated Inpatient Registry
     $table_patients = $wpdb->prefix . 'arms_patients';
-    $sql_patients = "CREATE TABLE $table_patients (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        name varchar(255) NOT NULL,
-        age int(3) NOT NULL,
-        gender varchar(30) DEFAULT 'Male' NOT NULL,
-        mobile varchar(50) NOT NULL,
-        emergency varchar(255) DEFAULT '' NOT NULL,
-        address text DEFAULT NULL,
-        room_type varchar(50) DEFAULT 'Cabin' NOT NULL,
-        room_no varchar(50) NOT NULL,
-        admission_date date DEFAULT '1970-01-01' NOT NULL,
-        initial_diagnosis text DEFAULT NULL,
-        custom_diagnosis text DEFAULT NULL,
-        conditions text DEFAULT NULL,
-        day_billing_ledger longtext NOT NULL,
-        media_vault_urls longtext NOT NULL,
-        status varchar(50) DEFAULT 'Active Stay' NOT NULL,
-        PRIMARY KEY  (id)
-    ) $charset_collate;";
+   $sql_patients = "CREATE TABLE $table_patients (
+    id bigint(20) NOT NULL AUTO_INCREMENT,
+    name varchar(255) NOT NULL,
+    age int(3) UNSIGNED NOT NULL,
+    gender varchar(30) DEFAULT 'Male' NOT NULL,
+    mobile varchar(50) NOT NULL,
+    emergency_contact_name varchar(255) DEFAULT '' NOT NULL,
+    emergency_contact_phone varchar(50) DEFAULT '' NOT NULL,
+    address text DEFAULT NULL,
+    room_type varchar(50) DEFAULT 'Cabin' NOT NULL,
+    room_no varchar(50) NOT NULL,
+    admission_date datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    initial_diagnosis text DEFAULT NULL,
+    custom_diagnosis text DEFAULT NULL,
+    conditions longtext DEFAULT NULL, 
+    day_billing_ledger longtext NOT NULL,
+    media_vault_urls longtext NOT NULL,
+    followup_history longtext DEFAULT NULL,
+    status varchar(50) DEFAULT 'Active Stay' NOT NULL,
+    PRIMARY KEY  (id),
+    KEY status_idx (status)
+) $charset_collate;";
     dbDelta( $sql_patients );
 
     // Clinical HR Registry & Profile Desk
@@ -246,6 +249,26 @@ function arms_create_system_tables() {
     ) $charset_collate;";
     dbDelta( $sql_ledger );
 
+    // Dedicated Expense Allocation Register
+    $table_expenses = $wpdb->prefix . 'arms_expenses';
+    $sql_expenses = "CREATE TABLE $table_expenses (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        expense_category varchar(50) NOT NULL,
+        expense_type varchar(100) NOT NULL,
+        target_month varchar(30) DEFAULT '' NOT NULL,
+        target_year varchar(10) DEFAULT '' NOT NULL,
+        base_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+        adjustment_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+        total_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+        authorized_by varchar(255) DEFAULT '' NOT NULL,
+        transaction_date date DEFAULT '1970-01-01' NOT NULL,
+        notes text DEFAULT NULL,
+        created_by bigint(20) NOT NULL,
+        created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+    dbDelta( $sql_expenses );
+
     // Security Audit Trail Logging
     $table_audit = $wpdb->prefix . 'arms_audit_logs';
     $sql_audit = "CREATE TABLE $table_audit (
@@ -258,6 +281,46 @@ function arms_create_system_tables() {
         PRIMARY KEY  (id)
     ) $charset_collate;";
     dbDelta( $sql_audit );
+
+    // Medical Inventory, Stock & Equipment Registry
+    $table_inventory = $wpdb->prefix . 'arms_inventory';
+    $sql_inventory = "CREATE TABLE $table_inventory (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        item_code varchar(100) NOT NULL,
+        item_name varchar(255) NOT NULL,
+        generic_name varchar(255) DEFAULT '' NOT NULL,
+        category varchar(100) DEFAULT 'General' NOT NULL,
+        sku varchar(100) DEFAULT '' NOT NULL,
+        available_stock int(11) DEFAULT '0' NOT NULL,
+        min_required_stock int(11) DEFAULT '10' NOT NULL,
+        unit_type varchar(50) DEFAULT 'pieces' NOT NULL,
+        purchase_price decimal(10,2) DEFAULT '0.00' NOT NULL,
+        sale_price decimal(10,2) DEFAULT '0.00' NOT NULL,
+        supplier_info text DEFAULT NULL,
+        batch_number varchar(100) DEFAULT '' NOT NULL,
+        expiry_date date DEFAULT '1970-01-01' NOT NULL,
+        status varchar(50) DEFAULT 'In Stock' NOT NULL,
+        updated_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY item_code (item_code)
+    ) $charset_collate;";
+    dbDelta( $sql_inventory );
+
+    // Stock Movement Logs (Inward/Outward/Wastage)
+    $table_stock_logs = $wpdb->prefix . 'arms_stock_movements';
+    $sql_stock_logs = "CREATE TABLE $table_stock_logs (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        item_id bigint(20) NOT NULL,
+        movement_type varchar(20) NOT NULL,
+        quantity int(11) NOT NULL,
+        reference_type varchar(50) DEFAULT '' NOT NULL,
+        reference_id varchar(50) DEFAULT '' NOT NULL,
+        remarks text DEFAULT NULL,
+        logged_by bigint(20) NOT NULL,
+        created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+    dbDelta( $sql_stock_logs );
 }
 register_activation_hook( __FILE__, 'arms_create_system_tables' );
 
