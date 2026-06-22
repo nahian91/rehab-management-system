@@ -344,7 +344,7 @@ function arms_dashboard_tab() {
         </div>
         
         <div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #1d2327;">Real-Time Operations Monitor</h1>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #1d2327;">Advanced Rehab & Wellness</h1>
             <p style="margin: 4px 0 0 0; font-size: 13px; color: #646970;">Live framework tracking architectural patients data flow, active occupancy arrays, and system accounting ledgers.</p>
         </div>
     </div>
