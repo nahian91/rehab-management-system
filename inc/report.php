@@ -1,541 +1,264 @@
-<?php 
-if ( ! defined( 'ABSPATH' ) ) exit; 
+<?php
+if ( ! defined( 'ABSPATH' ) ) exit;
 
-function arms_reports_tab() { 
-    // Mock Data Engine for KPIs and Analytics Matrix
-    $analytics_data = [
-        'patients' => [
-            'new_vs_returning' => ['new' => 420, 'returning' => 860, 'ratio' => '32.8% / 67.2%'],
-            'diagnosis' => [
-                ['name' => 'Chronic Hypertension', 'count' => 340, 'percentage' => 40],
-                ['name' => 'Type 2 Diabetes', 'count' => 255, 'percentage' => 30],
-                ['name' => 'Acute Respiratory', 'count' => 170, 'percentage' => 20],
-                ['name' => 'Other Diagnoses', 'count' => 85, 'percentage' => 10],
-            ]
-        ],
-        'admission' => [
-            'bed_occupancy' => '78.5%',
-            'avg_stay' => '5.4 Days',
-            'discharge_rate' => '92.1%',
-            'occupancy_trend' => [45, 58, 62, 74, 78, 82, 785] // Last 7 days out of 100 max
-        ],
-        'physio' => [
-            'recovery_rate' => '88.4%',
-            'session_completion' => '94.2%',
-            'treatment_success' => '91.0%',
-        ],
-        'financial' => [
-            'net_profit' => '$142,350',
-            'revenue_trend' => '+14.6% MoM',
-            'expenses' => [
-                ['category' => 'Medical Supplies', 'amount' => '$45,200', 'width' => '50%'],
-                ['category' => 'Staff Salaries', 'amount' => '$32,100', 'width' => '35%'],
-                ['category' => 'Utility & Admin', 'amount' => '$13,500', 'width' => '15%']
-            ]
-        ],
-        'inventory' => [
-            'stock_usage' => 'Optimized (12% reduction in waste)',
-            'cost_analysis' => '$18,400 Saved This Quarter',
-            'expiry_alerts' => [
-                ['item' => 'Amoxicillin 500mg', 'days' => '14 Days Left', 'status' => 'critical'],
-                ['item' => 'Sterile Gauze Packs', 'days' => '28 Days Left', 'status' => 'warning'],
-            ]
-        ],
-        'kpi' => [
-            'growth_index' => '+22.4%',
-            'dept_performance' => 'Outpatient Care (96% Efficiency Score)',
-        ]
-    ];
+/**
+ * Main Reports Configuration Renderer Engine
+ * Form actions processed via standard POST page-reloads (No AJAX)
+ */
+function arms_reports_tab() {
+    global $wpdb;
+
+    // Define table targets matching database schema patterns
+    $table_payroll = $wpdb->prefix . 'arms_payroll';
+    $table_staff   = $wpdb->prefix . 'arms_staff';
+
+    // Fetch dynamic master lists for mapping Dropdown 2 categories
+    $staff_entries    = $wpdb->get_results( "SELECT id, first_name, last_name, role_category FROM $table_staff ORDER BY first_name ASC" );
+    $role_categories  = $wpdb->get_col( "SELECT DISTINCT role_category FROM $table_staff WHERE role_category IS NOT NULL AND role_category != ''" );
+
+    // Maintain sticky data variables across page reload forms
+    $report_type  = isset( $_POST['report_type'] ) ? sanitize_key( $_POST['report_type'] ) : '';
+    $sub_criteria = isset( $_POST['sub_criteria'] ) ? sanitize_text_field( $_POST['sub_criteria'] ) : 'all';
+    $date_from    = isset( $_POST['date_from'] ) ? sanitize_text_field( $_POST['date_from'] ) : date('Y-m-01'); // Defaults to first day of month
+    $date_to      = isset( $_POST['date_to'] ) ? sanitize_text_field( $_POST['date_to'] ) : date('Y-m-d');
+
+    // ==========================================
+    // BACKEND ENGINE: PDF REPORT GENERATION ROUTE
+    // ==========================================
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_generate_pdf_report'] ) ) {
+        check_admin_referer( 'arms_reporting_engine_nonce', 'security' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Unauthorized access mapping runtime layers.', 'arms-textdomain' ) );
+        }
+
+        // -------------------------------------------------------------
+        // NOTE FOR LATER IMPLEMENTATION: PDF EXPORT SYSTEM HOOK
+        // You can easily plug in TCPDF, FPDF, or Dompdf inside this block.
+        // For now, it compiles standard ledger datasets onto your screen cleanly.
+        // -------------------------------------------------------------
+        
+        // Build raw database analytics querying parameters based on selection criteria rules
+        $query_conditions = [];
+        $query_arguments  = [];
+
+        // Filter dates rules
+        $query_conditions[] = "p.payment_date >= %s";
+        $query_arguments[]  = $date_from . ' 00:00:00';
+        $query_conditions[] = "p.payment_date <= %s";
+        $query_arguments[]  = $date_to . ' 23:59:59';
+
+        if ( $report_type === 'income' && $sub_criteria !== 'all' ) {
+            $query_conditions[] = "s.role_category = %s";
+            $query_arguments[]  = $sub_criteria;
+        } elseif ( $report_type === 'expense' && $sub_criteria !== 'all' ) {
+            $query_conditions[] = "p.staff_id = %d";
+            $query_arguments[]  = intval( $sub_criteria );
+        }
+
+        $where_clause = implode( ' AND ', $query_conditions );
+        
+        $report_results = $wpdb->get_results( $wpdb->prepare( "
+            SELECT p.*, s.first_name, s.last_name, s.role_category 
+            FROM $table_payroll p
+            INNER JOIN $table_staff s ON p.staff_id = s.id
+            WHERE $where_clause
+            ORDER BY p.payment_date DESC
+        ", $query_arguments ) );
+    }
     ?>
+
     <style>
-        /* Modern Glassmorphic Neo-Bento Design System */
-        .arms-analytics-container {
-            --arms-bg-dark: #0f1115;
-            --arms-card-bg: rgba(22, 26, 33, 0.8);
-            --arms-border-color: rgba(255, 255, 255, 0.08);
-            --arms-accent-glow: rgba(0, 210, 255, 0.15);
-            --arms-text-main: #f3f4f6;
-            --arms-text-muted: #9ca3af;
-            --arms-cyan: #00d2ff;
-            --arms-emerald: #05f3a2;
-            --arms-rose: #ff4a76;
-            --arms-amber: #ffb800;
-            
-            background: var(--arms-bg-dark);
-            color: var(--arms-text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 30px;
-            border-radius: 16px;
-            margin-top: 20px;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        }
-
-        /* Top Bar & Engine Architecture Details */
-        .arms-analytics-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--arms-border-color);
-            padding-bottom: 24px;
-            margin-bottom: 30px;
-        }
-        .arms-header-left h2 {
-            font-size: 26px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            margin: 0 0 6px 0;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .arms-header-left p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--arms-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-        .arms-engine-badge {
-            background: linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(5, 243, 162, 0.1));
-            border: 1px solid rgba(0, 210, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--arms-cyan);
-            letter-spacing: 0.5px;
-        }
-
-        /* Navigation Systems */
-        .arms-analytics-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 30px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-        }
-        .arms-tab-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--arms-border-color);
-            color: var(--arms-text-muted);
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .arms-tab-btn:hover {
-            background: rgba(255, 255, 255, 0.06);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .arms-tab-btn.arms-active {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        }
-
-        /* Neo-Bento Architectural Grid Layouts */
-        .arms-bento-grid {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 20px;
-            display: none;
-        }
-        .arms-bento-grid.arms-active {
-            display: grid;
-        }
-
-        /* Responsive Breakdowns */
-        .arms-col-4 { grid-column: span 4; }
-        .arms-col-5 { grid-column: span 5; }
-        .arms-col-6 { grid-column: span 6; }
-        .arms-col-7 { grid-column: span 7; }
-        .arms-col-8 { grid-column: span 8; }
-        .arms-col-12 { grid-column: span 12; }
-
-        /* Bento Panel Glassmorphism Elements */
-        .arms-bento-card {
-            background: var(--arms-card-bg);
-            border: 1px solid var(--arms-border-color);
-            border-radius: 14px;
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .arms-bento-card:hover {
-            border-color: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-        }
-        .arms-card-title {
-            font-size: 14px;
-            color: var(--arms-text-muted);
-            margin: 0 0 16px 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .arms-big-stat {
-            font-size: 38px;
-            font-weight: 800;
-            line-height: 1;
-            color: #fff;
-            letter-spacing: -1px;
-            margin-bottom: 8px;
-        }
-        .arms-stat-desc {
-            font-size: 13px;
-            color: var(--arms-text-muted);
-            margin: 0;
-        }
-
-        /* Procedural CSS Chart Architectures */
-        .arms-progress-track {
-            background: rgba(255, 255, 255, 0.05);
-            height: 6px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 12px;
-        }
-        .arms-progress-fill {
-            height: 100%;
-            border-radius: 10px;
-            background: var(--arms-cyan);
-        }
-        .arms-data-list {
-            margin-top: 10px;
-        }
-        .arms-data-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-        .arms-data-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        .arms-row-label {
-            font-size: 14px;
-            color: var(--arms-text-muted);
-        }
-        .arms-row-value {
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        /* SVG Micro Sparkline Framework */
-        .arms-sparkline-container {
-            margin-top: 20px;
-            padding: 10px 0;
-        }
-        .arms-sparkline {
-            width: 100%;
-            height: 60px;
-            stroke: var(--arms-emerald);
-            stroke-width: 2.5;
-            fill: none;
-            stroke-linecap: round;
-        }
-
-        /* Distribution Bars for Inventory and Diagnosis Matrix */
-        .arms-dist-bar {
-            display: flex;
-            height: 24px;
-            border-radius: 6px;
-            overflow: hidden;
-            margin: 20px 0;
-            background: rgba(255,255,255,0.05);
-        }
-        .arms-dist-seg {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        /* Interactive Alerts UI */
-        .arms-alert-pill {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .arms-alert-pill.critical {
-            background: rgba(255, 74, 118, 0.1);
-            border: 1px solid rgba(255, 74, 118, 0.2);
-            color: var(--arms-rose);
-        }
-        .arms-alert-pill.warning {
-            background: rgba(255, 184, 0, 0.1);
-            border: 1px solid rgba(255, 184, 0, 0.2);
-            color: var(--arms-amber);
-        }
-
-        /* Legend Indicators */
-        .arms-legend {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-        }
-        .arms-legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: var(--arms-text-muted);
-        }
-        .arms-legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        @media (max-width: 991px) {
-            .arms-col-4, .arms-col-5, .arms-col-6, .arms-col-7, .arms-col-8 {
-                grid-column: span 12;
-            }
-        }
+        .arms-report-wrapper { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .arms-report-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .arms-report-header { margin-top: 0; border-bottom: 1px solid #f0f0f1; padding-bottom: 12px; color: #2271b1; font-weight: 500; font-size: 18px; }
+        .arms-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; align-items: flex-end; }
+        .arms-filter-group { display: flex; flex-direction: column; }
+        .arms-filter-group label { font-weight: 600; margin-bottom: 6px; color: #1d2327; font-size: 13px; }
+        .arms-report-select, .arms-report-input { width: 100%; height: 36px; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; font-size: 14px; color: #2c3338; }
+        .arms-report-select:focus, .arms-report-input:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: 2px solid transparent; }
+        .arms-pdf-btn { height: 36px; background: #2271b1; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 1px 0 #0a4b78; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .arms-pdf-btn:hover { background: #135e96; border-color: #0a4b78; color: #fff; }
+        
+        .arms-table-ledger { width: 100%; border-collapse: collapse; margin-top: 24px; background: #fff; border: 1px solid #c3c4c7; }
+        .arms-table-ledger th, .arms-table-ledger td { padding: 12px; text-align: left; border-bottom: 1px solid #c3c4c7; font-size: 13px; }
+        .arms-table-ledger th { background: #f6f7f7; font-weight: 600; color: #1d2327; }
+        .arms-badge-summary { font-size: 14px; font-weight: bold; background: #f0f6fa; padding: 12px; border-left: 4px solid #2271b1; margin-top: 20px; display: flex; justify-content: space-between; }
     </style>
 
-    <div class="arms-analytics-container">
-        <!-- Top Engine Bar Header -->
-        <div class="arms-analytics-header">
-            <div class="arms-header-left">
-                <h2>Management Decision System</h2>
-                <p>Real-Time Cross-Department Diagnostics</p>
-            </div>
-            <div class="arms-engine-badge">
-                ANALYTICS ENGINE v4.2 // ONLINE
-            </div>
+    <div class="arms-report-wrapper">
+        <div class="arms-report-card">
+            <h3 class="arms-report-header"><?php echo esc_html__( 'Financial Reports Configuration Desk', 'arms-textdomain' ); ?></h3>
+            
+            <form method="POST" action="" id="armsReportEngineForm">
+                <?php wp_nonce_field( 'arms_reporting_engine_nonce', 'security' ); ?>
+                <input type="hidden" name="arms_generate_pdf_report" value="1">
+
+                <div class="arms-filter-grid">
+                    <div class="arms-filter-group">
+                        <label><?php _e( 'Select Report Core Metric', 'arms-textdomain' ); ?></label>
+                        <select name="report_type" id="arms_report_type" class="arms-report-select" required>
+                            <option value=""><?php _e( '-- Choose Target Metric --', 'arms-textdomain' ); ?></option>
+                            <option value="income" <?php selected( $report_type, 'income' ); ?>><?php _e( 'Income Ledger', 'arms-textdomain' ); ?></option>
+                            <option value="expense" <?php selected( $report_type, 'expense' ); ?>><?php _e( 'Expense Statements', 'arms-textdomain' ); ?></option>
+                            <option value="profit" <?php selected( $report_type, 'profit' ); ?>><?php _e( 'Net Profit Matrix', 'arms-textdomain' ); ?></option>
+                        </select>
+                    </div>
+
+                    <div class="arms-filter-group" id="container_sub_criteria" style="display: none;">
+                        <label id="label_sub_criteria"><?php _e( 'Context Category Filter', 'arms-textdomain' ); ?></label>
+                        <select name="sub_criteria" id="arms_sub_criteria" class="arms-report-select">
+                            </select>
+                    </div>
+
+                    <div class="arms-filter-group">
+                        <label><?php _e( 'Statement Timeline (From)', 'arms-textdomain' ); ?></label>
+                        <input type="date" name="date_from" class="arms-report-input" value="<?php echo esc_attr( $date_from ); ?>" required>
+                    </div>
+
+                    <div class="arms-filter-group">
+                        <label><?php _e( 'Statement Timeline (To)', 'arms-textdomain' ); ?></label>
+                        <input type="date" name="date_to" class="arms-report-input" value="<?php echo esc_attr( $date_to ); ?>" required>
+                    </div>
+
+                    <button type="submit" class="arms-pdf-btn">
+                        <span class="dashicons dashicons-pdf"></span> <?php _e( 'Compile Statement Logs', 'arms-textdomain' ); ?>
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <!-- Global Navigation Core Tabs -->
-        <div class="arms-analytics-tabs">
-            <button class="arms-tab-btn arms-active" onclick="armsSwitchTab(event, 'arms-overview-tab')">📊 Core Performance KPIs</button>
-            <button class="arms-tab-btn" onclick="armsSwitchTab(event, 'arms-patients-tab')">👥 Patient & Admission Matrix</button>
-            <button class="arms-tab-btn" onclick="armsSwitchTab(event, 'arms-clinical-tab')">💪 Therapy & Inventory Logs</button>
-            <button class="arms-tab-btn" onclick="armsSwitchTab(event, 'arms-financial-tab')">💰 Financial Breakdown</button>
-        </div>
+        <?php if ( isset( $report_results ) ) : ?>
+            <div class="arms-report-card" style="margin-top: 20px;">
+                <h3 class="arms-report-header" style="color: #1d2327; border-color: #c3c4c7;">
+                    <?php echo esc_html( strtoupper( $report_type ) ) . ' ' . esc_html__( 'Statements Report Analysis View', 'arms-textdomain' ); ?>
+                    <span style="float: right; font-size: 12px; color: #64748b;"><?php echo esc_html( $date_from ) . ' to ' . esc_html( $date_to ); ?></span>
+                </h3>
 
-        <!-- TAB 1: PERFORMANCE ANALYTICS & KEY MANAGEMENT KPIS -->
-        <div id="arms-overview-tab" class="arms-bento-grid arms-active">
-            <div class="arms-bento-card arms-col-6">
-                <div class="arms-card-title">📈 System Growth Tracker</div>
-                <div class="arms-big-stat"><?php echo esc_html($analytics_data['kpi']['growth_index']); ?></div>
-                <p class="arms-stat-desc">Compounded capacity and intake volume optimization index compared to last fiscal cycle.</p>
-                <div class="arms-progress-track">
-                    <div class="arms-progress-fill" style="width: 76.4%; background: var(--arms-emerald);"></div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-6">
-                <div class="arms-card-title">🏛️ Department Performance Target</div>
-                <div class="arms-big-stat" style="font-size:24px; margin-top:10px; margin-bottom:14px; color: var(--arms-cyan);">
-                    <?php echo esc_html($analytics_data['kpi']['dept_performance']); ?>
-                </div>
-                <p class="arms-stat-desc">Top processing department verified by patient throughput metrics and internal SLA completion rates.</p>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">🏨 Bed Occupancy</div>
-                <div class="arms-big-stat"><?php echo esc_html($analytics_data['admission']['bed_occupancy']); ?></div>
-                <div class="arms-progress-track">
-                    <div class="arms-progress-fill" style="width: 78.5%;"></div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">💪 Physiotherapy Success</div>
-                <div class="arms-big-stat" style="color: var(--arms-emerald);"><?php echo esc_html($analytics_data['physio']['treatment_success']); ?></div>
-                <div class="arms-progress-track">
-                    <div class="arms-progress-fill" style="width: 91%; background: var(--arms-emerald);"></div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">💰 Net Profit Margin Trend</div>
-                <div class="arms-big-stat"><?php echo esc_html($analytics_data['financial']['net_profit']); ?></div>
-                <p class="arms-stat-desc" style="color: var(--arms-emerald); font-weight:700;"><?php echo esc_html($analytics_data['financial']['revenue_trend']); ?></p>
-            </div>
-        </div>
-
-        <!-- TAB 2: PATIENT & ADMISSION LOGS -->
-        <div id="arms-patients-tab" class="arms-bento-grid">
-            <div class="arms-bento-card arms-col-5">
-                <div class="arms-card-title">👥 Patient Lifecycle Distribution</div>
-                <div class="arms-data-list">
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">New Registrations</span>
-                        <span class="arms-row-value"><?php echo esc_html($analytics_data['patients']['new_vs_returning']['new']); ?></span>
-                    </div>
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Returning Profiles</span>
-                        <span class="arms-row-value"><?php echo esc_html($analytics_data['patients']['new_vs_returning']['returning']); ?></span>
-                    </div>
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Ratio Analysis</span>
-                        <span class="arms-row-value" style="color: var(--arms-cyan);"><?php echo esc_html($analytics_data['patients']['new_vs_returning']['ratio']); ?></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-7">
-                <div class="arms-card-title">📊 Primary Diagnostic Classification</div>
-                <div class="arms-dist-bar">
-                    <?php 
-                    $colors = ['#00d2ff', '#05f3a2', '#ffb800', '#ff4a76'];
-                    foreach ($analytics_data['patients']['diagnosis'] as $index => $diag) {
-                        echo '<div class="arms-dist-seg" style="width:' . esc_attr($diag['percentage']) . '%; background:' . esc_attr($colors[$index]) . ';" title="' . esc_attr($diag['name']) . '"></div>';
-                    }
-                    ?>
-                </div>
-                <div class="arms-legend">
-                    <?php foreach ($analytics_data['patients']['diagnosis'] as $index => $diag) : ?>
-                        <div class="arms-legend-item">
-                            <span class="arms-legend-dot" style="background: <?php echo esc_attr($colors[$index]); ?>;"></span>
-                            <span><?php echo esc_html($diag['name']); ?> (<?php echo esc_html($diag['percentage']); ?>%)</span>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">⏱️ Average Stay Duration</div>
-                <div class="arms-big-stat" style="color: #fff;"><?php echo esc_html($analytics_data['admission']['avg_stay']); ?></div>
-                <p class="arms-stat-desc">Mean duration recorded across general admission beds inside current billing cycle.</p>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">🚪 Fluid Discharge Rate</div>
-                <div class="arms-big-stat" style="color: var(--arms-emerald);"><?php echo esc_html($analytics_data['admission']['discharge_rate']); ?></div>
-                <p class="arms-stat-desc">Patient clearance optimization index matching internal safety protocols.</p>
-            </div>
-
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">📈 Occupancy Loading Trend</div>
-                <div class="arms-sparkline-container">
-                    <svg class="arms-sparkline" viewBox="0 0 140 40">
-                        <path d="M0,30 Q20,10 40,25 T80,5 T120,18 T140,8" />
-                    </svg>
-                </div>
-                <p class="arms-stat-desc">Dynamic 7-day vector mapping out clinical bed requests.</p>
-            </div>
-        </div>
-
-        <!-- TAB 3: PHYSIOTHERAPY & INVENTORY MATRIX -->
-        <div id="arms-clinical-tab" class="arms-bento-grid">
-            <div class="arms-bento-card arms-col-6">
-                <div class="arms-card-title">💪 Physiotherapy Metrics System</div>
-                <div class="arms-data-list">
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Functional Recovery Rate</span>
-                        <span class="arms-row-value" style="color: var(--arms-emerald);"><?php echo esc_html($analytics_data['physio']['recovery_rate']); ?></span>
-                    </div>
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Target Session Completion</span>
-                        <span class="arms-row-value"><?php echo esc_html($analytics_data['physio']['session_completion']); ?></span>
-                    </div>
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Clinical Treatment Success</span>
-                        <span class="arms-row-value" style="color: var(--arms-cyan);"><?php echo esc_html($analytics_data['physio']['treatment_success']); ?></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-6">
-                <div class="arms-card-title">📦 Supply Chain & Material Audits</div>
-                <div class="arms-data-list">
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Stock Usage Allocation</span>
-                        <span class="arms-row-value"><?php echo esc_html($analytics_data['inventory']['stock_usage']); ?></span>
-                    </div>
-                    <div class="arms-data-row">
-                        <span class="arms-row-label">Strategic Cost Mitigation</span>
-                        <span class="arms-row-value" style="color: var(--arms-emerald);"><?php echo esc_html($analytics_data['inventory']['cost_analysis']); ?></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="arms-bento-card arms-col-12">
-                <div class="arms-card-title" style="color: var(--arms-rose);">⚠️ Critical Batch Expiry Watchlist</div>
-                <div style="margin-top: 15px;">
-                    <?php foreach ($analytics_data['inventory']['expiry_alerts'] as $alert) : ?>
-                        <div class="arms-alert-pill <?php echo esc_attr($alert['status']); ?>">
-                            <span>📦 Item SKU: <?php echo esc_html($alert['item']); ?></span>
-                            <span><?php echo esc_html($alert['days']); ?></span>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: FINANCIAL ACCOUNTING MODULE -->
-        <div id="arms-financial-tab" class="arms-bento-grid">
-            <div class="arms-bento-card arms-col-4">
-                <div class="arms-card-title">💰 Balance Statement Net</div>
-                <div class="arms-big-stat" style="color: var(--arms-emerald);"><?php echo esc_html($analytics_data['financial']['net_profit']); ?></div>
-                <p class="arms-stat-desc">Operational net margins calculated after direct overhead deductions.</p>
-            </div>
-
-            <div class="arms-bento-card arms-col-8">
-                <div class="arms-card-title">📊 Operational Overhead Breakdown</div>
-                <div style="margin-top: 24px;">
-                    <div style="display: flex; height: 12px; border-radius: 30px; overflow: hidden; background: rgba(255,255,255,0.05);">
-                        <div style="width: 50%; background: #ff4a76;"></div>
-                        <div style="width: 35%; background: #ffb800;"></div>
-                        <div style="width: 15%; background: #00d2ff;"></div>
-                    </div>
-                    <div class="arms-data-list" style="margin-top: 20px;">
+                <table class="arms-table-ledger">
+                    <thead>
+                        <tr>
+                            <th><?php _e( 'Payment Date', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Reference Staff', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Role Department', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Base Salary Structure', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Allowances (+)', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Deductions (-)', 'arms-textdomain' ); ?></th>
+                            <th><?php _e( 'Computed Operational Balance', 'arms-textdomain' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <?php 
-                        $fin_colors = ['var(--arms-rose)', 'var(--arms-amber)', 'var(--arms-cyan)'];
-                        foreach ($analytics_data['financial']['expenses'] as $idx => $exp) : ?>
-                            <div class="arms-data-row">
-                                <span class="arms-row-label" style="display:flex; align-items:center; gap:8px;">
-                                    <span style="width:8px; height:8px; border-radius:50%; background:<?php echo $fin_colors[$idx]; ?>;"></span>
-                                    <?php echo esc_html($exp['category']); ?>
-                                </span>
-                                <span class="arms-row-value"><?php echo esc_html($exp['amount']); ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                        $total_base       = 0;
+                        $total_allowance  = 0;
+                        $total_deductions = 0;
+                        $total_net        = 0;
+
+                        if ( empty( $report_results ) ) : 
+                        ?>
+                            <tr><td colspan="7" style="text-align:center; color:#64748b; font-style:italic;"><?php _e( 'No historic records verified inside specified context configurations.', 'arms-textdomain' ); ?></td></tr>
+                        <?php 
+                        else : 
+                            foreach ( $report_results as $statement ) : 
+                                $allowance  = $statement->bonus + $statement->incentives;
+                                $deduction  = $statement->attendance_deduction + $statement->tax_deduction;
+                                
+                                $total_base       += $statement->base_salary;
+                                $total_allowance  += $allowance;
+                                $total_deductions += $deduction;
+                                $total_net        += $statement->net_payable;
+                        ?>
+                            <tr>
+                                <td><?php echo date( 'Y-m-d', strtotime( $statement->payment_date ) ); ?></td>
+                                <td><strong><?php echo esc_html( $statement->first_name . ' ' . $statement->last_name ); ?></strong></td>
+                                <td><?php echo esc_html( ucfirst( str_replace( '_', ' ', $statement->role_category ) ) ); ?></td>
+                                <td><?php echo number_format( $statement->base_salary, 2 ); ?> BDT</td>
+                                <td style="color:#16a34a;">+ <?php echo number_format( $allowance, 2 ); ?> BDT</td>
+                                <td style="color:#dc2626;">- <?php echo number_format( $deduction, 2 ); ?> BDT</td>
+                                <td><strong><?php echo number_format( $statement->net_payable, 2 ); ?> BDT</strong></td>
+                            </tr>
+                        <?php 
+                            endforeach; 
+                        endif; 
+                        ?>
+                    </tbody>
+                </table>
+
+                <div class="arms-badge-summary">
+                    <span><?php _e( 'Cumulated Summary Total (Net Balance Flow Calculation Scheme):', 'arms-textdomain' ); ?></span>
+                    <span style="color: #2271b1;"><?php echo number_format( $total_net, 2 ); ?> BDT</span>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 
-    <!-- Client-Side Vanilla Engine Navigation Switching Logic -->
-    <script>
-        function armsSwitchTab(event, tabId) {
-            const container = event.target.closest('.arms-analytics-container');
-            
-            // Isolate lookups strictly to this workspace block instance
-            const contentPanels = container.querySelectorAll('.arms-bento-grid');
-            const tabButtons = container.querySelectorAll('.arms-tab-btn');
-            
-            contentPanels.forEach(panel => panel.classList.remove('arms-active'));
-            tabButtons.forEach(btn => btn.classList.remove('arms-active'));
-            
-            container.querySelector(`#${tabId}`).classList.add('arms-active');
-            event.target.classList.add('arms-active');
-        }
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var primaryMetric = document.getElementById('arms_report_type');
+            var subCriteriaContainer = document.getElementById('container_sub_criteria');
+            var subCriteriaLabel = document.getElementById('label_sub_criteria');
+            var subCriteriaDropdown = document.getElementById('arms_sub_criteria');
+
+            // Dynamic mapping objects built from server configurations
+            var incomeCategories = <?php echo wp_json_encode( $role_categories ); ?>;
+            var staffProfiles = <?php echo wp_json_encode( array_map( function($s) {
+                return [ 'id' => $s->id, 'name' => $s->first_name . ' ' . $s->last_name ];
+            }, $staff_entries ) ); ?>;
+
+            // Retain values on tracking reloads
+            var oldSubValue = "<?php echo esc_js( $sub_criteria ); ?>";
+
+            function processContextMapping(currentSelection, dynamicReload) {
+                // Clear active listings options
+                subCriteriaDropdown.innerHTML = '';
+
+                if (currentSelection === 'income') {
+                    subCriteriaContainer.style.display = 'flex';
+                    subCriteriaLabel.textContent = "<?php _e( 'Filter by Income Source (Role Category)', 'arms-textdomain' ); ?>";
+                    
+                    var allOpt = document.createElement('option'); allOpt.value = 'all'; allOpt.textContent = "<?php _e( 'All Income Categories', 'arms-textdomain' ); ?>";
+                    subCriteriaDropdown.appendChild(allOpt);
+
+                    incomeCategories.forEach(function(cat) {
+                        var opt = document.createElement('option');
+                        opt.value = cat;
+                        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
+                        if(dynamicReload && cat === oldSubValue) opt.selected = true;
+                        subCriteriaDropdown.appendChild(opt);
+                    });
+
+                } else if (currentSelection === 'expense') {
+                    subCriteriaContainer.style.display = 'flex';
+                    subCriteriaLabel.textContent = "<?php _e( 'Filter by Expense Payee (Employee Staff Profile)', 'arms-textdomain' ); ?>";
+
+                    var allOpt = document.createElement('option'); allOpt.value = 'all'; allOpt.textContent = "<?php _e( 'All Staff Expense Records', 'arms-textdomain' ); ?>";
+                    subCriteriaDropdown.appendChild(allOpt);
+
+                    staffProfiles.forEach(function(staff) {
+                        var opt = document.createElement('option');
+                        opt.value = staff.id;
+                        opt.textContent = staff.name;
+                        if(dynamicReload && staff.id.toString() === oldSubValue) opt.selected = true;
+                        subCriteriaDropdown.appendChild(opt);
+                    });
+
+                } else {
+                    // Hide dynamic filter if set to 'profit' metric calculations
+                    subCriteriaContainer.style.display = 'none';
+                    subCriteriaDropdown.removeAttribute('required');
+                }
+            }
+
+            // Hook Event execution monitors
+            primaryMetric.addEventListener('change', function() {
+                processContextMapping(this.value, false);
+            });
+
+            // Maintain visual configurations state tracking directly upon page loading lifecycle
+            if(primaryMetric.value !== '') {
+                processContextMapping(primaryMetric.value, true);
+            }
+        });
     </script>
     <?php
 }
