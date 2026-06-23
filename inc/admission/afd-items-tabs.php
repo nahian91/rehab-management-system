@@ -1,95 +1,70 @@
-<?php
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
-}
+<?php 
 
-/**
- * Render the Patients module tab and manage internal sub-routing.
- */
 function arms_admission_tab() {
-    $sub = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'all';
-    $patient_id = isset( $_GET['patient'] ) ? intval( $_GET['patient'] ) : 0;
+    $sub          = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'all';
+    $patient_id   = isset( $_GET['patient'] ) ? intval( $_GET['patient'] ) : 0;
+    $admission_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0; // FIXED: Changed 'admission_id' to 'id'
 
-    // Sub-navigation architecture for the Patient Registry
     $tabs = array(
-        'all'     => 'All Admission',
-        'add'     => 'Add Admission',
+        'all' => 'All Admission',
+        'add' => 'Add Admission',
+        'map' => 'Cabin / Ward Map',
     );
 
-    // Contextual Sub-tab Injection: Append temporary tab options for specific workflows
+    // Contextual Sub-tab Injection
     if ( $sub === 'edit' && $patient_id > 0 ) {
         $tabs['edit'] = 'Edit Admission (ID: ' . $patient_id . ')';
-    } elseif ( $sub === 'view' && $patient_id > 0 ) {
-        $tabs['view'] = 'Patient Profile';
+    } 
+    elseif ( $sub === 'view' && $admission_id > 0 ) {
+        $tabs['view'] = 'Admission Details (ADM-' . $admission_id . ')';
     }
 
     echo '<h2 class="nav-tab-wrapper arms-sub-tab-wrapper">';
     foreach ( $tabs as $k => $label ) {
-        // Build base context locking query variables
         $url_args = array(
             'page' => 'rehab_management_system',
             'tab'  => 'admission',
             'sub'  => $k
         );
 
-        // Retain the current patient context item inside single-patient operations
-        if ( $patient_id > 0 && ( $k === 'edit' || $k === 'view' || $k === 'history' ) ) {
+        if ( $patient_id > 0 && $k === 'edit' ) {
             $url_args['patient'] = $patient_id;
+        }
+        if ( $admission_id > 0 && $k === 'view' ) {
+            $url_args['id'] = $admission_id; // FIXED
         }
 
         $url = add_query_arg( $url_args, admin_url( 'admin.php' ) );
         $active_class = ( $sub === $k ) ? 'nav-tab-active' : '';
-        
         echo '<a class="nav-tab ' . esc_attr( $active_class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
     }
     echo '</h2>';
 
     echo '<div class="arms-sub-tab-content" style="margin-top: 20px;">';
 
-    /* =========================================================================
-       Sub-Module View Router Execution Matrix
-       ========================================================================= */
+    /* Router Matrix */
     if ( $sub === 'add' ) {
-        // Render form for a brand new clinical admission profile entry
-        if ( function_exists( 'arms_add_edit_admission_form' ) ) {
-            arms_add_edit_admission_form();
-        } else {
-            echo '<div class="notice notice-warning"><p>Patient entry form module missing from the patient template layer.</p></div>';
-        }
+        arms_add_edit_admission_form();
     } 
     elseif ( $sub === 'edit' ) {
-        // Safe integer verification filter on query request payload
-        if ( $patient_id > 0 ) {
-            if ( function_exists( 'arms_add_edit_admission_form' ) ) {
-                arms_add_edit_admission_form( $patient_id );
-            } else {
-                echo '<div class="notice notice-warning"><p>Patient edit form module missing from the patient template layer.</p></div>';
-            }
-        } else {
-            echo '<div class="notice notice-error"><p>Error: Invalid patient record identifier parameters targeted.</p></div>';
-        }
+        arms_add_edit_admission_form( $patient_id );
     } 
     elseif ( $sub === 'view' ) {
-        if ( function_exists( 'arms_view_patient_profile' ) ) {
-            arms_view_patient_profile( $patient_id );
+        if ( $admission_id > 0 ) {
+            if ( function_exists( 'arms_view_admission_details' ) ) {
+                arms_view_admission_details( $admission_id );
+            } else {
+                echo '<div class="notice notice-warning"><p>Admission details view component is missing.</p></div>';
+            }
         } else {
-            echo '<div class="notice notice-warning"><p>Patient profile display module missing from the layout framework layer.</p></div>';
+            echo '<div class="notice notice-error"><p>Invalid admission parameter ID.</p></div>';
         }
     } 
-    elseif ( $sub === 'history' ) {
-        if ( function_exists( 'arms_render_patient_history_timeline' ) ) {
-            arms_render_patient_history_timeline( $patient_id );
-        } else {
-            echo '<div class="notice notice-info"><p>Select a patient from the registry desk to run deep health record logs audits.</p></div>';
-        }
-    } 
+    elseif ( $sub === 'map' ) {
+        arms_render_spatial_occupancy_map();
+    }
     else {
-        // Primary fallback node: tabular records listing component
-        if ( function_exists( 'arms_admission_list_table' ) ) {
-            arms_admission_list_table();
-        } else {
-            echo '<div class="notice notice-error"><p>Critical Error: Core admission list data table components could not be successfully resolved.</p></div>';
-        }
+        arms_admission_list_table();
     }
 
     echo '</div>';

@@ -9,7 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function arms_physiotherapy_tab() {
     global $wpdb;
-    $wpdb->show_errors(); // <--- ADD THIS LINE TEMPORARILY TO SEE ERRORS
+    
+    // TEMPORARILY SEE ERRORS - REMOVE IN PRODUCTION
+    $wpdb->show_errors(); 
+
     $table_physio   = $wpdb->prefix . 'arms_physio_logs';
     $table_patients = $wpdb->prefix . 'arms_patients';
 
@@ -23,7 +26,7 @@ function arms_physiotherapy_tab() {
     $add_url  = $base_url . '&sub=add';
 
     /* =========================================================================
-       ACTION ROUTER: PURGE REHAB RECORD
+       ACTION ROUTER: PURGE REHAB RECORD (Executed before any output)
        ========================================================================= */
     if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && $log_id > 0 ) {
         if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'arms_delete_physio_' . $log_id ) ) {
@@ -31,16 +34,14 @@ function arms_physiotherapy_tab() {
             if ( $deleted ) {
                 wp_safe_redirect( add_query_arg( 'arms_msg', 'deleted', $list_url ) );
                 exit;
-            } else {
-                echo '<div class="notice notice-error is-dismissible"><p>Database processing error dropping file record.</p></div>';
             }
         } else {
-            echo '<div class="notice notice-error is-dismissible"><p>Security Error: Nonce verification failed.</p></div>';
+            add_settings_error( 'arms_physio_messages', 'security_error', 'Security Error: Nonce verification failed.', 'error' );
         }
     }
 
     /* =========================================================================
-       POST ENGINE: HANDLING TREATMENTS & PROGRESS PERSISTENCE
+       POST ENGINE: HANDLING TREATMENTS & PROGRESS PERSISTENCE (SAVE & UPDATE)
        ========================================================================= */
     if ( isset( $_POST['arms_save_physio'] ) && check_admin_referer( 'arms_physio_nonce_action', 'arms_physio_nonce' ) ) {
         
@@ -67,17 +68,20 @@ function arms_physiotherapy_tab() {
             $format_array = array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s' );
 
             if ( $current_sub === 'edit' && $log_id > 0 ) {
+                // Update implementation
                 $updated = $wpdb->update( $table_physio, $data_array, array( 'id' => $log_id ), $format_array, array( '%d' ) );
                 if ( $updated !== false ) {
                     wp_safe_redirect( add_query_arg( 'arms_msg', 'updated', $list_url ) );
                     exit;
+                } else {
+                    add_settings_error( 'arms_physio_messages', 'db_error', 'Database processing error updating record.', 'error' );
                 }
             } else {
+                // New Insert implementation
                 $data_array['created_at'] = current_time( 'mysql' );
                 $format_array[] = '%s';
                 
-                // Add Audit Trail accountability factor matching platform schema structures
-                if( function_exists('get_current_user_id') ) {
+                if ( function_exists('get_current_user_id') ) {
                     $data_array['created_by'] = get_current_user_id();
                     $format_array[] = '%d';
                 }
@@ -86,26 +90,31 @@ function arms_physiotherapy_tab() {
                 if ( $inserted ) {
                     wp_safe_redirect( add_query_arg( 'arms_msg', 'inserted', $list_url ) );
                     exit;
+                } else {
+                    add_settings_error( 'arms_physio_messages', 'db_error', 'Database processing error inserting record.', 'error' );
                 }
             }
         } else {
-            echo '<div class="notice notice-error is-dismissible"><p>Validation Error: You must link this mapping block to an active patient profile.</p></div>';
+            add_settings_error( 'arms_physio_messages', 'validation_error', 'Validation Error: You must link this mapping block to an active patient profile.', 'error' );
         }
     }
 
-    // Process Post-Redirect System Notices
+    // Process Post-Redirect System Notices using WordPress Settings API
     if ( isset( $_GET['arms_msg'] ) ) {
         $msg = sanitize_key( $_GET['arms_msg'] );
         if ( $msg === 'inserted' ) {
-            echo '<div class="notice notice-success is-dismissible"><p>New physical rehabilitation log systematically written.</p></div>';
+            add_settings_error( 'arms_physio_messages', 'inserted', 'New physical rehabilitation log systematically written.', 'updated' );
         } elseif ( $msg === 'updated' ) {
-            echo '<div class="notice notice-success is-dismissible"><p>Physiotherapy rehabilitation files updated.</p></div>';
+            add_settings_error( 'arms_physio_messages', 'updated', 'Physiotherapy rehabilitation files updated.', 'updated' );
         } elseif ( $msg === 'deleted' ) {
-            echo '<div class="notice notice-success is-dismissible"><p>Physiotherapy chart entry dropped successfully.</p></div>';
+            add_settings_error( 'arms_physio_messages', 'deleted', 'Physiotherapy chart entry dropped successfully.', 'updated' );
         }
     }
-    ?>
 
+    /* =========================================================================
+       HTML OUTPUT & INTERFACE RENDERING BEGINS HERE
+       ========================================================================= */
+    ?>
     <style>
         .arms-physio-wrapper { padding: 24px; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; max-width: 1300px; margin: 20px auto; box-sizing: border-box; }
         .arms-physio-wrapper * { box-sizing: border-box; }
@@ -126,7 +135,7 @@ function arms_physiotherapy_tab() {
         .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px !important; font-weight: 500; }
 
         .arms-submit-btn { background: #0ea5e9; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; }
-        .arms-submit-btn:hover { background: #003376; }
+        .arms-submit-btn:hover { background: #0284c7; }
         
         .session-counter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 500px; margin-bottom: 24px; }
         .session-badge-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 16px; }
@@ -147,6 +156,8 @@ function arms_physiotherapy_tab() {
     </style>
 
     <div class="arms-physio-wrapper">
+        <?php settings_errors( 'arms_physio_messages' ); ?>
+
         <nav class="arms-subnav-bar">
             <a href="<?php echo esc_url( $list_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'list') ? 'active' : ''; ?>">
                 <span class="dashicons dashicons-accessibility" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Rehab Master Directory
@@ -160,7 +171,7 @@ function arms_physiotherapy_tab() {
 
         <?php 
         /* =========================================================================
-           SUB-VIEW: ADD / EDIT PHYSIOTHERAPY CHARTS
+           SUB-VIEW: FORM (ADD & EDIT)
            ========================================================================= */
         if ( $current_sub === 'add' || $current_sub === 'edit' ) :
             $form_heading = "Create Physiotherapy Clinical Treatment Plan";
@@ -343,7 +354,7 @@ function arms_physiotherapy_tab() {
             </script>
         <?php 
         /* =========================================================================
-           SUB-VIEW: ACTIVE LOG ARCHIVE DIRECTORY VIEW
+           SUB-VIEW: LIST DIRECTORY (SHOW ALL DATA)
            ========================================================================= */
         elseif ( $current_sub === 'list' ) : 
             $logs = $wpdb->get_results( "
@@ -453,17 +464,17 @@ function arms_physiotherapy_tab() {
                     </div>
 
                     <div style="margin-top: 24px;">
-                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Daily Strategic Treatment Plan Protocol</h4>
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155;"><?php echo $log->daily_plan ? esc_html($log->daily_plan) : '<em>No strategic treatment operations documented.</em>'; ?></div>
+                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Daily Treatment Plan Protocols</h4>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:100px;"><?php echo $log->daily_plan ? esc_html($log->daily_plan) : '<em>No protocol assigned.</em>'; ?></div>
                     </div>
 
                     <div style="margin-top: 24px;">
-                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Continuous Evaluation & Clinical Progress Notes</h4>
-                        <div style="background:#f0fdfa; border:1px solid #ccfbf1; border-radius:6px; padding:16px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#115e59; font-weight:500;"><?php echo $log->progress_notes ? esc_html($log->progress_notes) : '<em>No physical progression updates tracked yet.</em>'; ?></div>
+                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Continuous Evaluation & Progress Notes</h4>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:120px;"><?php echo $log->progress_notes ? esc_html($log->progress_notes) : '<em>No recovery logs added yet.</em>'; ?></div>
                     </div>
                 </div>
             <?php else : ?>
-                <div class="notice notice-error"><p>Clinical Error: Targeted identifier could not be validated against registry records.</p></div>
+                <div class="notice notice-error"><p>Error: The requested clinical record could not be found.</p></div>
             <?php endif; ?>
         <?php endif; ?>
     </div>

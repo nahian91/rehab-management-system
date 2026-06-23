@@ -1,208 +1,288 @@
 <?php
-if (!defined('ABSPATH')) exit;
-
-/**
- * 1. BACKEND AJAX HANDLER
- */
-add_action('wp_ajax_fd_toggle_item_status', 'fd_handle_status_togglee');
-function fd_handle_status_togglee() {
-    check_ajax_referer('fd_status_nonce', 'nonce');
-    if (!current_user_can('edit_posts')) wp_send_json_error('Unauthorized');
-
-    $item_id = intval($_POST['item_id']);
-    $new_status = sanitize_text_field($_POST['status']);
-
-    if ($item_id > 0) {
-        $updated = wp_update_post(['ID' => $item_id, 'post_status' => $new_status]);
-        if (!is_wp_error($updated)) wp_send_json_success();
-    }
-    wp_send_json_error('Update failed');
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly
 }
 
 /**
- * 2. MAIN DASHBOARD VIEW
+ * =========================================================================
+ * INPATIENT ADMISSIONS & ACCOMMODATION LEDGER
+ * =========================================================================
  */
 function arms_admission_list_table() {
-    // REMOVED 'meta_key' to ensure all items are fetched, including those without codes
-    $items = get_posts([
-        'post_type'   => 'food_item',
-        'numberposts' => -1, 
-        'post_status' => array('publish', 'pending', 'draft'),
-    ]);
+    global $wpdb;
     
-    $categories = get_terms(['taxonomy' => 'food_category', 'hide_empty' => false]);
+    // Explicit Database Table Definitions
+    $table_admissions = $wpdb->prefix . 'arms_admissions';
+    $table_patients   = $wpdb->prefix . 'arms_patients';
+
+    // Fetch records with an optimization join to grab real patient names
+    $results = $wpdb->get_results( 
+        "SELECT a.*, p.name as patient_name 
+         FROM {$table_admissions} a 
+         LEFT JOIN {$table_patients} p ON a.patient_id = p.id 
+         ORDER BY a.id DESC", 
+        ARRAY_A 
+    );
     ?>
 
     <style>
-        :root { --res-primary: #d63638; --res-dark: #1d2327; --res-border: #ccd0d4; --res-success: #46b450; --res-bg-soft: #fafafa; }
-        .afd-dashboard { margin-top: 20px; max-width: 1200px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; }
-        .afd-filter-bar { display: flex; align-items: center; gap: 20px; background: #fff; padding: 15px 20px; border: 1px solid var(--res-border); border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,.02); }
-        .afd-filter-group { display: flex; align-items: center; gap: 10px; }
-        .afd-filter-group label { font-weight: 700; color: var(--res-dark); font-size: 13px; }
-        .afd-filter-select { border: 1px solid var(--res-border); border-radius: 6px; padding: 5px 12px; height: 38px; min-width: 160px; cursor: pointer; }
-        #fd-items-table { border: 1px solid var(--res-border); background: #fff; border-radius: 8px; width: 100%; border-collapse: collapse; overflow: hidden; }
-        #fd-items-table thead th { background: var(--res-bg-soft); padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: #50575e; border-bottom: 2px solid #f0f0f1; letter-spacing: 0.5px; }
-        #fd-items-table td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f0f0f1; }
-        .fd-switch { position: relative; display: inline-block; width: 42px; height: 22px; }
-        .fd-switch input { opacity: 0; width: 0; height: 0; }
-        .fd-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .fd-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .fd-slider { background-color: var(--res-success); }
-        input:checked + .fd-slider:before { transform: translateX(20px); }
-        .fd-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid #f5c2c2; background: #fff9f9; color: var(--res-primary); }
-        .fd-btn { padding: 8px 12px; border-radius: 6px; border: 1px solid #dcdcde; background: #fff; color: #2c3338; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; transition: 0.2s; }
-        .fd-btn:hover { color: var(--res-primary); border-color: var(--res-primary); background: #fff9f9; }
-        .fd-item-img { border-radius: 6px; border: 1px solid #eee; object-fit: cover; }
-        .fd-no-img { width: 50px; height: 50px; background: #f0f0f1; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccd0d4; }
-        .dataTables_wrapper .dataTables_filter input { border: 1px solid var(--res-border); border-radius: 6px; padding: 8px 12px; width: 250px; outline: none; }
+        :root { 
+            --arms-primary: #2271b1; 
+            --arms-dark: #1d2327; 
+            --arms-border: #ccd0d4; 
+            --arms-success: #46b450; 
+            --arms-warning: #dba617;
+            --arms-bg-soft: #fafafa; 
+        }
+        .arms-dashboard { 
+            margin-top: 20px; 
+            max-width: 1300px; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; 
+        }
+        
+        .arms-normal-table { 
+            border: 1px solid var(--arms-border); 
+            background: #fff; 
+            border-radius: 8px; 
+            width: 100%; 
+            border-collapse: collapse; 
+            overflow: hidden; 
+            margin-top: 15px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+        }
+        .arms-normal-table thead th { 
+            background: var(--arms-bg-soft); 
+            padding: 15px; 
+            text-align: left; 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            color: #50575e; 
+            border-bottom: 2px solid #f0f0f1; 
+            letter-spacing: 0.5px; 
+            font-weight: 700; 
+        }
+        .arms-normal-table tbody tr:hover { 
+            background-color: #f9f9f9; 
+        }
+        .arms-normal-table td { 
+            padding: 15px; 
+            vertical-align: middle; 
+            border-bottom: 1px solid #f0f0f1; 
+            color: #2c3338; 
+            font-size: 14px; 
+        }
+        
+        /* Badges Formatting */
+        .arms-badge-room { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            font-weight: 700; 
+            border: 1px solid #b4b9be; 
+            background: #f6f7f7; 
+            color: var(--arms-dark); 
+            text-transform: uppercase;
+        }
+        .arms-status-badge { 
+            display: inline-block; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: 600; 
+        }
+        .arms-status-paid { background: #e7f6ec; color: #0b692d; }
+        .arms-status-unpaid { background: #fcf0e3; color: #a45300; }
+        .arms-status-partially-paid { background: #f0f6fc; color: #0969da; }
+        
+        .arms-active-admit {
+            background: #fdf2f2;
+            color: #d63638;
+            border: 1px solid #f5c2c2;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .arms-icon-wrap { 
+            width: 40px; 
+            height: 40px; 
+            background: #f0f0f1; 
+            border-radius: 6px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: #8c8f94; 
+        }
+
+        /* Modern SVG Action Layout System */
+        .arms-actions-wrapper {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .arms-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #ccd0d4;
+            background: #fff;
+            color: #2c3338;
+            transition: all 0.15s ease-in-out;
+        }
+        .arms-action-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        /* Button Style Varieties */
+        .arms-btn-view:hover {
+            background: #f0f6fc;
+            border-color: #0969da;
+            color: #0969da;
+        }
+        .arms-btn-edit:hover {
+            background: #f0f6fc;
+            border-color: #1a73e8;
+            color: #1a73e8;
+        }
+        .arms-btn-delete:hover {
+            background: #fdf2f2;
+            border-color: #d63638;
+            color: #d63638;
+        }
     </style>
 
-    <div class="wrap afd-dashboard">
+    <div class="wrap arms-dashboard">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <div>
-                <h1 style="margin:0; font-weight: 800; font-size: 24px; color: var(--res-dark);">Menu Items</h1>
-                <p style="color: #646970; margin: 5px 0 0;"><?php echo count($items); ?> Total items in catalog.</p>
+                <h1 style="margin:0; font-weight: 800; font-size: 24px; color: var(--arms-dark);">Inpatient Admissions Log</h1>
+                <p style="color: #646970; margin: 5px 0 0;">Complete registration list of active and past patient accommodations.</p>
             </div>
-            <a href="?page=awesome_food_delivery&tab=items&sub=add" class="button button-primary" style="background:var(--res-primary); border:none; padding: 8px 20px; height: auto; font-weight: 600; border-radius: 6px;">+ Add New Item</a>
+            <a href="<?php echo admin_url('admin.php?page=rehab_management_system&tab=admission&sub=add'); ?>" class="button button-primary" style="background:var(--arms-primary); border:none; padding: 8px 20px; height: auto; font-weight: 600; border-radius: 6px;">+ New Admission</a>
         </div>
 
-        <div class="afd-filter-bar">
-            <div class="afd-filter-group">
-                <label>Category:</label>
-                <select id="cat-filter" class="afd-filter-select">
-                    <option value="">All Categories</option>
-                    <?php foreach ($categories as $cat) echo '<option value="'.$cat->name.'">'.$cat->name.'</option>'; ?>
-                </select>
-            </div>
-            <div class="afd-filter-group">
-                <label for="visibility-filter">Visibility Status:</label>
-                <select id="visibility-filter" class="afd-filter-select">
-                    <option value="">All Statuses</option>
-                    <option value="Live">Live (Published)</option>
-                    <option value="Hidden">Hidden (Draft/Pending)</option>
-                </select>
-            </div>
-            <div id="custom-search-wrap" style="margin-left:auto;"></div>
-        </div>
-
-        <table id="fd-items-table" class="display nowrap">
+        <table class="arms-normal-table">
             <thead>
                 <tr>
-                    <th width="60">Preview</th>
-                    <th>Item No</th>
-                    <th>Item Info</th>
-                    <th>Category</th>
-                    <th width="80">Visibility</th>
-                    <th width="100">Price</th>
-                    <th width="150" style="text-align:right;">Actions</th>
-                    <th style="display:none;">FilterKey</th> 
+                    <th width="50">Log</th>
+                    <th width="120">Admission ID</th>
+                    <th>Patient Identification</th>
+                    <th>Accommodation Assignment</th>
+                    <th>Timeline Dates</th>
+                    <th width="130">Payment Status</th>
+                    <th width="120">Final Bill</th>
+                    <th width="320" style="text-align:right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <?php if($items): foreach($items as $item): 
-                    $price = get_post_meta($item->ID, 'price', true);
-                    $item_code = get_post_meta($item->ID, 'fd_item_code', true); 
-                    $cats = wp_get_post_terms($item->ID, 'food_category');
-                    $is_published = ($item->post_status === 'publish');
-                    $status_label = $is_published ? 'Live' : 'Hidden';
-                    
-                    // Logic: Use meta value for sorting, 9999 for items without codes
-                    $sort_order = (!empty($item_code)) ? intval($item_code) : 9999;
-                ?>
-                <tr id="item-row-<?php echo $item->ID; ?>">
-                    <td>
-                        <?php if (has_post_thumbnail($item->ID)): ?>
-                            <?php echo get_the_post_thumbnail($item->ID, [50, 50], ['class' => 'fd-item-img']); ?>
-                        <?php else: ?>
-                            <div class="fd-no-img"><span class="dashicons dashicons-format-image"></span></div>
-                        <?php endif; ?>
-                    </td>
-                    <td data-order="<?php echo $sort_order; ?>">
-                        <?php if (!empty($item_code)): ?>
-                            <code style="background: #f0f0f1; padding: 2px 6px; border-radius: 4px;"><?php echo esc_html($item_code); ?></code>
-                        <?php else: ?>
-                            <span style="color:#ccc;">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <strong style="font-size:15px; color: var(--res-dark);"><?php echo esc_html($item->post_title); ?></strong><br>
-                        <code style="font-size: 10px; background: #f0f0f1; padding: 1px 4px; border-radius: 3px;">#<?php echo $item->ID; ?></code>
-                    </td>
-                    <td>
-                        <?php if(!empty($cats)): ?>
-                            <span class="fd-badge"><?php echo esc_html($cats[0]->name); ?></span>
-                        <?php else: echo '—'; endif; ?>
-                    </td>
-                    <td>
-                        <label class="fd-switch">
-                            <input type="checkbox" class="fd-status-toggle" data-id="<?php echo $item->ID; ?>" <?php checked($is_published); ?>>
-                            <span class="fd-slider"></span>
-                        </label>
-                    </td>
-                    <td><strong style="font-size:16px; color: var(--res-primary);"><?php echo number_format((float)$price, 2); ?> £</strong></td>
-                    <td align="right">
-                        <div style="display: flex; gap: 5px; justify-content: flex-end;">
-                            <a class="fd-btn" href="?page=awesome_food_delivery&tab=items&sub=edit&item=<?php echo $item->ID; ?>">
-                                <span class="dashicons dashicons-edit"></span>
-                            </a>
-                            <a class="fd-btn" style="color:#d63638;" onclick="if(confirm('Delete this item?')){ $(this).closest('tr').fadeOut(); return true; }" href="<?php echo wp_nonce_url(admin_url('admin-post.php?action=fd_delete_item&item='.$item->ID), 'fd_delete_item_'.$item->ID); ?>">
-                                <span class="dashicons dashicons-trash"></span>
-                            </a>
-                        </div>
-                    </td>
-                    <td style="display:none;"><?php echo $status_label; ?></td>
-                </tr>
-                <?php endforeach; endif; ?>
+                <?php if ( ! empty( $results ) ) : ?>
+                    <?php foreach ( $results as $row ) : 
+                        $admission_id = intval( $row['id'] );
+                        $patient_id   = intval( $row['patient_id'] );
+                        $patient_name = ! empty( $row['patient_name'] ) ? esc_html( $row['patient_name'] ) : 'Unknown Patient';
+                        
+                        // Parse dates beautifully
+                        $admission_date = ( $row['admission_date'] !== '1970-01-01 00:00:00' ) ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $row['admission_date'] ) ) : '—';
+                        
+                        if ( empty( $row['discharge_date'] ) || $row['discharge_date'] === '0000-00-00 00:00:00' ) {
+                            $discharge_date = '<span class="arms-active-admit">Still Admitted</span>';
+                        } else {
+                            $discharge_date = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $row['discharge_date'] ) );
+                        }
+
+                        // Determine standard clean class names matching billing states
+                        $payment_status = sanitize_text_field( $row['payment_status'] );
+                        $status_class   = 'arms-status-unpaid';
+                        if ( strcasecmp( $payment_status, 'Paid' ) === 0 ) {
+                            $status_class = 'arms-status-paid';
+                        } elseif ( strcasecmp( $payment_status, 'Partial' ) === 0 || strcasecmp( $payment_status, 'Partially Paid' ) === 0 ) {
+                            $status_class = 'arms-status-partially-paid';
+                        }
+
+                        // FIXED URLs: Built clearly per row to provide individual identifiers to the router matrix
+                        $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id );
+                        $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&patient=' . $patient_id );
+                        $delete_nonce   = wp_create_nonce( 'arms_delete_admission_' . $admission_id );
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="arms-icon-wrap">
+                                    <span class="dashicons dashicons-id-alt"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <code style="background: #f0f0f1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">ADM-<?php echo $admission_id; ?></code>
+                            </td>
+                            <td>
+                                <strong style="font-size:15px; color: var(--arms-dark);"><?php echo $patient_name; ?></strong><br>
+                                <span style="font-size: 11px; color:#646970;">Patient Reference ID: #<?php echo $patient_id; ?></span>
+                            </td>
+                            <td>
+                                <span class="arms-badge-room"><?php echo esc_html( $row['room_type'] ); ?></span><br>
+                                <div style="margin-top: 4px; font-size: 12px; color: #50575e;">
+                                    <?php if ( ! empty( $row['room_no'] ) ) : ?>
+                                        <strong>Room:</strong> <?php echo esc_html( $row['room_no'] ); ?> 
+                                    <?php endif; ?>
+                                    <?php if ( ! empty( $row['ward_bed_no'] ) ) : ?>
+                                        | <strong>Bed:</strong> <?php echo esc_html( $row['ward_bed_no'] ); ?>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-size:13px;"><strong>In:</strong> <?php echo $admission_date; ?></span><br>
+                                <span style="font-size:13px; display:inline-block; margin-top:3px;"><strong>Out:</strong> <?php echo $discharge_date; ?></span>
+                            </td>
+                            <td>
+                                <span class="arms-status-badge <?php echo $status_class; ?>">
+                                    <?php echo esc_html( $payment_status ); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <strong style="font-size:15px; color: var(--arms-dark);"><?php echo number_format( (float) $row['final_bill_amount'], 2 ); ?> $</strong>
+                            </td>
+                            <td>
+                                <div class="arms-actions-wrapper">
+                                    <a href="<?php echo esc_url( $view_route_url ); ?>" class="arms-action-btn arms-btn-view" title="View Admission Summary Details">
+                                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <span>View</span>
+                                    </a>
+                                    
+                                    <a href="<?php echo esc_url( $edit_route_url ); ?>" class="arms-action-btn arms-btn-edit" title="Edit Admission Data">
+                                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                        <span>Edit</span>
+                                    </a>
+
+                                    <a href="<?php echo admin_url( 'admin-post.php?action=arms_delete_admission&id=' . $admission_id . '&_wpnonce=' . $delete_nonce ); ?>" class="arms-action-btn arms-btn-delete" title="Delete Admission Record" onclick="return confirm('Are you sure you want to permanently delete this admission record?');">
+                                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                        <span>Delete</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #646970;">
+                            <span class="dashicons dashicons-database" style="font-size: 32px; width: 32px; height: 32px; display: block; margin: 0 auto 10px;"></span>
+                            No inpatient admission tracking records found inside the database table.
+                        </td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
-
-    <script>
-    jQuery(document).ready(function($){
-        if ($.fn.DataTable) {
-            var table = $('#fd-items-table').DataTable({
-                "pageLength": 20,
-                "order": [[1, "asc"]], 
-                "dom": '<"top"f>rt<"bottom"ip><"clear">',
-                "columnDefs": [
-                    { "type": "num", "targets": [1] },
-                    { "orderable": false, "targets": [0, 4, 6] },
-                    { "visible": false, "targets": [7] }
-                ],
-                "language": { "search": "", "searchPlaceholder": "Search menu items..." }
-            });
-
-            $('.dataTables_filter').appendTo('#custom-search-wrap');
-
-            $('#cat-filter, #visibility-filter').on('change', function(){
-                table.column(3).search($('#cat-filter').val())
-                     .column(7).search($('#visibility-filter').val() ? '^' + $('#visibility-filter').val() + '$' : '', true, false)
-                     .draw();
-            });
-
-            $('.fd-status-toggle').on('change', function(){
-                var $this = $(this);
-                var $row = $this.closest('tr');
-                var isActive = $this.is(':checked');
-                $this.closest('.fd-switch').css('opacity', '0.5');
-
-                $.post(ajaxurl, {
-                    action: 'fd_toggle_item_status',
-                    item_id: $this.data('id'),
-                    status: isActive ? 'publish' : 'pending',
-                    nonce: '<?php echo wp_create_nonce("fd_status_nonce"); ?>'
-                }, function(res) {
-                    $this.closest('.fd-switch').css('opacity', '1');
-                    if(res.success) {
-                        table.cell($row, 7).data(isActive ? 'Live' : 'Hidden').draw(false);
-                    } else {
-                        alert('Error: Could not update status.');
-                        $this.prop('checked', !isActive);
-                    }
-                });
-            });
-        }
-    });
-    </script>
     <?php
 }
