@@ -216,21 +216,35 @@ dbDelta( $sql_patients );
     ) $charset_collate;";
     dbDelta( $sql_billing );
 
-    // Inpatient Admissions & Accommodation Log
-    $table_admissions = $wpdb->prefix . 'arms_admissions';
-    $sql_admissions = "CREATE TABLE $table_admissions (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        patient_id bigint(20) NOT NULL,
-        accommodation_type varchar(50) DEFAULT 'ward' NOT NULL,
-        room_number varchar(50) NOT NULL,
-        bed_number varchar(50) DEFAULT '' NOT NULL,
-        admission_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        discharge_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        daily_rent decimal(10,2) DEFAULT '0.00' NOT NULL,
-        status varchar(30) DEFAULT 'admitted' NOT NULL,
-        PRIMARY KEY  (id)
-    ) $charset_collate;";
-    dbDelta( $sql_admissions );
+$charset_collate = $wpdb->get_charset_collate();
+
+// Inpatient Admissions & Accommodation Log
+$table_admissions = $wpdb->prefix . 'arms_admissions';
+
+/**
+ * SQL Rules for dbDelta compliance:
+ * - Must use uppercase for all SQL keywords.
+ * - Must specify a length for all varchar data types.
+ * - Real primary key must be named PRIMARY KEY followed by TWO spaces, then the column.
+ * - Every field must be on its own line.
+ */
+$sql_admissions = "CREATE TABLE $table_admissions (
+    id bigint(20) NOT NULL AUTO_INCREMENT,
+    patient_id bigint(20) NOT NULL,
+    accommodation_type varchar(50) DEFAULT 'ward' NOT NULL,
+    room_number varchar(50) NOT NULL,
+    bed_number varchar(50) DEFAULT '' NOT NULL,
+    admission_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+    discharge_date datetime DEFAULT NULL,
+    daily_rent decimal(10,2) DEFAULT '0.00' NOT NULL,
+    status varchar(30) DEFAULT 'admitted' NOT NULL,
+    PRIMARY KEY  (id),
+    KEY patient_id (patient_id),
+    KEY status (status)
+) $charset_collate;";
+
+require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+dbDelta( $sql_admissions );
 
     // Ledger entries for General Income & Expense Bookkeeping
     $table_ledger = $wpdb->prefix . 'arms_ledger';
@@ -388,6 +402,11 @@ function arms_main_router_page() {
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M436 160H12c-6.6 0-12-5.4-12-12v-36c0-26.5 21.5-48 48-48h48V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h128V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h48c26.5 0 48 21.5 48 48v36c0 6.6-5.4 12-12 12zM0 192v272c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V192H0zm308 176c0 4.4-3.6 8-8 8h-48v48c0 4.4-3.6 8-8 8h-40c-4.4 0-8-3.6-8-8v-48h-48c-4.4 0-8-3.6-8-8v-40c0-4.4 3.6-8 8-8h48v-48c0-4.4 3.6-8 8-8h40c4.4 0 8 3.6 8 8v48h48c4.4 0 8 3.6 8 8v40z"/></svg>',
             'roles' => array('admin_manager', 'doctor')
         ),
+        'admission' => array(
+            'label' => 'Admission',
+            'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M528 112H48c-26.5 0-48 21.5-48 48v320c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V160c0-26.5-21.5-48-48-48zm-16 336H64V160h448v288zM176 256h224c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H176c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zm0 96h224c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H176c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zM112 48h352c8.8 0 16 7.2 16 16v16H96V64c0-8.8 7.2-16 16-16z"/></svg>',
+            'roles' => array('admin_manager', 'doctor', 'nurse')
+        ),
         'physiotherapy' => array(
             'label' => 'Physiotherapy',
             'svg'   => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M208 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm92.21 289.44l-40-64A15.937 15.937 0 0 0 246.77 266H200v-82.68l42.66 21.33c10.02 5.01 22.24 1.93 28.53-7.14l24-34.67c6.6-9.54 4.31-22.68-5.12-29.4l-80-57.14C201.76 106.66 190.22 102 178 102h-40c-15.65 0-30.06 6.94-39.63 18.91l-60 74.67c-7.05 8.77-6.2 21.56 1.95 29.3l29.33 27.87c8.39 7.97 21.71 7.28 29.27-1.54L136 204.62V282H73.37c-10.42 0-20 6.01-24.49 15.41l-44 92c-6.19 12.95-1.12 28.34 11.45 35.08l34.67 18.59c11.83 6.34 26.69 2.11 33.43-9.35L112 384h40v96c0 17.67 14.33 32 32 32h24c13.25 0 24-10.75 24-24v-160h43.3c7.22 0 13.98-3.9 17.61-10.22l20.43-34.33c4.13-6.95 3.01-15.72-3.13-21.47z"/></svg>',
@@ -480,65 +499,65 @@ function arms_main_router_page() {
             <div class="arms-sidebar-container">
                 
                 <div class="arms-author-profile">
-    <div class="profile-avatar">
-        <?php 
-        global $wpdb;
-        $current_user_id = get_current_user_id();
-        $current_user    = wp_get_current_user();
-        
-        // Initialize fallback layout defaults
-        $display_name  = ! empty( $current_user->display_name ) ? $current_user->display_name : $current_user->user_login;
-        $designation   = 'Staff Member';
-        $custom_avatar = '';
+                    <div class="profile-avatar">
+                        <?php 
+                        global $wpdb;
+                        $current_user_id = get_current_user_id();
+                        $current_user    = wp_get_current_user();
+                        
+                        // Initialize fallback layout defaults
+                        $display_name  = ! empty( $current_user->display_name ) ? $current_user->display_name : $current_user->user_login;
+                        $designation   = 'Staff Member';
+                        $custom_avatar = '';
 
-        // Check if the current user is an Administrator
-        if ( in_array( 'administrator', (array) $current_user->roles ) ) {
-            // --- ADMIN STRATEGY: Use pure WordPress Defaults ---
-            $designation = 'Administrator';
-        } else {
-            // --- STAFF STRATEGY: Fetch metadata metrics from custom DB matrix table ---
-            $table_name = $wpdb->prefix . 'arms_staff';
-            
-            // Query the row matching this WordPress User ID
-            $staff_row = $wpdb->get_row( $wpdb->prepare( 
-                "SELECT first_name, last_name, role_category, profile_image FROM $table_name WHERE wp_user_id = %d", 
-                $current_user_id 
-            ) );
+                        // Check if the current user is an Administrator
+                        if ( in_array( 'administrator', (array) $current_user->roles ) ) {
+                            // --- ADMIN STRATEGY: Use pure WordPress Defaults ---
+                            $designation = 'Administrator';
+                        } else {
+                            // --- STAFF STRATEGY: Fetch metadata metrics from custom DB matrix table ---
+                            $table_name = $wpdb->prefix . 'arms_staff';
+                            
+                            // Query the row matching this WordPress User ID
+                            $staff_row = $wpdb->get_row( $wpdb->prepare( 
+                                "SELECT first_name, last_name, role_category, profile_image FROM $table_name WHERE wp_user_id = %d", 
+                                $current_user_id 
+                            ) );
 
-            if ( $staff_row ) {
-                // Construct real name dynamically from table columns
-                if ( ! empty( $staff_row->first_name ) ) {
-                    $display_name = trim( $staff_row->first_name . ' ' . $staff_row->last_name );
-                }
-                
-                // Format the role category designation slug string smoothly
-                if ( ! empty( $staff_row->role_category ) ) {
-                    $designation = ucwords( str_replace( '_', ' ', $staff_row->role_category ) );
-                }
-                
-                // Extract custom file upload source target
-                if ( ! empty( $staff_row->profile_image ) ) {
-                    $custom_avatar = $staff_row->profile_image;
-                }
-            } else {
-                // Secondary fallback if the user is staff but doesn't have a database row map yet
-                $designation = ! empty( $current_user->roles ) ? ucfirst( reset( $current_user->roles ) ) : 'Staff Member';
-            }
-        }
+                            if ( $staff_row ) {
+                                // Construct real name dynamically from table columns
+                                if ( ! empty( $staff_row->first_name ) ) {
+                                    $display_name = trim( $staff_row->first_name . ' ' . $staff_row->last_name );
+                                }
+                                
+                                // Format the role category designation slug string smoothly
+                                if ( ! empty( $staff_row->role_category ) ) {
+                                    $designation = ucwords( str_replace( '_', ' ', $staff_row->role_category ) );
+                                }
+                                
+                                // Extract custom file upload source target
+                                if ( ! empty( $staff_row->profile_image ) ) {
+                                    $custom_avatar = $staff_row->profile_image;
+                                }
+                            } else {
+                                // Secondary fallback if the user is staff but doesn't have a database row map yet
+                                $designation = ! empty( $current_user->roles ) ? ucfirst( reset( $current_user->roles ) ) : 'Staff Member';
+                            }
+                        }
 
-        // Render clean structural image markup output
-        if ( ! empty( $custom_avatar ) ) {
-            echo '<img src="' . esc_url( $custom_avatar ) . '" alt="' . esc_attr( $display_name ) . '" width="64" height="64" style="border-radius: 50%; object-fit: cover;" />';
-        } else {
-            echo get_avatar( $current_user_id, 64, '', '', array( 'class' => 'avatar-round' ) ); 
-        }
-        ?>
-    </div>
-    <div class="profile-meta">
-        <h4 class="profile-name"><?php echo esc_html( $display_name ); ?></h4>
-        <span class="profile-designation"><?php echo esc_html( $designation ); ?></span>
-    </div>
-</div>
+                        // Render clean structural image markup output
+                        if ( ! empty( $custom_avatar ) ) {
+                            echo '<img src="' . esc_url( $custom_avatar ) . '" alt="' . esc_attr( $display_name ) . '" width="64" height="64" style="border-radius: 50%; object-fit: cover;" />';
+                        } else {
+                            echo get_avatar( $current_user_id, 64, '', '', array( 'class' => 'avatar-round' ) ); 
+                        }
+                        ?>
+                    </div>
+                    <div class="profile-meta">
+                        <h4 class="profile-name"><?php echo esc_html( $display_name ); ?></h4>
+                        <span class="profile-designation"><?php echo esc_html( $designation ); ?></span>
+                    </div>
+                </div>
 
                 <ul class="arms-left-tabs">
                     <?php 
@@ -574,6 +593,12 @@ function arms_main_router_page() {
                 case 'patients':
                     if ( function_exists( 'arms_patients_tab' ) ) { arms_patients_tab(); }
                     break;
+                case 'opd':
+                    if ( function_exists( 'arms_opd_tab' ) ) { arms_opd_tab(); }
+                    break;
+                case 'admission':
+                    if ( function_exists( 'arms_admission_tab' ) ) { arms_admission_tab(); }
+                    break;
                 case 'physiotherapy':
                     if ( function_exists( 'arms_physiotherapy_tab' ) ) { arms_physiotherapy_tab(); }
                     break;
@@ -582,9 +607,6 @@ function arms_main_router_page() {
                     break;
                 case 'inventory':
                     if ( function_exists( 'arms_inventory_tab' ) ) { arms_inventory_tab(); }
-                    break;
-                case 'admission':
-                    if ( function_exists( 'arms_admission_tab' ) ) { arms_admission_tab(); }
                     break;
                 case 'finance':
                     if ( function_exists( 'arms_finance_tab' ) ) { arms_finance_tab(); }
@@ -597,9 +619,6 @@ function arms_main_router_page() {
                     break;
                 case 'staff':
                     if ( function_exists( 'arms_staff_tab' ) ) { arms_staff_tab(); }
-                    break;
-                case 'opd':
-                    if ( function_exists( 'arms_opd_tab' ) ) { arms_opd_tab(); }
                     break;
             }
             ?>

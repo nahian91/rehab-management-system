@@ -68,7 +68,7 @@
                     <?php endforeach; ?>
                 <?php else : ?>
                     <tr class="no-records-row">
-                        <td colspan="8" style="text-align: center; color: #64748b; padding: 30px;">No registered staff member profiles found.</td>
+                        <td colspan="6" style="text-align: center; color: #64748b; padding: 30px;">No registered staff member profiles found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -77,37 +77,27 @@
 </div>
 
 <script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('armsStaffTableSearch');
-    var tableBody = document.querySelector('#armsStaffSystemDirectoryTable tbody');
+jQuery(document).ready(function($) {
+    var tableEl = $('#armsStaffSystemDirectoryTable');
     
-    if (searchInput && tableBody) {
-        searchInput.addEventListener('keyup', function() {
-            var filterValue = searchInput.value.toLowerCase();
-            var rows = tableBody.querySelectorAll('tr:not(.no-records-row)');
-            var visibleRowsCount = 0;
-
-            rows.forEach(function(row) {
-                var textContent = row.textContent.toLowerCase();
-                if (textContent.indexOf(filterValue) > -1) {
-                    row.style.display = '';
-                    visibleRowsCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            var dynamicFallback = document.getElementById('arms-search-fallback-row');
-            if (visibleRowsCount === 0 && rows.length > 0) {
-                if (!dynamicFallback) {
-                    dynamicFallback = document.createElement('tr');
-                    dynamicFallback.id = 'arms-search-fallback-row';
-                    dynamicFallback.innerHTML = '<td colspan="8" style="text-align: center; color: #64748b; padding: 20px;">No matching records found matching the query criteria.</td>';
-                    tableBody.appendChild(dynamicFallback);
-                }
-            } else if (dynamicFallback) {
-                dynamicFallback.remove();
+    // Fallback detection logic optimization: ensure we do not apply datatables to completely unseeded table arrays
+    if (tableEl.find('tbody tr.no-records-row').length === 0) {
+        var staffDataTable = tableEl.DataTable({
+            "dom": 'rt<"arms-dt-footer-layout"ip>', // Suppress internal search layout component blocks to protect native configuration aesthetics
+            "pageLength": 10,
+            "ordering": true,
+            "responsive": true,
+            "columnDefs": [
+                { "orderable": false, "targets": 5 } // Disable standard sorting operations over action columns
+            ],
+            "language": {
+                "zeroRecords": "No records found matching the query criteria."
             }
+        });
+
+        // Intercept native event hook handling routines to pass external custom search inputs downstream
+        $('#armsStaffTableSearch').on('keyup', function() {
+            staffDataTable.search(this.value).draw();
         });
     }
 });

@@ -345,7 +345,7 @@ function arms_dashboard_tab() {
         
         <div>
             <h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #1d2327;">Advanced Rehab & Wellness</h1>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #646970;">Live framework tracking architectural patients data flow, active occupancy arrays, and system accounting ledgers.</p>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #646970;">Rehab Management System</p>
         </div>
     </div>
 
@@ -357,21 +357,6 @@ function arms_dashboard_tab() {
         </div>
     </div>
 </div>
-
-        <div class="arms-quick-actions-bar">
-            <div style="display:flex; flex-direction:column;">
-                <span style="font-weight: 600; font-size: 14px;">Quick Actions Workflow Matrix</span>
-                <span style="color: var(--arms-muted); font-size: 11px;">Bypass routing steps to perform instant data logging configuration routines.</span>
-            </div>
-            <div class="arms-action-buttons-group">
-                <a href="<?php echo esc_url( $patient_tab_url ); ?>" class="arms-btn-action">
-                    <span class="dashicons dashicons-plus-alt"></span> Add New Patient
-                </a>
-                <a href="<?php echo esc_url( $billing_tab_url ); ?>" class="arms-btn-action secondary">
-                    <span class="dashicons dashicons-cart"></span> Create Invoice Bill
-                </a>
-            </div>
-        </div>
 
         <div class="arms-summary-grid-matrix">
             

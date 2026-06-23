@@ -142,7 +142,6 @@ function arms_add_edit_patient_form( $patient_id = 0 ) {
     </style>
 
     <div class="wrap">
-        <h1 class="wp-heading-inline"><?php echo $patient_id ? 'Edit Patient Record' : 'Add New Patient Record'; ?></h1>
         <hr class="wp-header-end">
         
         <div class="arms-form-container">

@@ -12,9 +12,8 @@ function arms_admission_tab() {
 
     // Sub-navigation architecture for the Patient Registry
     $tabs = array(
-        'all'     => 'All Patients',
-        'add'     => 'Add Patient',
-        'history' => 'Medical History',
+        'all'     => 'All Admission',
+        'add'     => 'Add Admission',
     );
 
     // Contextual Sub-tab Injection: Append temporary tab options for specific workflows
@@ -29,7 +28,7 @@ function arms_admission_tab() {
         // Build base context locking query variables
         $url_args = array(
             'page' => 'rehab_management_system',
-            'tab'  => 'patients',
+            'tab'  => 'admission',
             'sub'  => $k
         );
 
@@ -53,7 +52,7 @@ function arms_admission_tab() {
     if ( $sub === 'add' ) {
         // Render form for a brand new clinical admission profile entry
         if ( function_exists( 'arms_add_edit_admission_form' ) ) {
-            arms_add_edit_patient_form();
+            arms_add_edit_admission_form();
         } else {
             echo '<div class="notice notice-warning"><p>Patient entry form module missing from the patient template layer.</p></div>';
         }
@@ -61,8 +60,8 @@ function arms_admission_tab() {
     elseif ( $sub === 'edit' ) {
         // Safe integer verification filter on query request payload
         if ( $patient_id > 0 ) {
-            if ( function_exists( 'arms_add_edit_patient_form' ) ) {
-                arms_add_edit_patient_form( $patient_id );
+            if ( function_exists( 'arms_add_edit_admission_form' ) ) {
+                arms_add_edit_admission_form( $patient_id );
             } else {
                 echo '<div class="notice notice-warning"><p>Patient edit form module missing from the patient template layer.</p></div>';
             }
@@ -73,6 +72,8 @@ function arms_admission_tab() {
     elseif ( $sub === 'view' ) {
         if ( function_exists( 'arms_view_patient_profile' ) ) {
             arms_view_patient_profile( $patient_id );
+        } else {
+            echo '<div class="notice notice-warning"><p>Patient profile display module missing from the layout framework layer.</p></div>';
         }
     } 
     elseif ( $sub === 'history' ) {
@@ -84,10 +85,10 @@ function arms_admission_tab() {
     } 
     else {
         // Primary fallback node: tabular records listing component
-        if ( function_exists( 'arms_patients_list_table' ) ) {
+        if ( function_exists( 'arms_admission_list_table' ) ) {
             arms_admission_list_table();
         } else {
-            echo '<div class="notice notice-error"><p>Critical Error: Core data table components could not be successfully resolved.</p></div>';
+            echo '<div class="notice notice-error"><p>Critical Error: Core admission list data table components could not be successfully resolved.</p></div>';
         }
     }
 
