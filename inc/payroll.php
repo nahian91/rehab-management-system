@@ -208,11 +208,11 @@ function arms_payroll_tab() {
     ?>
 
     <a class="nav-tab <?php echo $current_sub_tab === 'process' ? 'nav-tab-active' : ''; ?>" href="<?php echo $process_url; ?>">
-        <?php _e('Process New Payroll', 'arms-textdomain'); ?>
+        <?php _e('Add Payroll', 'arms-textdomain'); ?>
     </a>
     
     <a class="nav-tab <?php echo $current_sub_tab === 'history' ? 'nav-tab-active' : ''; ?>" href="<?php echo $history_url; ?>">
-        <?php _e('Payroll Ledger History', 'arms-textdomain'); ?>
+        <?php _e('All Payroll', 'arms-textdomain'); ?>
     </a>
 </h2>
 
