@@ -26,7 +26,7 @@ function arms_physiotherapy_tab() {
     $add_url  = $base_url . '&sub=add';
 
     /* =========================================================================
-       ACTION ROUTER: PURGE REHAB RECORD (Executed before any output)
+       ACTION ROUTER: PURGE REHAB RECORD
        ========================================================================= */
     if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && $log_id > 0 ) {
         if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'arms_delete_physio_' . $log_id ) ) {
@@ -41,7 +41,7 @@ function arms_physiotherapy_tab() {
     }
 
     /* =========================================================================
-       POST ENGINE: HANDLING TREATMENTS & PROGRESS PERSISTENCE (SAVE & UPDATE)
+       POST ENGINE: HANDLING TREATMENTS & PROGRESS PERSISTENCE
        ========================================================================= */
     if ( isset( $_POST['arms_save_physio'] ) && check_admin_referer( 'arms_physio_nonce_action', 'arms_physio_nonce' ) ) {
         
@@ -68,7 +68,6 @@ function arms_physiotherapy_tab() {
             $format_array = array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s' );
 
             if ( $current_sub === 'edit' && $log_id > 0 ) {
-                // Update implementation
                 $updated = $wpdb->update( $table_physio, $data_array, array( 'id' => $log_id ), $format_array, array( '%d' ) );
                 if ( $updated !== false ) {
                     wp_safe_redirect( add_query_arg( 'arms_msg', 'updated', $list_url ) );
@@ -77,7 +76,6 @@ function arms_physiotherapy_tab() {
                     add_settings_error( 'arms_physio_messages', 'db_error', 'Database processing error updating record.', 'error' );
                 }
             } else {
-                // New Insert implementation
                 $data_array['created_at'] = current_time( 'mysql' );
                 $format_array[] = '%s';
                 
@@ -99,7 +97,7 @@ function arms_physiotherapy_tab() {
         }
     }
 
-    // Process Post-Redirect System Notices using WordPress Settings API
+    // System Notices Mapping
     if ( isset( $_GET['arms_msg'] ) ) {
         $msg = sanitize_key( $_GET['arms_msg'] );
         if ( $msg === 'inserted' ) {
@@ -110,91 +108,111 @@ function arms_physiotherapy_tab() {
             add_settings_error( 'arms_physio_messages', 'deleted', 'Physiotherapy chart entry dropped successfully.', 'updated' );
         }
     }
-
-    /* =========================================================================
-       HTML OUTPUT & INTERFACE RENDERING BEGINS HERE
-       ========================================================================= */
     ?>
+
     <style>
-        .arms-physio-wrapper { padding: 24px; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; max-width: 1300px; margin: 20px auto; box-sizing: border-box; }
-        .arms-physio-wrapper * { box-sizing: border-box; }
-        .arms-subnav-bar { display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; margin-bottom: 24px; }
-        .arms-subnav-link { padding: 10px 20px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 13px; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s ease; }
-        .arms-subnav-link:hover { color: #0ea5e9; }
-        .arms-subnav-link.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
-        .arms-card-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 24px; }
-        .arms-card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-        .arms-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .arms-physio-container { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; }
+        .arms-physio-container * { box-sizing: border-box; }
+        .arms-sub-tab-wrapper { margin-bottom: 20px !important; }
+        .arms-card-box { background: #ffffff; border: 1px solid #ccd0d4; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 24px; margin-bottom: 20px; border-radius: 4px; }
+        .arms-card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #f0f0f1; padding-bottom: 16px; }
+        .arms-card-header-flex h3 { margin: 0; font-size: 18px; font-weight: 600; color: #1d2327; }
+        .arms-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
         .arms-form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
         .arms-form-group.fullwidth-col { grid-column: 1 / -1; }
-        .arms-form-group label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; }
-        .arms-form-group input, .arms-form-group select, .arms-form-group textarea { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #0f172a; background-color: #fff; width: 100%; }
-        .arms-form-group input:focus, .arms-form-group select:focus, .arms-form-group textarea:focus { border-color: #0ea5e9; outline: none; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1); }
+        .arms-form-group label { font-size: 13px; font-weight: 600; color: #2c3338; }
+        .arms-form-group input[type="text"], .arms-form-group input[type="date"], .arms-form-group input[type="number"], .arms-form-group select, .arms-form-group textarea { padding: 8px 12px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px; color: #2c3338; background-color: #fff; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .arms-form-group input:focus, .arms-form-group select:focus, .arms-form-group textarea:focus { border-color: #2271b1; outline: none; box-shadow: 0 0 0 1px #2271b1; }
         
-        .arms-searchable-group { background: #fdfdfd; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-bottom: 8px; }
-        .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px !important; font-weight: 500; }
+        .arms-searchable-group { background: #f6f7f7; padding: 16px; border: 1px solid #c3c4c7; border-radius: 4px; }
+        .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2364748b" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px !important; }
 
-        .arms-submit-btn { background: #0ea5e9; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; }
-        .arms-submit-btn:hover { background: #0284c7; }
+        .arms-submit-btn { background: #2271b1; color: #fff; border: 1px solid #135e96; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 3px; cursor: pointer; transition: all 0.1s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 36px; }
+        .arms-submit-btn:hover { background: #135e96; border-color: #0a4b78; color: #fff; }
+        .arms-submit-btn .dashicons { font-size: 18px; width: 18px; height: 18px; margin-right: 6px; line-height: 1; }
         
-        .session-counter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 500px; margin-bottom: 24px; }
-        .session-badge-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 16px; }
-        .session-badge-box.remaining { background: #fef9c3; border-color: #fef08a; }
-        .session-badge-box .counter-display { font-size: 28px; font-weight: 800; color: #166534; line-height: 1; }
-        .session-badge-box.remaining .counter-display { color: #854d0e; }
-        .session-badge-box .counter-label { font-size: 12px; font-weight: 600; color: #475569; }
+        .session-counter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .session-badge-box { background: #f0f6fa; border-left: 4px solid #2271b1; padding: 16px; border-radius: 0 4px 4px 0; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .session-badge-box.remaining { background: #fcf9e8; border-left-color: #dba617; }
+        .session-badge-box .counter-display { font-size: 32px; font-weight: 700; color: #2271b1; line-height: 1; }
+        .session-badge-box.remaining .counter-display { color: #b28004; }
+        .session-badge-box .counter-label { font-size: 13px; font-weight: 600; color: #2c3338; text-transform: uppercase; letter-spacing: 0.02em; }
 
-        .arms-data-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .arms-data-table th { background: #f8fafc; padding: 12px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-        .arms-data-table td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-        .arms-action-btn-group { display: flex; gap: 4px; justify-content: flex-end; }
-        .arms-action-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-view { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-        .btn-edit { background: #f0f9ff; color: #003376; border: 1px solid #bae6fd; }
-        .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-        .btn-view:hover { background:#e2e8f0; } .btn-edit:hover { background:#e0f2fe; } .btn-delete:hover { background:#fee2e2; }
+        .arms-data-table { width: 100%; margin-top: 8px; }
+        .arms-action-btn-group { display: flex; gap: 6px; }
+        .arms-action-btn { padding: 4px 10px; font-size: 12px; border-radius: 3px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; border: 1px solid #8c8f94; background: #f6f7f7; color: #2c3338; }
+        .arms-action-btn:hover { background: #f0f0f1; color: #1d2327; border-color: #50575e; }
+        .arms-action-btn.btn-edit { color: #2271b1; border-color: #2271b1; background: #f0f6fa; }
+        .arms-action-btn.btn-edit:hover { background: #e5f0fa; color: #135e96; }
+        .arms-action-btn.btn-delete { color: #b32d2e; border-color: #b32d2e; background: #fcf0f1; }
+        .arms-action-btn.btn-delete:hover { background: #facfd1; color: #b32d2e; }
+
+        /* View Mode Layout Spec */
+        .arms-view-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+        @media (max-width: 900px) { .arms-view-grid { grid-template-columns: 1fr; } }
+        .arms-view-section { margin-bottom: 24px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; overflow: hidden; }
+        .arms-view-section-header { background: #f6f7f7; padding: 12px 16px; font-weight: 600; color: #1d2327; border-bottom: 1px solid #c3c4c7; display: flex; align-items: center; gap: 8px; }
+        .arms-view-section-body { padding: 16px; font-size: 14px; color: #2c3338; line-height: 1.6; white-space: pre-line; }
+        .arms-meta-list { list-style: none; margin: 0; padding: 0; }
+        .arms-meta-list li { padding: 12px 16px; border-bottom: 1px solid #f0f0f1; display: flex; justify-content: space-between; font-size: 13px; }
+        .arms-meta-list li:last-child { border-bottom: none; }
+        .arms-meta-list li strong { color: #1d2327; }
+        .arms-meta-list li span { color: #4f5d73; text-align: right; }
     </style>
 
-    <div class="arms-physio-wrapper">
+    <div class="arms-physio-container">
         <?php settings_errors( 'arms_physio_messages' ); ?>
 
-        <nav class="arms-subnav-bar">
-            <a href="<?php echo esc_url( $list_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'list') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-accessibility" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Rehab Master Directory
+        <h2 class="nav-tab-wrapper arms-sub-tab-wrapper">
+            <a href="<?php echo esc_url( $list_url ); ?>" class="nav-tab <?php echo ($current_sub === 'list') ? 'nav-tab-active' : ''; ?>">
+                <span class="dashicons dashicons-accessibility" style="font-size:17px; vertical-align:middle; margin-right:4px; margin-top:-2px;"></span> 
+                <?php _e('All Physiotherapy Logs', 'arms-textdomain'); ?>
             </a>
-            <a href="<?php echo esc_url( $add_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'add') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-welcome-write-blog" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Draft Treatment Chart
+            <a href="<?php echo esc_url( $add_url ); ?>" class="nav-tab <?php echo ($current_sub === 'add') ? 'nav-tab-active' : ''; ?>">
+                <span class="dashicons dashicons-plus" style="font-size:17px; vertical-align:middle; margin-right:4px; margin-top:-2px;"></span>
+                <?php _e('Add New Chart', 'arms-textdomain'); ?>
             </a>
-            <?php if ( $current_sub === 'edit' ) : ?><a class="arms-subnav-link active">Modify Rehab Log</a><?php endif; ?>
-            <?php if ( $current_sub === 'view' ) : ?><a class="arms-subnav-link active">Physiotherapy Case View</a><?php endif; ?>
-        </nav>
+            <?php if ( $current_sub === 'edit' ) : ?>
+                <a class="nav-tab nav-tab-active">
+                    <span class="dashicons dashicons-edit" style="font-size:17px; vertical-align:middle; margin-right:4px; margin-top:-2px;"></span>
+                    <?php _e('Modify Rehab Log', 'arms-textdomain'); ?>
+                </a>
+            <?php endif; ?>
+            <?php if ( $current_sub === 'view' ) : ?>
+                <a class="nav-tab nav-tab-active">
+                    <span class="dashicons dashicons-visibility" style="font-size:17px; vertical-align:middle; margin-right:4px; margin-top:-2px;"></span>
+                    <?php _e('Physiotherapy Case View', 'arms-textdomain'); ?>
+                </a>
+            <?php endif; ?>
+        </h2>
 
-        <?php 
         /* =========================================================================
            SUB-VIEW: FORM (ADD & EDIT)
            ========================================================================= */
-        if ( $current_sub === 'add' || $current_sub === 'edit' ) :
-            $form_heading = "Create Physiotherapy Clinical Treatment Plan";
+        <?php if ( $current_sub === 'add' || $current_sub === 'edit' ) :
+            $form_heading = __("Create Physiotherapy Clinical Treatment Plan", 'arms-textdomain');
             $row_data = null;
 
             if ( $current_sub === 'edit' && $log_id > 0 ) {
                 $row_data = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_physio WHERE id = %d", $log_id ) );
-                $form_heading = "Edit Physiotherapy Chart Matrix #ID: " . esc_html($log_id);
+                $form_heading = __("Edit Physiotherapy Chart Matrix #ID: ", 'arms-textdomain') . esc_html($log_id);
             }
             ?>
             <div class="arms-card-box">
-                <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 700; color:#1e293b;"><?php echo esc_html($form_heading); ?></h3>
+                <div class="arms-card-header-flex">
+                    <h3><?php echo esc_html($form_heading); ?></h3>
+                    <a href="<?php echo esc_url($list_url); ?>" class="page-title-action" style="margin:0;"><?php _e('Back to Directory', 'arms-textdomain'); ?></a>
+                </div>
                 
                 <form method="post" action="">
                     <?php wp_nonce_field( 'arms_physio_nonce_action', 'arms_physio_nonce' ); ?>
                     
                     <div class="arms-form-grid">
                         <div class="arms-form-group fullwidth-col arms-searchable-group">
-                            <label for="arms_patient_search" style="display:block; margin-bottom: 6px;">Target Patient Profile *</label>
+                            <label for="arms_patient_search"><?php _e('Target Patient Profile *', 'arms-textdomain'); ?></label>
                             
                             <?php 
                             $patients_list = $wpdb->get_results("SELECT id, name, mobile FROM $table_patients ORDER BY name ASC");
-                            
                             $selected_id = ($row_data) ? intval($row_data->patient_id) : 0;
                             $selected_display = '';
                             if ( $selected_id > 0 && ! empty( $patients_list ) ) {
@@ -208,17 +226,17 @@ function arms_physiotherapy_tab() {
                             ?>
                             <input type="hidden" id="patient_id" name="patient_id" value="<?php echo $selected_id; ?>" required>
                             <input type="text" id="arms_patient_search" class="arms-patient-search-input" 
-                                   placeholder="Type name or Patient ID here to lock record profile..." 
+                                   placeholder="<?php _e('Type name or Patient ID here to lock record profile...', 'arms-textdomain'); ?>" 
                                    value="<?php echo $selected_display; ?>" autocomplete="off">
                             
-                            <div id="arms_patient_dropdown_list" style="display: none; position: absolute; top: 100%; left: 16px; right: 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px;">
-                                <div class="arms-patient-option-empty" style="padding: 10px 12px; color: #64748b; font-style: italic; display: none;">No matching tracking blocks discovered...</div>
+                            <div id="arms_patient_dropdown_list" style="display: none; position: absolute; top: 100%; left: 16px; right: 16px; background: #fff; border: 1px solid #8c8f94; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px;">
+                                <div class="arms-patient-option-empty" style="padding: 10px 12px; color: #64748b; font-style: italic; display: none;"><?php _e('No matching profiles found...', 'arms-textdomain'); ?></div>
                                 <?php 
                                 if ( ! empty( $patients_list ) ) {
                                     foreach ( $patients_list as $pat ) {
                                         $clean_name = esc_html($pat->name);
                                         $clean_meta = esc_html('ID: #' . $pat->id . ' | ' . $pat->mobile);
-                                        echo '<div class="arms-patient-option" data-id="'.intval($pat->id).'" data-search="'.esc_attr(strtolower($clean_name . ' ' . $pat->id)).'" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #0f172a;">';
+                                        echo '<div class="arms-patient-option" data-id="'.intval($pat->id).'" data-search="'.esc_attr(strtolower($clean_name . ' ' . $pat->id)).'" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f1; font-size: 13px; color: #2c3338;">';
                                         echo '<strong>' . $clean_name . '</strong> <span style="font-size:11px; color:#64748b; margin-left:6px;">(' . $clean_meta . ')</span>';
                                         echo '</div>';
                                     }
@@ -228,59 +246,48 @@ function arms_physiotherapy_tab() {
                         </div>
                     </div>
 
-                    <div class="arms-form-grid" style="grid-template-columns: 1fr;">
-                        <div class="arms-form-group" style="max-width: 300px;">
-                            <label for="log_date">Plan Generation Date</label>
-                            <input type="date" id="log_date" name="log_date" value="<?php echo $row_data ? esc_attr(date('Y-m-d', strtotime($row_data->log_date))) : date('Y-m-d'); ?>" required>
-                        </div>
-                    </div>
-
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #0ea5e9; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 20px;">
-                        Clinical Treatment Plan Formulation
-                    </h4>
-                    <div class="arms-form-grid">
-                        <div class="arms-form-group fullwidth-col">
-                            <label for="initial_assessment">Initial Physical Assessment Baseline</label>
-                            <textarea id="initial_assessment" name="initial_assessment" rows="4" placeholder="Log range of motion, muscle strength, dynamic mobility limitations..."><?php echo $row_data ? esc_textarea($row_data->initial_assessment) : ''; ?></textarea>
-                        </div>
-                        <div class="arms-form-group fullwidth-col">
-                            <label for="rehab_goals">Target Rehabilitative Goals (Short/Long Term)</label>
-                            <textarea id="rehab_goals" name="rehab_goals" rows="3" placeholder="e.g., Achieve independent transfers in 2 weeks, restore full shoulder flexion range..."><?php echo $row_data ? esc_textarea($row_data->rehab_goals) : ''; ?></textarea>
-                        </div>
-                        <div class="arms-form-group fullwidth-col">
-                            <label for="daily_plan">Daily Structured Treatment Plan Protocols</label>
-                            <textarea id="daily_plan" name="daily_plan" rows="4" placeholder="Detail standard daily routines: Gait exercises, neuromuscular stimulation, manual mobilization steps..."><?php echo $row_data ? esc_textarea($row_data->daily_plan) : ''; ?></textarea>
-                        </div>
-                    </div>
-
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #0ea5e9; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 30px;">
-                        Session Accountability Metrics Tracker
-                    </h4>
                     <div class="arms-form-grid">
                         <div class="arms-form-group">
-                            <label for="sessions_completed">Completed Therapy Sessions</label>
+                            <label for="log_date"><?php _e('Plan Generation Date', 'arms-textdomain'); ?></label>
+                            <input type="date" id="log_date" name="log_date" value="<?php echo $row_data ? esc_attr(date('Y-m-d', strtotime($row_data->log_date))) : date('Y-m-d'); ?>" required>
+                        </div>
+                        <div class="arms-form-group">
+                            <label for="sessions_completed"><?php _e('Completed Therapy Sessions', 'arms-textdomain'); ?></label>
                             <input type="number" id="sessions_completed" name="sessions_completed" min="0" value="<?php echo $row_data ? intval($row_data->sessions_completed) : '0'; ?>">
                         </div>
                         <div class="arms-form-group">
-                            <label for="sessions_remaining">Remaining Charted Sessions</label>
+                            <label for="sessions_remaining"><?php _e('Remaining Charted Sessions', 'arms-textdomain'); ?></label>
                             <input type="number" id="sessions_remaining" name="sessions_remaining" min="0" value="<?php echo $row_data ? intval($row_data->sessions_remaining) : '0'; ?>">
                         </div>
                     </div>
 
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #0ea5e9; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 30px;">
-                        Continuous Evaluation Records
-                    </h4>
-                    <div class="arms-form-grid">
-                        <div class="arms-form-group fullwidth-col">
-                            <label for="progress_notes">Physiotherapy Clinical Progress Notes</label>
-                            <textarea id="progress_notes" name="progress_notes" rows="5" placeholder="Document regular adjustments, tolerance to exercise, pain scale responses..."><?php echo $row_data ? esc_textarea($row_data->progress_notes) : ''; ?></textarea>
-                        </div>
+                    <div class="arms-form-group fullwidth-col" style="margin-bottom: 20px;">
+                        <label for="initial_assessment"><?php _e('Initial Physical Assessment Baseline', 'arms-textdomain'); ?></label>
+                        <textarea id="initial_assessment" name="initial_assessment" rows="4" placeholder="<?php _e('Log range of motion, muscle strength, dynamic mobility limitations...', 'arms-textdomain'); ?>"><?php echo $row_data ? esc_textarea($row_data->initial_assessment) : ''; ?></textarea>
                     </div>
 
-                    <button type="submit" name="arms_save_physio" class="arms-submit-btn">
-                        <span class="dashicons dashicons-disk" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Save Physiotherapy File Block
-                    </button>
-                    <a href="<?php echo esc_url($list_url); ?>" class="arms-action-btn btn-view" style="padding:11px 18px; margin-left:10px; font-size:13px; font-weight:600; border-radius:6px;">Exit Management Form</a>
+                    <div class="arms-form-group fullwidth-col" style="margin-bottom: 20px;">
+                        <label for="rehab_goals"><?php _e('Target Rehabilitative Goals (Short/Long Term)', 'arms-textdomain'); ?></label>
+                        <textarea id="rehab_goals" name="rehab_goals" rows="3" placeholder="<?php _e('e.g., Achieve independent transfers in 2 weeks, restore full shoulder flexion range...', 'arms-textdomain'); ?>"><?php echo $row_data ? esc_textarea($row_data->rehab_goals) : ''; ?></textarea>
+                    </div>
+
+                    <div class="arms-form-group fullwidth-col" style="margin-bottom: 20px;">
+                        <label for="daily_plan"><?php _e('Daily Structured Treatment Plan Protocols', 'arms-textdomain'); ?></label>
+                        <textarea id="daily_plan" name="daily_plan" rows="4" placeholder="<?php _e('Detail standard daily routines: Gait exercises, neuromuscular stimulation, manual mobilization steps...', 'arms-textdomain'); ?>"><?php echo $row_data ? esc_textarea($row_data->daily_plan) : ''; ?></textarea>
+                    </div>
+
+                    <div class="arms-form-group fullwidth-col" style="margin-bottom: 24px;">
+                        <label for="progress_notes"><?php _e('Physiotherapy Clinical Progress Notes', 'arms-textdomain'); ?></label>
+                        <textarea id="progress_notes" name="progress_notes" rows="5" placeholder="<?php _e('Document regular adjustments, tolerance to exercise, pain scale responses...', 'arms-textdomain'); ?>"><?php echo $row_data ? esc_textarea($row_data->progress_notes) : ''; ?></textarea>
+                    </div>
+
+                    <div style="border-top: 1px solid #f0f0f1; padding-top: 20px;">
+                        <button type="submit" name="arms_save_physio" class="arms-submit-btn">
+                            <span class="dashicons dashicons-disk"></span> <?php _e('Save Physiotherapy File Block', 'arms-textdomain');
+                             ?>
+                        </button>
+                        <a href="<?php echo esc_url($list_url); ?>" class="button button-secondary" style="margin-left:8px; height: 36px; line-height: 34px;"><?php _e('Cancel Changes', 'arms-textdomain'); ?></a>
+                    </div>
                 </form>
             </div>
 
@@ -296,25 +303,14 @@ function arms_physiotherapy_tab() {
 
                     dropdownList.addEventListener('mouseover', function(e) {
                         var option = e.target.closest('.arms-patient-option');
-                        if (option) {
-                            option.style.backgroundColor = '#0ea5e9';
-                            option.style.color = '#ffffff';
-                            var subSpan = option.querySelector('span');
-                            if(subSpan) subSpan.style.color = '#e0f2fe';
-                        }
+                        if (option) { option.style.backgroundColor = '#f0f0f1'; }
                     });
                     dropdownList.addEventListener('mouseout', function(e) {
                         var option = e.target.closest('.arms-patient-option');
-                        if (option) {
-                            option.style.backgroundColor = '#ffffff';
-                            option.style.color = '#0f172a';
-                            var subSpan = option.querySelector('span');
-                            if(subSpan) subSpan.style.color = '#64748b';
-                        }
+                        if (option) { option.style.backgroundColor = '#ffffff'; }
                     });
 
                     searchInput.addEventListener('focus', function() { dropdownList.style.display = 'block'; });
-
                     searchInput.addEventListener('input', function() {
                         dropdownList.style.display = 'block';
                         var term = searchInput.value.toLowerCase().trim();
@@ -352,11 +348,11 @@ function arms_physiotherapy_tab() {
                 }
             });
             </script>
-        <?php 
+
         /* =========================================================================
-           SUB-VIEW: LIST DIRECTORY (SHOW ALL DATA)
+           SUB-VIEW: LIST DIRECTORY (WP WP_List_Table standard UI feel)
            ========================================================================= */
-        elseif ( $current_sub === 'list' ) : 
+        <?php elseif ( $current_sub === 'list' ) : 
             $logs = $wpdb->get_results( "
                 SELECT ph.*, p.name 
                 FROM $table_physio ph 
@@ -366,18 +362,18 @@ function arms_physiotherapy_tab() {
             ?>
             <div class="arms-card-box">
                 <div class="arms-card-header-flex">
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; color:#1e293b;">Physiotherapy Patient Tracking Index</h3>
-                    <a href="<?php echo esc_url($add_url); ?>" class="arms-submit-btn" style="padding: 8px 16px; font-size:12px;">+ Open New Rehab File</a>
+                    <h3><?php _e('Physiotherapy Patient Tracking Index', 'arms-textdomain'); ?></h3>
+                    <a href="<?php echo esc_url($add_url); ?>" class="arms-submit-btn">+ <?php _e('Open New Rehab File', 'arms-textdomain'); ?></a>
                 </div>
                 
-                <table class="arms-data-table">
+                <table class="wp-list-table widefat fixed striped table-view-list arms-data-table">
                     <thead>
                         <tr>
-                            <th>Generation Date</th>
-                            <th>Patient Profile Reference</th>
-                            <th>Dynamic Session Status</th>
-                            <th>Treatment Snapshot Summary</th>
-                            <th style="text-align: right;">Clinical Panel Interactions</th>
+                            <th scope="col" style="width: 140px;"><?php _e('Generation Date', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="width: 240px;"><?php _e('Patient Profile Reference', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="width: 160px;"><?php _e('Dynamic Session Status', 'arms-textdomain'); ?></th>
+                            <th scope="col"><?php _e('Treatment Goals Summary', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="text-align: right; width: 240px;"><?php _e('Clinical Actions', 'arms-textdomain'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -389,41 +385,41 @@ function arms_physiotherapy_tab() {
                             <tr>
                                 <td><strong><?php echo esc_html( date('d-M-Y', strtotime($log->log_date)) ); ?></strong></td>
                                 <td>
-                                    <strong><?php echo esc_html($log->name ? $log->name : 'Unmapped Identity Profile'); ?></strong><br>
+                                    <strong><?php echo esc_html($log->name ? $log->name : __('Unmapped Identity Profile', 'arms-textdomain')); ?></strong><br>
                                     <span style="font-size:11px; color:#64748b;">System ID File: #<?php echo intval($log->patient_id); ?></span>
                                 </td>
                                 <td>
-                                    <span style="font-size:12px; color:#15803d; font-weight:700;">Completed: <?php echo intval($log->sessions_completed); ?></span><br>
-                                    <span style="font-size:11px; color:#a16207; font-weight:600;">Pending: <?php echo intval($log->sessions_remaining); ?></span>
+                                    <span style="font-size:13px; color:#2271b1; font-weight:600;">Completed: <?php echo intval($log->sessions_completed); ?></span><br>
+                                    <span style="font-size:11px; color:#b28004; font-weight:600;">Pending: <?php echo intval($log->sessions_remaining); ?></span>
                                 </td>
                                 <td>
-                                    <div style="font-size:12px; max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        <strong>Goal:</strong> <?php echo esc_html($log->rehab_goals ? wp_strip_all_tags($log->rehab_goals) : 'None Mapped'); ?>
+                                    <div style="font-size:13px; max-width:450px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <?php echo esc_html($log->rehab_goals ? wp_strip_all_tags($log->rehab_goals) : __('None Mapped', 'arms-textdomain')); ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="arms-action-btn-group">
-                                        <a href="<?php echo esc_url($view_item_url); ?>" class="arms-action-btn btn-view">Review Case</a>
-                                        <a href="<?php echo esc_url($edit_item_url); ?>" class="arms-action-btn btn-edit">Modify</a>
-                                        <a href="<?php echo esc_url($del_item_url); ?>" class="arms-action-btn btn-delete" onclick="return confirm('Clinical Warning Validation: Completely remove this treatment log?');">Drop</a>
+                                    <div class="arms-action-btn-group" style="justify-content: flex-end;">
+                                        <a href="<?php echo esc_url($view_item_url); ?>" class="arms-action-btn"><span class="dashicons dashicons-visibility" style="font-size:15px; margin-right:3px;"></span> <?php _e('Review Case', 'arms-textdomain'); ?></a>
+                                        <a href="<?php echo esc_url($edit_item_url); ?>" class="arms-action-btn btn-edit"><span class="dashicons dashicons-edit" style="font-size:15px; margin-right:3px;"></span> <?php _e('Modify', 'arms-textdomain'); ?></a>
+                                        <a href="<?php echo esc_url($del_item_url); ?>" class="arms-action-btn btn-delete" onclick="return confirm('Clinical Warning: Completely remove this treatment log?');"><span class="dashicons dashicons-trash" style="font-size:15px; margin-right:3px;"></span> <?php _e('Drop', 'arms-textdomain'); ?></a>
                                     </div>
                                 </td>
                             </tr>
                         <?php endforeach; else : ?>
                             <tr>
-                                <td colspan="5" style="text-align:center; padding: 40px; color: #64748b;">No rehabilitation matrix entries mapped inside database records.</td>
+                                <td colspan="5" style="text-align:center; padding: 40px; color: #64748b;"><?php _e('No rehabilitation matrix entries mapped inside database records.', 'arms-textdomain'); ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-        <?php 
+
         /* =========================================================================
-           SUB-VIEW: INDIVIDUAL CASE ASSESSMENT FILE
+           SUB-VIEW: INDIVIDUAL CASE ASSESSMENT FILE (FULLY RENDERED LAYOUT)
            ========================================================================= */
-        elseif ( $current_sub === 'view' && $log_id > 0 ) :
+        <?php elseif ( $current_sub === 'view' && $log_id > 0 ) :
             $log = $wpdb->get_row( $wpdb->prepare( "
-                SELECT ph.*, p.name 
+                SELECT ph.*, p.name, p.mobile, p.gender 
                 FROM $table_physio ph 
                 LEFT JOIN $table_patients p ON ph.patient_id = p.id 
                 WHERE ph.id = %d
@@ -432,49 +428,87 @@ function arms_physiotherapy_tab() {
             if ( $log ) :
                 ?>
                 <div class="arms-card-box">
-                    <div class="arms-card-header-flex" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+                    <div class="arms-card-header-flex">
                         <div>
-                            <h2 style="margin:0 0 4px 0; font-size:18px; color:#0f172a;">Physiotherapy Treatment Record: <?php echo esc_html($log->name); ?></h2>
-                            <p style="margin:0; font-size:12px; color:#64748b;">Chart Index ID: #<?php echo intval($log->id); ?> &mdash; Assigned Date: <?php echo esc_html(date('d-M-Y', strtotime($log->log_date))); ?></p>
+                            <h3><?php _e('Physiotherapy Treatment Record', 'arms-textdomain'); ?>: <?php echo esc_html($log->name); ?></h3>
+                            <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Chart Index ID: #<?php echo intval($log->id); ?> &mdash; Assigned Date: <?php echo esc_html(date('d-M-Y', strtotime($log->log_date))); ?></p>
                         </div>
-                        <a href="<?php echo esc_url($list_url); ?>" class="arms-submit-btn" style="background:#475569;">Back to Directory</a>
-                    </div>
-
-                    <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin: 24px 0 12px 0; letter-spacing: 0.05em;">Session Accountability Summary</h4>
-                    <div class="session-counter-grid">
-                        <div class="session-badge-box">
-                            <div class="counter-display"><?php echo intval($log->sessions_completed); ?></div>
-                            <div class="counter-label">Sessions<br>Completed</div>
-                        </div>
-                        <div class="session-badge-box remaining">
-                            <div class="counter-display"><?php echo intval($log->sessions_remaining); ?></div>
-                            <div class="counter-label">Sessions<br>Remaining</div>
+                        <div class="arms-action-btn-group">
+                            <a href="<?php echo esc_url($base_url . '&sub=edit&id=' . $log->id); ?>" class="arms-submit-btn" style="background:#f6f7f7; color:#2271b1; border-color:#2271b1;"><span class="dashicons dashicons-edit"></span><?php _e('Edit Chart', 'arms-textdomain'); ?></a>
+                            <a href="<?php echo esc_url($list_url); ?>" class="arms-submit-btn" style="background:#475569; border-color:#334155;"><?php _e('Back to Directory', 'arms-textdomain'); ?></a>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top:20px;">
-                        <div>
-                            <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Initial Physical Assessment Framework</h4>
-                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:100px;"><?php echo $log->initial_assessment ? esc_html($log->initial_assessment) : '<em>No initial baseline metric declared.</em>'; ?></div>
-                        </div>
-                        <div>
-                            <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Target Recovery Goals</h4>
-                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:100px;"><?php echo $log->rehab_goals ? esc_html($log->rehab_goals) : '<em>No target milestones saved.</em>'; ?></div>
-                        </div>
-                    </div>
+                    <div class="arms-view-grid">
+                        <div class="arms-view-main">
+                            <div class="arms-view-section">
+                                <div class="arms-view-section-header">
+                                    <span class="dashicons dashicons-clipboard"></span> <?php _e('Initial Physical Assessment Baseline', 'arms-textdomain'); ?>
+                                </div>
+                                <div class="arms-view-section-body">
+                                    <?php echo !empty($log->initial_assessment) ? esc_html($log->initial_assessment) : __('No initial dynamic baseline parameters tracked.', 'arms-textdomain'); ?>
+                                </div>
+                            </div>
 
-                    <div style="margin-top: 24px;">
-                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Daily Treatment Plan Protocols</h4>
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:100px;"><?php echo $log->daily_plan ? esc_html($log->daily_plan) : '<em>No protocol assigned.</em>'; ?></div>
-                    </div>
+                            <div class="arms-view-section">
+                                <div class="arms-view-section-header">
+                                    <span class="dashicons dashicons-flag"></span> <?php _e('Target Rehabilitative Goals (Short/Long Term)', 'arms-textdomain'); ?>
+                                </div>
+                                <div class="arms-view-section-body">
+                                    <?php echo !empty($log->rehab_goals) ? esc_html($log->rehab_goals) : __('No clinical execution milestone metrics defined.', 'arms-textdomain'); ?>
+                                </div>
+                            </div>
 
-                    <div style="margin-top: 24px;">
-                        <h4 style="font-size:11px; text-transform:uppercase; color:#0ea5e9; margin-bottom:8px;">Continuous Evaluation & Progress Notes</h4>
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; color:#334155; min-height:120px;"><?php echo $log->progress_notes ? esc_html($log->progress_notes) : '<em>No recovery logs added yet.</em>'; ?></div>
+                            <div class="arms-view-section">
+                                <div class="arms-view-section-header">
+                                    <span class="dashicons dashicons-welcome-learn-more"></span> <?php _e('Daily Structured Treatment Plan Protocols', 'arms-textdomain'); ?>
+                                </div>
+                                <div class="arms-view-section-body">
+                                    <?php echo !empty($log->daily_plan) ? esc_html($log->daily_plan) : __('No manual routine orchestration steps mapped.', 'arms-textdomain'); ?>
+                                </div>
+                            </div>
+
+                            <div class="arms-view-section">
+                                <div class="arms-view-section-header">
+                                    <span class="dashicons dashicons-analytics"></span> <?php _e('Physiotherapy Clinical Progress Notes', 'arms-textdomain'); ?>
+                                </div>
+                                <div class="arms-view-section-body" style="border-left: 4px solid #2271b1; background: #fafafa;">
+                                    <?php echo !empty($log->progress_notes) ? esc_html($log->progress_notes) : __('No continuous incremental evaluation log submitted.', 'arms-textdomain'); ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="arms-view-sidebar">
+                            <div class="arms-view-section-header" style="border: 1px solid #c3c4c7; border-radius: 4px 4px 0 0; border-bottom:none;">
+                                <span class="dashicons dashicons-clock"></span> <?php _e('Session Metrics Counter', 'arms-textdomain'); ?>
+                            </div>
+                            <div class="session-counter-grid" style="grid-template-columns: 1fr; gap: 0; border: 1px solid #c3c4c7; border-top:none; border-radius: 0 0 4px 4px; padding: 16px; background:#fff; margin-bottom: 20px;">
+                                <div class="session-badge-box" style="margin-bottom:12px;">
+                                    <div class="counter-display"><?php echo intval($log->sessions_completed); ?></div>
+                                    <div class="counter-label"><?php _e('Sessions<br>Completed', 'arms-textdomain'); ?></div>
+                                </div>
+                                <div class="session-badge-box remaining">
+                                    <div class="counter-display"><?php echo intval($log->sessions_remaining); ?></div>
+                                    <div class="counter-label"><?php _e('Sessions<br>Remaining', 'arms-textdomain'); ?></div>
+                                </div>
+                            </div>
+
+                            <div class="arms-view-section">
+                                <div class="arms-view-section-header">
+                                    <span class="dashicons dashicons-businessperson"></span> <?php _e('Patient Metadata', 'arms-textdomain'); ?>
+                                </div>
+                                <ul class="arms-meta-list">
+                                    <li><strong><?php _e('Full Name:', 'arms-textdomain'); ?></strong> <span><?php echo esc_html($log->name); ?></span></li>
+                                    <li><strong><?php _e('Patient ID Reference:', 'arms-textdomain'); ?></strong> <span>#<?php echo intval($log->patient_id); ?></span></li>
+                                    <li><strong><?php _e('Contact Meta:', 'arms-textdomain'); ?></strong> <span><?php echo !empty($log->mobile) ? esc_html($log->mobile) : 'N/A'; ?></span></li>
+                                    <li><strong><?php _e('System Creation:', 'arms-textdomain'); ?></strong> <span><?php echo isset($log->created_at) ? esc_html(date('d-M-Y H:i', strtotime($log->created_at))) : 'Legacy Log'; ?></span></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             <?php else : ?>
-                <div class="notice notice-error"><p>Error: The requested clinical record could not be found.</p></div>
+                <div class="notice notice-error"><p><?php _e('Error Map Validation: The physiotherapy record block target does not exist inside the server instance.', 'arms-textdomain'); ?></p></div>
             <?php endif; ?>
         <?php endif; ?>
     </div>

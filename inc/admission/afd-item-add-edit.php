@@ -167,22 +167,22 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
         .arms-adm-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
         .arms-adm-header h2 { margin: 0 0 6px 0; font-size: 22px; font-weight: 700; color: #0f172a; }
         .arms-adm-header p { margin: 0; font-size: 13px; color: #64748b; }
-        .arms-status-badge { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+        .arms-status-badge { background: #f0fdf4; color: #003376; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
         .arms-nav-bar { display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 24px; padding-bottom: 1px; }
         .arms-nav-btn { background: none; border: none; padding: 12px 16px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; }
         .arms-nav-btn:hover { color: #0f172a; }
-        .arms-nav-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .arms-nav-btn.active { color: #003376; border-bottom-color: #003376; }
         .arms-pane { display: none; }
         .arms-pane.active { display: block; animation: armsFadeIn 0.2s ease-in-out; }
         .arms-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; margin-bottom: 24px; }
         .col-12 { grid-column: span 12; }
-        .col-4 { grid-column: span 4; }
-        .col-3 { grid-column: span 3; }
-        .section-subtitle { grid-column: span 12; font-size: 14px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-left: 3px solid #2563eb; padding-left: 10px; margin: 16px 0 8px 0; }
+        .col-4 { grid-column: span 4; width: 100%;}
+        .col-3 { grid-column: span 3; width: 100%;}
+        .section-subtitle { grid-column: span 12; font-size: 14px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-left: 3px solid #003376; padding-left: 10px; margin: 16px 0 8px 0; }
         .arms-fgroup { display: flex; flex-direction: column; gap: 6px; }
         .arms-label { font-size: 13px; font-weight: 600; color: #334155; }
         .arms-input, .arms-select, .arms-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #334155; background: #fff; box-sizing: border-box; }
-        .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #003376; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         .input-addon-wrap { position: relative; display: flex; align-items: center; }
         .input-addon-wrap .addon { position: absolute; left: 12px; color: #94a3b8; font-size: 14px; }
         .input-addon-wrap .arms-input { padding-left: 28px; }
@@ -206,14 +206,14 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
         
         .form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
         .arms-btn { padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; transition: all 0.2s; text-decoration: none; }
-        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary { background: #003376; color: #fff; }
         .btn-primary:hover { background: #1d4ed8; }
         .btn-secondary { background: #fff; color: #475569; border-color: #cbd5e1; }
         .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
-        .btn-success { background: #16a34a; color: #fff; border: none; }
+        .btn-success { background: #003376; color: #fff; border: none; }
         .btn-success:hover { background: #15803d; }
-        .btn-print { background: #7c3aed; color: #fff; border: none; }
-        .btn-print:hover { background: #6d28d9; }
+        .btn-print { background: #003376; color: #fff; border: none; }
+        .btn-print:hover { background: #003376; }
         
         @keyframes armsFadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -244,10 +244,10 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
 
             <div id="pane-alloc" class="arms-pane active">
                 <div class="arms-grid">
-                    <div class="section-subtitle">Core Infrastructure Selection Matrix</div>
+                    <div class="section-subtitle">Basic Info</div>
                     
                     <div class="arms-fgroup col-12">
-                        <label class="arms-label">Select Registered Patient Database Target Record</label>
+                        <label class="arms-label">Patient Name</label>
                         <select name="arms_selected_patient_id" id="arms_selected_patient_dropdown" class="arms-select2-patient" style="width: 100%;" required>
                             <option value="">-- Type name, phone, or track record instantly via system lookups... --</option>
                             <?php 
@@ -263,7 +263,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                     </div>
 
                     <div class="arms-fgroup col-3">
-                        <label class="arms-label">Room Allocation Topology</label>
+                        <label class="arms-label">Room Allocation</label>
                         <select name="room_type" id="arms_room_type_select" class="arms-select" onchange="armsToggleSpatialFields()" required>
                             <option value="Cabin" <?php selected( $admission_data['room_type'], 'Cabin' ); ?>>Cabin (Single Luxury Suite)</option>
                             <option value="Ward Bed" <?php selected( $admission_data['room_type'], 'Ward Bed' ); ?>>General Ward Bed Layout</option>
@@ -271,7 +271,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                     </div>
 
                     <div class="arms-fgroup col-3" id="arms-group-cabin" style="<?php echo ( 'Cabin' === $admission_data['room_type'] ) ? '' : 'display:none;'; ?>">
-                        <label class="arms-label">Assigned Cabin Room Number</label>
+                        <label class="arms-label">Room Number</label>
                         <input type="text" name="room_no" class="arms-input" placeholder="e.g. Cabin-402" value="<?php echo esc_attr( $admission_data['room_no'] ); ?>" />
                     </div>
 
@@ -281,7 +281,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                     </div>
 
                     <div class="arms-fgroup col-3">
-                        <label class="arms-label">Admission Ingress Date</label>
+                        <label class="arms-label">Admission Date</label>
                         <input type="date" name="admission_date" class="arms-input" value="<?php echo esc_attr( $admission_data['admission_date'] ); ?>" required />
                     </div>
 
@@ -293,7 +293,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                         </div>
                     </div>
 
-                    <div class="section-subtitle">Multi-Tier Treatment Metrics Service Logs (Daily Charge Multipliers)</div>
+                    <div class="section-subtitle">Daily Charge</div>
                     
                     <div class="arms-repeater-container" id="arms-repeater-root">
                         <?php 
@@ -364,7 +364,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                             <div class="arms-bill-divider"></div>
                             <div class="arms-bill-stat">
                                 <h4 id="arms-bill-net-label">Adjusted Net Due Payable</h4>
-                                <div class="stat-price" id="arms-bill-net-view" style="color: #16a34a;">৳0.00</div>
+                                <div class="stat-price" id="arms-bill-net-view" style="color: #003376;">৳0.00</div>
                             </div>
                         </div>
                     </div>
@@ -380,7 +380,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
 
             <div id="pane-discharge" class="arms-pane">
                 <div class="arms-grid">
-                    <div class="section-subtitle">Clinical Outgress Closure Setup</div>
+                    <div class="section-subtitle">Clinical Outgress</div>
 
                     <div class="arms-fgroup col-4">
                         <label class="arms-label">Discharge Event Closure Date</label>
@@ -509,14 +509,14 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
             if (finalBillLabelNode) finalBillLabelNode.innerText = "Final Adjusted Refund Balance (৳)";
             if (netViewNode) {
                 netViewNode.innerText = '-৳' + absoluteCreditValue;
-                netViewNode.style.color = '#2563eb';
+                netViewNode.style.color = '#003376';
             }
         } else {
             if (netLabelNode) netLabelNode.innerText = "Adjusted Net Due Payable";
             if (finalBillLabelNode) finalBillLabelNode.innerText = "Final Adjusted Net Balance (৳)";
             if (netViewNode) {
                 netViewNode.innerText = '৳' + adjustedNetPayableValue.toFixed(2);
-                netViewNode.style.color = adjustedNetPayableValue === 0 ? '#16a34a' : '#dc2626';
+                netViewNode.style.color = adjustedNetPayableValue === 0 ? '#003376' : '#dc2626';
             }
         }
         
