@@ -3,14 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-/**
- * Physiotherapy Tab - Rehabilitation & Session Tracking Module
- * Database Mapping Target: arms_physio_logs
- */
 function arms_physiotherapy_tab() {
     global $wpdb;
     
-    // TEMPORARILY SEE ERRORS - REMOVE IN PRODUCTION
     $wpdb->show_errors(); 
 
     $table_physio   = $wpdb->prefix . 'arms_physio_logs';
@@ -20,19 +15,19 @@ function arms_physiotherapy_tab() {
     $current_sub = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'list';
     $log_id      = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
     
-    // Internal Routing Base Links
     $base_url = admin_url( 'admin.php?page=rehab_management_system&tab=physiotherapy' );
     $list_url = $base_url . '&sub=list';
     $add_url  = $base_url . '&sub=add';
 
-    /* =========================================================================
-       ACTION ROUTER: PURGE REHAB RECORD
-       ========================================================================= */
+    // -------------------------------------------------------------------------
+    // ACTION HANDLER: DELETE
+    // -------------------------------------------------------------------------
     if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && $log_id > 0 ) {
         if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'arms_delete_physio_' . $log_id ) ) {
             $deleted = $wpdb->delete( $table_physio, array( 'id' => $log_id ), array( '%d' ) );
             if ( $deleted ) {
-                wp_safe_redirect( add_query_arg( 'arms_msg', 'deleted', $list_url ) );
+                $redirect_url = add_query_arg( 'arms_msg', 'deleted', $list_url );
+                echo '<script type="text/javascript">window.location.href="' . esc_url_raw($redirect_url) . '";</script>';
                 exit;
             }
         } else {
@@ -40,9 +35,9 @@ function arms_physiotherapy_tab() {
         }
     }
 
-    /* =========================================================================
-       POST ENGINE: HANDLING TREATMENTS & PROGRESS PERSISTENCE
-       ========================================================================= */
+    // -------------------------------------------------------------------------
+    // ACTION HANDLER: SAVE (INSERT / UPDATE)
+    // -------------------------------------------------------------------------
     if ( isset( $_POST['arms_save_physio'] ) && check_admin_referer( 'arms_physio_nonce_action', 'arms_physio_nonce' ) ) {
         
         $patient_id         = isset( $_POST['patient_id'] ) ? intval( $_POST['patient_id'] ) : 0;
@@ -70,7 +65,8 @@ function arms_physiotherapy_tab() {
             if ( $current_sub === 'edit' && $log_id > 0 ) {
                 $updated = $wpdb->update( $table_physio, $data_array, array( 'id' => $log_id ), $format_array, array( '%d' ) );
                 if ( $updated !== false ) {
-                    wp_safe_redirect( add_query_arg( 'arms_msg', 'updated', $list_url ) );
+                    $redirect_url = add_query_arg( 'arms_msg', 'updated', $list_url );
+                    echo '<script type="text/javascript">window.location.href="' . esc_url_raw($redirect_url) . '";</script>';
                     exit;
                 } else {
                     add_settings_error( 'arms_physio_messages', 'db_error', 'Database processing error updating record.', 'error' );
@@ -86,7 +82,8 @@ function arms_physiotherapy_tab() {
 
                 $inserted = $wpdb->insert( $table_physio, $data_array, $format_array );
                 if ( $inserted ) {
-                    wp_safe_redirect( add_query_arg( 'arms_msg', 'inserted', $list_url ) );
+                    $redirect_url = add_query_arg( 'arms_msg', 'inserted', $list_url );
+                    echo '<script type="text/javascript">window.location.href="' . esc_url_raw($redirect_url) . '";</script>';
                     exit;
                 } else {
                     add_settings_error( 'arms_physio_messages', 'db_error', 'Database processing error inserting record.', 'error' );
@@ -97,7 +94,9 @@ function arms_physiotherapy_tab() {
         }
     }
 
-    // System Notices Mapping
+    // -------------------------------------------------------------------------
+    // NOTICES ROUTER MAP
+    // -------------------------------------------------------------------------
     if ( isset( $_GET['arms_msg'] ) ) {
         $msg = sanitize_key( $_GET['arms_msg'] );
         if ( $msg === 'inserted' ) {
@@ -109,56 +108,6 @@ function arms_physiotherapy_tab() {
         }
     }
     ?>
-
-    <style>
-        .arms-physio-container { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; }
-        .arms-physio-container * { box-sizing: border-box; }
-        .arms-sub-tab-wrapper { margin-bottom: 20px !important; }
-        .arms-card-box { background: #ffffff; border: 1px solid #ccd0d4; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 24px; margin-bottom: 20px; border-radius: 4px; }
-        .arms-card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #f0f0f1; padding-bottom: 16px; }
-        .arms-card-header-flex h3 { margin: 0; font-size: 18px; font-weight: 600; color: #1d2327; }
-        .arms-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .arms-form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
-        .arms-form-group.fullwidth-col { grid-column: 1 / -1; }
-        .arms-form-group label { font-size: 13px; font-weight: 600; color: #2c3338; }
-        .arms-form-group input[type="text"], .arms-form-group input[type="date"], .arms-form-group input[type="number"], .arms-form-group select, .arms-form-group textarea { padding: 8px 12px; border: 1px solid #8c8f94; border-radius: 4px; font-size: 14px; color: #2c3338; background-color: #fff; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .arms-form-group input:focus, .arms-form-group select:focus, .arms-form-group textarea:focus { border-color: #2271b1; outline: none; box-shadow: 0 0 0 1px #2271b1; }
-        
-        .arms-searchable-group { background: #f6f7f7; padding: 16px; border: 1px solid #c3c4c7; border-radius: 4px; }
-        .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2364748b" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px !important; }
-
-        .arms-submit-btn { background: #2271b1; color: #fff; border: 1px solid #135e96; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 3px; cursor: pointer; transition: all 0.1s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 36px; }
-        .arms-submit-btn:hover { background: #135e96; border-color: #0a4b78; color: #fff; }
-        .arms-submit-btn .dashicons { font-size: 18px; width: 18px; height: 18px; margin-right: 6px; line-height: 1; }
-        
-        .session-counter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .session-badge-box { background: #f0f6fa; border-left: 4px solid #2271b1; padding: 16px; border-radius: 0 4px 4px 0; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .session-badge-box.remaining { background: #fcf9e8; border-left-color: #dba617; }
-        .session-badge-box .counter-display { font-size: 32px; font-weight: 700; color: #2271b1; line-height: 1; }
-        .session-badge-box.remaining .counter-display { color: #b28004; }
-        .session-badge-box .counter-label { font-size: 13px; font-weight: 600; color: #2c3338; text-transform: uppercase; letter-spacing: 0.02em; }
-
-        .arms-data-table { width: 100%; margin-top: 8px; }
-        .arms-action-btn-group { display: flex; gap: 6px; }
-        .arms-action-btn { padding: 4px 10px; font-size: 12px; border-radius: 3px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; border: 1px solid #8c8f94; background: #f6f7f7; color: #2c3338; }
-        .arms-action-btn:hover { background: #f0f0f1; color: #1d2327; border-color: #50575e; }
-        .arms-action-btn.btn-edit { color: #2271b1; border-color: #2271b1; background: #f0f6fa; }
-        .arms-action-btn.btn-edit:hover { background: #e5f0fa; color: #135e96; }
-        .arms-action-btn.btn-delete { color: #b32d2e; border-color: #b32d2e; background: #fcf0f1; }
-        .arms-action-btn.btn-delete:hover { background: #facfd1; color: #b32d2e; }
-
-        /* View Mode Layout Spec */
-        .arms-view-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
-        @media (max-width: 900px) { .arms-view-grid { grid-template-columns: 1fr; } }
-        .arms-view-section { margin-bottom: 24px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; overflow: hidden; }
-        .arms-view-section-header { background: #f6f7f7; padding: 12px 16px; font-weight: 600; color: #1d2327; border-bottom: 1px solid #c3c4c7; display: flex; align-items: center; gap: 8px; }
-        .arms-view-section-body { padding: 16px; font-size: 14px; color: #2c3338; line-height: 1.6; white-space: pre-line; }
-        .arms-meta-list { list-style: none; margin: 0; padding: 0; }
-        .arms-meta-list li { padding: 12px 16px; border-bottom: 1px solid #f0f0f1; display: flex; justify-content: space-between; font-size: 13px; }
-        .arms-meta-list li:last-child { border-bottom: none; }
-        .arms-meta-list li strong { color: #1d2327; }
-        .arms-meta-list li span { color: #4f5d73; text-align: right; }
-    </style>
 
     <div class="arms-physio-container">
         <?php settings_errors( 'arms_physio_messages' ); ?>
@@ -184,12 +133,13 @@ function arms_physiotherapy_tab() {
                     <?php _e('Physiotherapy Case View', 'arms-textdomain'); ?>
                 </a>
             <?php endif; ?>
-        </h2>
+        </h2> 
 
-        /* =========================================================================
+        <!-- =========================================================================
            SUB-VIEW: FORM (ADD & EDIT)
-           ========================================================================= */
-        <?php if ( $current_sub === 'add' || $current_sub === 'edit' ) :
+           ========================================================================= -->
+        <?php 
+        if ( $current_sub === 'add' || $current_sub === 'edit' ) :
             $form_heading = __("Create Physiotherapy Clinical Treatment Plan", 'arms-textdomain');
             $row_data = null;
 
@@ -230,7 +180,7 @@ function arms_physiotherapy_tab() {
                                    value="<?php echo $selected_display; ?>" autocomplete="off">
                             
                             <div id="arms_patient_dropdown_list" style="display: none; position: absolute; top: 100%; left: 16px; right: 16px; background: #fff; border: 1px solid #8c8f94; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px;">
-                                <div class="arms-patient-option-empty" style="padding: 10px 12px; color: #64748b; font-style: italic; display: none;"><?php _e('No matching profiles found...', 'arms-textdomain'); ?></div>
+                                <div class="arms-patient-option-empty" style="padding: 10px 12px; color: #003376; font-style: italic; display: none;"><?php _e('No matching profiles found...', 'arms-textdomain'); ?></div>
                                 <?php 
                                 if ( ! empty( $patients_list ) ) {
                                     foreach ( $patients_list as $pat ) {
@@ -283,8 +233,7 @@ function arms_physiotherapy_tab() {
 
                     <div style="border-top: 1px solid #f0f0f1; padding-top: 20px;">
                         <button type="submit" name="arms_save_physio" class="arms-submit-btn">
-                            <span class="dashicons dashicons-disk"></span> <?php _e('Save Physiotherapy File Block', 'arms-textdomain');
-                             ?>
+                            <span class="dashicons dashicons-disk"></span> <?php _e('Save Physiotherapy File Block', 'arms-textdomain'); ?>
                         </button>
                         <a href="<?php echo esc_url($list_url); ?>" class="button button-secondary" style="margin-left:8px; height: 36px; line-height: 34px;"><?php _e('Cancel Changes', 'arms-textdomain'); ?></a>
                     </div>
@@ -349,9 +298,9 @@ function arms_physiotherapy_tab() {
             });
             </script>
 
-        /* =========================================================================
+        <!-- =========================================================================
            SUB-VIEW: LIST DIRECTORY (WP WP_List_Table standard UI feel)
-           ========================================================================= */
+           ========================================================================= -->
         <?php elseif ( $current_sub === 'list' ) : 
             $logs = $wpdb->get_results( "
                 SELECT ph.*, p.name 
@@ -369,11 +318,10 @@ function arms_physiotherapy_tab() {
                 <table class="wp-list-table widefat fixed striped table-view-list arms-data-table">
                     <thead>
                         <tr>
-                            <th scope="col" style="width: 140px;"><?php _e('Generation Date', 'arms-textdomain'); ?></th>
-                            <th scope="col" style="width: 240px;"><?php _e('Patient Profile Reference', 'arms-textdomain'); ?></th>
-                            <th scope="col" style="width: 160px;"><?php _e('Dynamic Session Status', 'arms-textdomain'); ?></th>
-                            <th scope="col"><?php _e('Treatment Goals Summary', 'arms-textdomain'); ?></th>
-                            <th scope="col" style="text-align: right; width: 240px;"><?php _e('Clinical Actions', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="width: 150px;"><?php _e('Generation Date', 'arms-textdomain'); ?></th>
+                            <th scope="col"><?php _e('Patient Profile Reference', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="width: 200px;"><?php _e('Dynamic Session Status', 'arms-textdomain'); ?></th>
+                            <th scope="col" style="text-align: right; width: 350px;"><?php _e('Clinical Actions', 'arms-textdomain'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -393,11 +341,6 @@ function arms_physiotherapy_tab() {
                                     <span style="font-size:11px; color:#b28004; font-weight:600;">Pending: <?php echo intval($log->sessions_remaining); ?></span>
                                 </td>
                                 <td>
-                                    <div style="font-size:13px; max-width:450px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        <?php echo esc_html($log->rehab_goals ? wp_strip_all_tags($log->rehab_goals) : __('None Mapped', 'arms-textdomain')); ?>
-                                    </div>
-                                </td>
-                                <td>
                                     <div class="arms-action-btn-group" style="justify-content: flex-end;">
                                         <a href="<?php echo esc_url($view_item_url); ?>" class="arms-action-btn"><span class="dashicons dashicons-visibility" style="font-size:15px; margin-right:3px;"></span> <?php _e('Review Case', 'arms-textdomain'); ?></a>
                                         <a href="<?php echo esc_url($edit_item_url); ?>" class="arms-action-btn btn-edit"><span class="dashicons dashicons-edit" style="font-size:15px; margin-right:3px;"></span> <?php _e('Modify', 'arms-textdomain'); ?></a>
@@ -407,17 +350,18 @@ function arms_physiotherapy_tab() {
                             </tr>
                         <?php endforeach; else : ?>
                             <tr>
-                                <td colspan="5" style="text-align:center; padding: 40px; color: #64748b;"><?php _e('No rehabilitation matrix entries mapped inside database records.', 'arms-textdomain'); ?></td>
+                                <td colspan="4" style="text-align:center; padding: 40px; color: #64748b;"><?php _e('No rehabilitation matrix entries mapped inside database records.', 'arms-textdomain'); ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
-        /* =========================================================================
+        <!-- =========================================================================
            SUB-VIEW: INDIVIDUAL CASE ASSESSMENT FILE (FULLY RENDERED LAYOUT)
-           ========================================================================= */
-        <?php elseif ( $current_sub === 'view' && $log_id > 0 ) :
+           ========================================================================= -->
+        <?php 
+        elseif ( $current_sub === 'view' && $log_id > 0 ) :
             $log = $wpdb->get_row( $wpdb->prepare( "
                 SELECT ph.*, p.name, p.mobile, p.gender 
                 FROM $table_physio ph 
@@ -514,3 +458,4 @@ function arms_physiotherapy_tab() {
     </div>
     <?php
 }
+?>

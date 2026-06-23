@@ -254,7 +254,7 @@ function arms_add_edit_patient_form( $patient_id = 0 ) {
 
                 <!-- Tab 3: Clinical Data -->
                 <div id="tab-clinical" class="tab-content" style="display:none;">
-                    <p class="description" style="margin-bottom:15px; font-size:14px;">Select conditions matching the patient's medical summary status:</p>
+                    <p class="description">Select conditions matching the patient's medical summary status:</p>
                     <div class="arms-condition-grid">
                         <?php 
                         foreach(['Stroke', 'Paralysis', 'PLID', 'SCI', 'Osteoarthritis'] as $item) {
@@ -275,7 +275,7 @@ function arms_add_edit_patient_form( $patient_id = 0 ) {
 
                 <!-- Tab 4: Follow-up History -->
                 <div id="tab-followup" class="tab-content" style="display:none;">
-                    <p class="description" style="margin-bottom:12px; font-size:13px;">Complete Visit History Logs & Clinical Trackings:</p>
+                    <p class="description">Complete Visit History Logs & Clinical Trackings:</p>
                     <textarea name="followup_history" rows="12" placeholder="Enter continuous visit summary tracking details here..."><?php echo esc_textarea($data->followup_history ?? ''); ?></textarea>
                     
                     <div class="arms-action-footer">

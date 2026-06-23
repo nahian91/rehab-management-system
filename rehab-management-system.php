@@ -376,8 +376,12 @@ dbDelta( $sql_incentives );
     ) $charset_collate;";
     dbDelta( $sql_audit );
 
-    // Medical Inventory, Stock & Equipment Registry
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
     $table_inventory = $wpdb->prefix . 'arms_inventory';
+    $table_movements = $wpdb->prefix . 'arms_stock_movements';
+
+    // Core Inventory Table
     $sql_inventory = "CREATE TABLE $table_inventory (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         item_code varchar(100) NOT NULL,
@@ -390,30 +394,32 @@ dbDelta( $sql_incentives );
         unit_type varchar(50) DEFAULT 'pieces' NOT NULL,
         purchase_price decimal(10,2) DEFAULT '0.00' NOT NULL,
         sale_price decimal(10,2) DEFAULT '0.00' NOT NULL,
-        supplier_info text NOT NULL,
+        supplier_info text DEFAULT NULL,
         batch_number varchar(100) DEFAULT '' NOT NULL,
         expiry_date date DEFAULT '1970-01-01' NOT NULL,
         status varchar(50) DEFAULT 'In Stock' NOT NULL,
         updated_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        PRIMARY KEY  (id)
+        PRIMARY KEY  (id),
+        UNIQUE KEY item_code (item_code)
     ) $charset_collate;";
-    dbDelta( $sql_inventory );
 
-    // Stock Movement Logs (Inward/Outward/Wastage)
-    $table_stock_logs = $wpdb->prefix . 'arms_stock_movements';
-    $sql_stock_logs = "CREATE TABLE $table_stock_logs (
+    // Stock Movement History Ledger Table
+    $sql_movements = "CREATE TABLE $table_movements (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         item_id bigint(20) NOT NULL,
         movement_type varchar(20) NOT NULL,
         quantity int(11) NOT NULL,
-        reference_type varchar(50) DEFAULT '' NOT NULL,
-        reference_id varchar(50) DEFAULT '' NOT NULL,
-        remarks text NOT NULL,
+        reference_type varchar(100) NOT NULL,
+        reference_id varchar(100) NOT NULL,
+        remarks text DEFAULT NULL,
         logged_by bigint(20) NOT NULL,
         created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
         PRIMARY KEY  (id)
     ) $charset_collate;";
-    dbDelta( $sql_stock_logs );
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta( $sql_inventory );
+    dbDelta( $sql_movements );
 }
 register_activation_hook( __FILE__, 'arms_create_system_tables' );
 

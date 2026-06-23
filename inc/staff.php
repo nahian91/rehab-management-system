@@ -109,10 +109,10 @@ function arms_staff_tab() {
     <div class="arms-staff-wrapper">
         <nav class="arms-subnav-bar">
             <a href="<?php echo esc_url( $list_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'list') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-groups" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> All Staff
+                <span class="dashicons dashicons-groups"></span> All Staff
             </a>
             <a href="<?php echo esc_url( $add_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'add') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-plus" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Add New Staff
+                <span class="dashicons dashicons-plus"></span> Add New Staff
             </a>
             <?php if ( $current_sub === 'edit' ) : ?><a class="arms-subnav-link active">Editing Staff Profile</a><?php endif; ?>
             <?php if ( $current_sub === 'view' ) : ?><a class="arms-subnav-link active">Viewing Staff Profile</a><?php endif; ?>

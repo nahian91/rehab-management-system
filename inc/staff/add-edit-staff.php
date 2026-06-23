@@ -1,28 +1,15 @@
 <?php
-/**
- * Staff Registry Form & Processing Handler
- * Designed for WordPress Integration with wp-admin Login Support.
- */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
-
-// Start Output Buffering to absorb premature layout outputs from headers
 ob_start();
 
 global $wpdb;
-$table_name = $wpdb->prefix . 'arms_staff'; // Custom DB Table Name
-
-// Initialize application messaging variables
+$table_name = $wpdb->prefix . 'arms_staff'; // 
 $message = '';
 $error   = '';
 
-// Build explicit URL targeting the "All Staff" list view tab
-// Adjust 'all_staff' if your plugin uses a different tab key parameter (e.g., 'list', 'view_staff')
 $staff_tab_url = add_query_arg( array( 'tab' => 'all_staff' ), $list_url );
 
-// ==========================================
-// 1. BACKEND FORM SUBMISSION CONTROLLER
-// ==========================================
 if ( isset( $_POST['arms_save_staff'] ) ) {
     
     // Nonce Security Validation
@@ -266,14 +253,14 @@ if ( $row_data ) {
             </div>
             <div class="arms-form-group">
                 <label for="profile_image">Profile Picture (JPG/PNG)</label>
-                <input type="file" id="profile_image" name="profile_image" accept="image/*" style="padding: 6px;">
+                <input type="file" id="profile_image" name="profile_image" accept="image/*">
             </div>
         </div>
 
         <button type="submit" name="arms_save_staff" class="arms-submit-btn">
-            <span class="dashicons dashicons-id" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> <?php echo esc_html($btn_text); ?>
+            <span class="dashicons dashicons-id"></span> <?php echo esc_html($btn_text); ?>
         </button>
-        <a href="<?php echo esc_url($staff_tab_url); ?>" class="arms-action-btn btn-view" style="padding: 11px 18px; margin-left: 10px; font-size:13px; font-weight:600; border-radius:6px;">Cancel</a>
+        <a href="<?php echo esc_url($staff_tab_url); ?>" class="arms-action-btn btn-view">Cancel</a>
     </form>
 </div>
 <?php
