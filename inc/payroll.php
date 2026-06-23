@@ -149,26 +149,25 @@ function arms_payroll_tab() {
     <style>
         .arms-payroll-container { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .arms-subtab-navigation { display: flex; border-bottom: 1px solid #c3c4c7; margin-bottom: 20px; gap: 4px; }
-        .arms-subtab-link { padding: 8px 16px; text-decoration: none; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: #2271b1; font-weight: 600; margin-bottom: -1px; }
+        .arms-subtab-link { padding: 8px 16px; text-decoration: none; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: #003376; font-weight: 600; margin-bottom: -1px; }
         .arms-subtab-link:hover { background: #f0f0f1; color: #135e96; }
         .arms-subtab-link.active { background: #fff; border-color: #c3c4c7; color: #1d2327; }
         
         .arms-payroll-grid { display: flex; gap: 24px; align-items: flex-start; }
         .arms-payroll-form-panel { flex: 1; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
         .arms-payroll-summary-panel { width: 360px; background: #f6f7f7; border: 1px solid #c3c4c7; border-radius: 4px; padding: 24px; box-sizing: border-box; position: sticky; top: 50px; }
-        .arms-payroll-title { margin-top: 0; border-bottom: 1px solid #f0f0f1; padding-bottom: 12px; color: #2271b1; font-weight: 500; font-size: 18px; }
+        .arms-payroll-title { margin-top: 0; border-bottom: 1px solid #f0f0f1; padding-bottom: 12px; color: #003376; font-weight: 500; font-size: 18px; }
         .arms-form-row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         .arms-form-row-three { display: grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap: 12px; margin-bottom: 16px; }
         .arms-form-group { margin-bottom: 16px; }
         .arms-form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #1d2327; font-size: 13px; }
         .arms-input-field { width: 100%; height: 36px; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; font-size: 14px; color: #2c3338; }
-        .arms-input-field:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: 2px solid transparent; }
+        .arms-input-field:focus { border-color: #003376; box-shadow: 0 0 0 1px #003376; outline: 2px solid transparent; }
         .arms-input-field:disabled, .arms-input-field[readonly] { background-color: #f0f0f1; color: #64748b; cursor: not-allowed; }
         
         .summary-ledger-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #444; }
         .summary-ledger-total { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px dashed #c3c4c7; font-size: 18px; font-weight: bold; }
-        .arms-submit-btn { width: 100%; height: 40px; margin-top: 20px; background: #2271b1; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 1px 0 #0a4b78; }
-        .arms-submit-btn:hover { background: #135e96; }
+        .arms-submit-btn { margin-top: 30px }
         
         .arms-notice-msg { padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px; }
         .arms-notice-success { background: #edf7ed; color: #1e4620; border: 1px solid #c3e6cb; }
@@ -178,7 +177,7 @@ function arms_payroll_tab() {
         .arms-data-table th, .arms-data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #c3c4c7; font-size: 13px; }
         .arms-data-table th { background: #f6f7f7; font-weight: 600; color: #1d2327; }
         .arms-btn-sm { padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 4px; border: 1px solid #8c8f94; background: #f6f7f7; color: #2c3338; }
-        .arms-btn-view { border-color: #2271b1; color: #2271b1; }
+        .arms-btn-view { border-color: #003376; color: #003376; }
         .arms-btn-view:hover { background: #f0f6fa; }
         .arms-btn-delete { border-color: #b32d2e; color: #b32d2e; background: none; }
         .arms-btn-delete:hover { background: #fcf0f1; }
@@ -188,18 +187,34 @@ function arms_payroll_tab() {
 
     <div class="arms-payroll-container">
         <!-- SUB-TAB TOGGLE LINKS -->
-        <div class="arms-subtab-navigation">
-            <?php 
-            $current_page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
-            $current_parent_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
-            $base_tab_url = admin_url( 'admin.php?page=' . $current_page );
-            if ( ! empty( $current_parent_tab ) ) {
-                $base_tab_url = add_query_arg( 'tab', $current_parent_tab, $base_tab_url );
-            }
-            ?>
-            <a href="<?php echo esc_url( add_query_arg( 'subtab', 'process', $base_tab_url ) ); ?>" class="arms-subtab-link <?php echo $current_sub_tab === 'process' ? 'active' : ''; ?>"><?php _e('Process New Payroll', 'arms-textdomain'); ?></a>
-            <a href="<?php echo esc_url( add_query_arg( 'subtab', 'history', $base_tab_url ) ); ?>" class="arms-subtab-link <?php echo $current_sub_tab === 'history' ? 'active' : ''; ?>"><?php _e('Payroll Ledger History', 'arms-textdomain'); ?></a>
-        </div>
+        <h2 class="nav-tab-wrapper arms-sub-tab-wrapper">
+    <?php 
+    // Query parameters থেকে ডাটা নিয়ে স্যানিটাইজ করা
+    $current_page       = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+    $current_parent_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
+    
+    // active subtab চেক করা (যদি ইউআরএল-এ না থাকে তবে ডিফল্ট 'process' থাকবে)
+    $current_sub_tab    = isset( $_GET['subtab'] ) ? sanitize_key( $_GET['subtab'] ) : 'process'; 
+
+    // বেস URL তৈরি করা
+    $base_tab_url = admin_url( 'admin.php?page=' . $current_page );
+    if ( ! empty( $current_parent_tab ) ) {
+        $base_tab_url = add_query_arg( 'tab', $current_parent_tab, $base_tab_url );
+    }
+
+    // প্রতিটা ট্যাবের জন্য ডাইনামিক URL জেনারেট করা
+    $process_url = esc_url( add_query_arg( 'subtab', 'process', $base_tab_url ) );
+    $history_url = esc_url( add_query_arg( 'subtab', 'history', $base_tab_url ) );
+    ?>
+
+    <a class="nav-tab <?php echo $current_sub_tab === 'process' ? 'nav-tab-active' : ''; ?>" href="<?php echo $process_url; ?>">
+        <?php _e('Process New Payroll', 'arms-textdomain'); ?>
+    </a>
+    
+    <a class="nav-tab <?php echo $current_sub_tab === 'history' ? 'nav-tab-active' : ''; ?>" href="<?php echo $history_url; ?>">
+        <?php _e('Payroll Ledger History', 'arms-textdomain'); ?>
+    </a>
+</h2>
 
         <!-- NOTIFICATION BANNER OUTPUT -->
         <?php if ( ! empty( $notice_message ) ) : ?>
@@ -278,7 +293,7 @@ function arms_payroll_tab() {
                         </div>
                     </div>
 
-                    <h3 class="arms-payroll-title" style="margin-top: 24px; color: #d946ef;"><?php echo esc_html__( 'Adjustments & Supplementary Schedules', 'arms-textdomain' ); ?></h3>
+                    <h3 class="arms-payroll-title" style="margin-top: 24px; color: #003376;"><?php echo esc_html__( 'Adjustments & Supplementary Schedules', 'arms-textdomain' ); ?></h3>
                     <div class="arms-form-row-two">
                         <div class="arms-form-group">
                             <label><?php echo esc_html__( 'Performance Bonus (BDT)', 'arms-textdomain' ); ?></label>
@@ -306,7 +321,7 @@ function arms_payroll_tab() {
                     <div class="summary-ledger-row"><span>Bonuses</span><div><strong style="color: #16a34a;">+ <span id="lbl_bonus">0.00</span> BDT</strong></div></div>
                     <div class="summary-ledger-row"><span>Attendance Adj.</span><div><strong style="color: #dc2626;">- <span id="lbl_attendance">0.00</span> BDT</strong></div></div>
                     <div class="summary-ledger-row"><span>Withholding Tax</span><div><strong style="color: #dc2626;">- <span id="lbl_tax">0.00</span> BDT</strong></div></div>
-                    <div class="summary-ledger-total"><span>Net Payable</span><span style="color: #2271b1;"><span id="lbl_net_total">0.00</span> BDT</span></div>
+                    <div class="summary-ledger-total"><span>Net Payable</span><span style="color: #003376;"><span id="lbl_net_total">0.00</span> BDT</span></div>
                     <button type="submit" class="arms-submit-btn"><?php echo esc_html__( 'Commit Ledger & Pay', 'arms-textdomain' ); ?></button>
                 </div>
             </div>
@@ -389,7 +404,7 @@ function arms_payroll_tab() {
                 </div>
                 
                 <div style="text-align: right; margin-top: 20px; font-size: 16px;">
-                    <strong>Estimated Calculated Balance: <span id="modal_net_payable_lbl" style="color:#2271b1;">0.00</span> BDT</strong>
+                    <strong>Estimated Calculated Balance: <span id="modal_net_payable_lbl" style="color:#003376;">0.00</span> BDT</strong>
                 </div>
                 
                 <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
