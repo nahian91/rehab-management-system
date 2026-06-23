@@ -397,3 +397,16 @@
 	color: #fff;
   border: 0;
 }
+
+.arms-submit-btn {
+	background: #003376;
+	color: #fff;
+	border: none;
+	padding: 12px 24px;
+	font-size: 13px;
+	font-weight: 600;
+	border-radius: 6px;
+	cursor: pointer;
+	text-decoration: none;
+	display: inline-block;
+}

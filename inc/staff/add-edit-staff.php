@@ -189,7 +189,6 @@ if ( isset( $_POST['arms_save_staff'] ) ) {
 // ==========================================
 // 2. FRONTEND FORM VIEW RENDERER
 // ==========================================
-$form_title = "Human Resources Registry Configuration Desk";
 $btn_text   = "Commit Profile Entry";
 
 if ( $row_data ) {
@@ -198,7 +197,6 @@ if ( $row_data ) {
 }
 ?>
 <div class="arms-card-box">
-    <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 700;"><?php echo esc_html($form_title); ?></h3>
 
     <?php if ( ! empty( $error ) ) : ?>
         <div class="notice notice-error" style="padding: 10px; background: #fff2f2; border-left: 4px solid #dc3232; margin-bottom: 20px;">
@@ -222,7 +220,7 @@ if ( $row_data ) {
                 <input type="text" id="last_name" name="last_name" required value="<?php echo $row_data ? esc_attr($row_data->last_name) : ''; ?>">
             </div>
             <div class="arms-form-group">
-                <label for="role_category">Role Assignment Track *</label>
+                <label for="role_category">Role Assignment *</label>
                 <select id="role_category" name="role_category" required>
                     <?php 
                     $roles = array('doctor'=>'Doctor', 'physiotherapist'=>'Physiotherapist', 'nurse'=>'Nurse', 'accountant'=>'Accountant', 'support_staff'=>'Support Staff');
@@ -234,33 +232,33 @@ if ( $row_data ) {
                 </select>
             </div>
             <div class="arms-form-group">
-                <label for="email">Institutional Email *</label>
+                <label for="email">Email *</label>
                 <input type="email" id="email" name="email" required value="<?php echo $row_data ? esc_attr($row_data->email) : ''; ?>">
             </div>
 
             <div class="arms-form-group">
-                <label for="password">Account Password Login Credential <?php echo $row_data ? '(Leave completely blank to retain existing)' : '*'; ?></label>
+                <label for="password">Password Login<?php echo $row_data ? '(Leave completely blank to retain existing)' : '*'; ?></label>
                 <input type="password" id="password" name="password" <?php echo $row_data ? '' : 'required'; ?> placeholder="<?php echo $row_data ? '••••••••' : 'Assign access credentials'; ?>" autocomplete="new-password">
             </div>
 
             <div class="arms-form-group">
-                <label for="phone">Primary Contact Phone *</label>
+                <label for="phone">Phone *</label>
                 <input type="text" id="phone" name="phone" required value="<?php echo $row_data ? esc_attr($row_data->phone) : ''; ?>">
             </div>
             <div class="arms-form-group">
-                <label for="license_number">BMDC / Professional Registry License Code</label>
+                <label for="license_number">BMDC / Professional License Code</label>
                 <input type="text" id="license_number" name="license_number" value="<?php echo $row_data ? esc_attr($row_data->license_number) : ''; ?>">
             </div>
             <div class="arms-form-group">
-                <label for="joining_date">Official Joining Date</label>
+                <label for="joining_date">Joining Date</label>
                 <input type="date" id="joining_date" name="joining_date" value="<?php echo $row_data ? esc_attr($row_data->joining_date) : date('Y-m-d'); ?>">
             </div>
             <div class="arms-form-group">
-                <label for="salary">Base Monthly Remuneration (Gross)</label>
+                <label for="salary">Monthly Salary</label>
                 <input type="number" step="0.01" id="salary" name="salary" value="<?php echo $row_data ? esc_attr($row_data->salary) : ''; ?>">
             </div>
             <div class="arms-form-group">
-                <label for="status">Initial Operations Status</label>
+                <label for="status">Status</label>
                 <select id="status" name="status">
                     <option value="active" <?php echo ($row_data && $row_data->status === 'active') ? 'selected' : ''; ?>>Active Duty</option>
                     <option value="inactive" <?php echo ($row_data && $row_data->status === 'inactive') ? 'selected' : ''; ?>>On Leave / Suspended</option>

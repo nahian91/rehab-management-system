@@ -75,8 +75,8 @@ function arms_inventory_tab() {
 
     // Sub-tab navigation layout matrix
     $tabs = array(
-        'all' => '📋 All Stock Items',
-        'add' => '📥 Add Purchase Entry',
+        'all' => 'All Stock Items',
+        'add' => 'Add Purchase Entry',
     );
 
     echo '<h2 class="nav-tab-wrapper arms-sub-tab-wrapper">';
@@ -310,14 +310,6 @@ function arms_inventory_list_view() {
     <?php endif; ?>
 
     <div class="arms-card-box" style="background:#fff; padding:24px; border-radius:8px; border:1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; width:100%;">
-            <div><h3 style="margin:0; font-size:16px; color:#0f172a; font-weight:700;">Active Clinical Stock Registry Desk</h3></div>
-            <div>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=rehab_management_system&tab=inventory&sub=add' ) ); ?>" class="arms-submit-btn" style="text-decoration:none; display:inline-block; font-size:13px; padding:10px 16px;">
-                    <span class="dashicons dashicons-plus-alt" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> New Purchase Intake
-                </a>
-            </div>
-        </div>
 
         <table class="wp-list-table widefat fixed striping posts arms-data-table" style="box-shadow:none; border:1px solid #f1f5f9; border-radius: 6px; overflow: hidden; width:100%;">
             <thead>
@@ -512,10 +504,7 @@ function arms_inventory_form_view( $item_id = 0 ) {
 
     $categories = array( 'PRP kits', 'Needles', 'Acupuncture needles', 'Consumables', 'Rehab equipment', 'Medicines', 'Syringes' );
     ?>
-    <div class="arms-card-box" style="background:#fff; padding:24px; border-radius:8px; border:1px solid #e2e8f0; max-width:850px; margin:0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <h3 style="margin-top:0; margin-bottom:20px; font-weight:700; font-size:16px; color:#0f172a; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
-            <?php echo $is_edit ? '⚙️ Modify Supply Configuration Matrix' : '📥 Record Supply Purchase Intake Entry (Stock In)'; ?>
-        </h3>
+    <div class="arms-card-box" style="background:#fff; padding:24px; border-radius:8px; border:1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
 
         <form method="post" action="">
             <?php wp_nonce_field( 'arms_inv_action', 'arms_inv_nonce' ); ?>
@@ -524,21 +513,21 @@ function arms_inventory_form_view( $item_id = 0 ) {
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Unique Identifier SKU Code Key *</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">SKU *</label>
                     <input type="text" name="item_sku" value="<?php echo esc_attr( $sku ); ?>" required style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;" <?php disabled($is_edit); ?>>
                     <?php if($is_edit): ?>
                         <input type="hidden" name="item_sku" value="<?php echo esc_attr( $sku ); ?>">
                     <?php endif; ?>
                 </div>
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Supply Item Asset Name *</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Asset Name *</label>
                     <input type="text" name="item_name" value="<?php echo esc_attr( $name ); ?>" required style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;">
                 </div>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Supply Group Classification</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Supply Group</label>
                     <select name="item_category" style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 8px;">
                         <?php foreach ( $categories as $cat ) : ?>
                             <option value="<?php echo esc_attr( $cat ); ?>" <?php selected( $category, $cat ); ?>><?php echo esc_html( $cat ); ?></option>
@@ -553,30 +542,29 @@ function arms_inventory_form_view( $item_id = 0 ) {
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Intake Quantity Volume Balance</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Quantity Balance</label>
                     <input type="number" name="item_qty" value="<?php echo esc_attr( $qty ); ?>" style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;">
                 </div>
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Minimum Safety Buffer Threshold</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Minimum Threshold</label>
                     <input type="number" name="item_min_stock" value="<?php echo esc_attr( $min_stock ); ?>" style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;">
                 </div>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:24px;">
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Supplier Distribution Info</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Supplier Info</label>
                     <input type="text" name="supplier_info" value="<?php echo esc_attr( $supplier ); ?>" placeholder="e.g., Apex Medical Supplies Ltd" style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;">
                 </div>
                 <div>
-                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Invoice Tracking Reference ID</label>
+                    <label style="display:block; margin-bottom:6px; font-weight:600; color:#334155;">Invoice ID</label>
                     <input type="text" name="invoice_tracking" value="<?php echo esc_attr( $invoice ); ?>" placeholder="e.g., INV-2026-X99" style="width:100%; height:38px; border-radius:4px; border:1px solid #cbd5e1; padding:0 10px;">
                 </div>
             </div>
 
-            <div style="text-align:right; padding-top:16px; border-top:1px solid #f1f5f9;">
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=rehab_management_system&tab=inventory' ) ); ?>" class="arms-action-btn btn-view" style="margin-right:8px; padding:10px 20px; text-decoration:none; border-radius:6px; font-size:13px; font-weight:600; display:inline-block; line-height:18px;">Cancel</a>
-                <button type="submit" class="arms-submit-btn" style="height:40px; padding:0 22px; font-size:13px; font-weight:600; border-radius:6px; cursor:pointer;">
-                    <span class="dashicons dashicons-database-add" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Commit Supply Allocation Ledger Entry
+            <div style="padding-top:16px; border-top:1px solid #f1f5f9;">
+                <button type="submit" class="arms-submit-btn">
+                    <span class="dashicons dashicons-database-add" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Save Entry
                 </button>
             </div>
         </form>

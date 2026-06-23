@@ -2,262 +2,352 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Main Reports Configuration Renderer Engine
- * Form actions processed via standard POST page-reloads (No AJAX)
+ * Advanced ARMS Core Reporting Engine Interface with Native PDF Engine
  */
 function arms_reports_tab() {
     global $wpdb;
 
-    // Define table targets matching database schema patterns
-    $table_payroll = $wpdb->prefix . 'arms_payroll';
-    $table_staff   = $wpdb->prefix . 'arms_staff';
+    // Mapping dynamic system endpoints
+    $table_billing  = $wpdb->prefix . 'arms_billing';
+    $table_expenses = $wpdb->prefix . 'arms_expenses';
+    $table_payroll  = $wpdb->prefix . 'arms_payroll';
 
-    // Fetch dynamic master lists for mapping Dropdown 2 categories
-    $staff_entries    = $wpdb->get_results( "SELECT id, first_name, last_name, role_category FROM $table_staff ORDER BY first_name ASC" );
-    $role_categories  = $wpdb->get_col( "SELECT DISTINCT role_category FROM $table_staff WHERE role_category IS NOT NULL AND role_category != ''" );
-
-    // Maintain sticky data variables across page reload forms
+    // Sticky Parameters Processing Layouts
     $report_type  = isset( $_POST['report_type'] ) ? sanitize_key( $_POST['report_type'] ) : '';
     $sub_criteria = isset( $_POST['sub_criteria'] ) ? sanitize_text_field( $_POST['sub_criteria'] ) : 'all';
-    $date_from    = isset( $_POST['date_from'] ) ? sanitize_text_field( $_POST['date_from'] ) : date('Y-m-01'); // Defaults to first day of month
+    $date_from    = isset( $_POST['date_from'] ) ? sanitize_text_field( $_POST['date_from'] ) : date('Y-m-01');
     $date_to      = isset( $_POST['date_to'] ) ? sanitize_text_field( $_POST['date_to'] ) : date('Y-m-d');
 
-    // ==========================================
-    // BACKEND ENGINE: PDF REPORT GENERATION ROUTE
-    // ==========================================
-    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_generate_pdf_report'] ) ) {
-        check_admin_referer( 'arms_reporting_engine_nonce', 'security' );
+    $compiled_data = [];
+    $total_income  = 0;
+    $total_expense = 0;
+    $net_profit    = 0;
 
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( 'Unauthorized access mapping runtime layers.', 'arms-textdomain' ) );
+    // ==========================================
+    // BACKEND CONTROLLER: PDF ENGINE INJECTION
+    // ==========================================
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_download_pdf'] ) ) {
+        check_admin_referer( 'arms_system_reporting_nonce', 'security' );
+
+        // 1. Load Dompdf Library Safely
+        if ( file_exists( WP_PLUGIN_DIR . '/arms-medical/lib/dompdf/autorun.inf' ) ) {
+            require_once WP_PLUGIN_DIR . '/arms-medical/lib/dompdf/autoload.inc.php';
+        } elseif ( file_exists( ABSPATH . 'vendor/autoload.php' ) ) {
+            require_once ABSPATH . 'vendor/autoload.php'; 
+        } else {
+            wp_die( __( 'Dompdf library wrapper not found! Please run "composer require dompdf/dompdf" or install it inside libs folder.', 'arms-textdomain' ) );
         }
 
-        // -------------------------------------------------------------
-        // NOTE FOR LATER IMPLEMENTATION: PDF EXPORT SYSTEM HOOK
-        // You can easily plug in TCPDF, FPDF, or Dompdf inside this block.
-        // For now, it compiles standard ledger datasets onto your screen cleanly.
-        // -------------------------------------------------------------
-        
-        // Build raw database analytics querying parameters based on selection criteria rules
-        $query_conditions = [];
-        $query_arguments  = [];
+        $start_date = $date_from . ' 00:00:00';
+        $end_date   = $date_to . ' 23:59:59';
+        $pdf_data   = [];
+        $pdf_inc    = 0;
+        $pdf_exp    = 0;
 
-        // Filter dates rules
-        $query_conditions[] = "p.payment_date >= %s";
-        $query_arguments[]  = $date_from . ' 00:00:00';
-        $query_conditions[] = "p.payment_date <= %s";
-        $query_arguments[]  = $date_to . ' 23:59:59';
-
-        if ( $report_type === 'income' && $sub_criteria !== 'all' ) {
-            $query_conditions[] = "s.role_category = %s";
-            $query_arguments[]  = $sub_criteria;
-        } elseif ( $report_type === 'expense' && $sub_criteria !== 'all' ) {
-            $query_conditions[] = "p.staff_id = %d";
-            $query_arguments[]  = intval( $sub_criteria );
+        // Fetch Data matching parameters
+        if ( $report_type === 'income' ) {
+            $bill_query = "SELECT invoice_id as ref, billing_type as category, total_price as amount, created_at as t_date, 'Patient Invoice' as notes FROM $table_billing WHERE created_at >= %s AND created_at <= %s";
+            $bill_args  = [ $start_date, $end_date ];
+            if ( $sub_criteria !== 'all' ) { $bill_query .= " AND billing_type = %s"; $bill_args[] = $sub_criteria; }
+            $pdf_data = $wpdb->get_results( $wpdb->prepare( $bill_query, $bill_args ) );
+            foreach ( $pdf_data as $row ) { $pdf_inc += $row->amount; }
+        } elseif ( $report_type === 'expense' ) {
+            $exp_query = "SELECT id as ref, expense_category as category, total_amount as amount, transaction_date as t_date, notes FROM $table_expenses WHERE transaction_date >= %s AND transaction_date <= %s";
+            $exp_args  = [ $date_from, $date_to ];
+            if ( $sub_criteria !== 'all' && $sub_criteria !== 'payroll' ) { $exp_query .= " AND expense_category = %s"; $exp_args[] = $sub_criteria; }
+            $general = $wpdb->get_results( $wpdb->prepare( $exp_query, $exp_args ) );
+            $payroll = [];
+            if ( $sub_criteria === 'all' || $sub_criteria === 'payroll' ) {
+                $payroll = $wpdb->get_results( $wpdb->prepare( "SELECT id as ref, 'Staff Payroll' as category, net_payable as amount, payment_date as t_date, 'Salary Allocation' as notes FROM $table_payroll WHERE payment_date >= %s AND payment_date <= %s", $start_date, $end_date ) );
+            }
+            $pdf_data = array_merge( $general, $payroll );
+            foreach ( $pdf_data as $row ) { $pdf_exp += $row->amount; }
+            usort( $pdf_data, function($a, $b) { return strtotime($b->t_date) - strtotime($a->t_date); } );
+        } elseif ( $report_type === 'profit' ) {
+            $pdf_inc = floatval($wpdb->get_var( $wpdb->prepare( "SELECT SUM(total_price) FROM $table_billing WHERE created_at >= %s AND created_at <= %s", $start_date, $end_date ) ) ?: 0);
+            $vouch   = floatval($wpdb->get_var( $wpdb->prepare( "SELECT SUM(total_amount) FROM $table_expenses WHERE transaction_date >= %s AND transaction_date <= %s", $date_from, $date_to ) ) ?: 0);
+            $sal     = floatval($wpdb->get_var( $wpdb->prepare( "SELECT SUM(net_payable) FROM $table_payroll WHERE payment_date >= %s AND payment_date <= %s", $start_date, $end_date ) ) ?: 0);
+            $pdf_exp = $vouch + $sal;
         }
 
-        $where_clause = implode( ' AND ', $query_conditions );
-        
-        $report_results = $wpdb->get_results( $wpdb->prepare( "
-            SELECT p.*, s.first_name, s.last_name, s.role_category 
-            FROM $table_payroll p
-            INNER JOIN $table_staff s ON p.staff_id = s.id
-            WHERE $where_clause
-            ORDER BY p.payment_date DESC
-        ", $query_arguments ) );
+        // 2. Build HTML Template Data Content
+        ob_start();
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Helvetica, Arial, sans-serif; color: #333; font-size: 12px; line-height: 1.4; }
+                .invoice-header { border-bottom: 2px solid #2271b1; padding-bottom: 10px; margin-bottom: 20px; }
+                .invoice-title { font-size: 20px; font-weight: bold; color: #2271b1; text-transform: uppercase; }
+                .meta-table { width: 100%; margin-bottom: 20px; }
+                .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; padding: 8px; border: 1px solid #ddd; text-transform: uppercase; font-size: 11px; }
+                .data-table td { padding: 8px; border: 1px solid #ddd; }
+                .summary-box { margin-top: 30px; text-align: right; font-size: 14px; font-weight: bold; background: #f9f9f9; padding: 10px; border-right: 5px solid #2271b1; }
+                .matrix-container { margin-top: 20px; }
+                .matrix-card { padding: 15px; border: 1px solid #ddd; margin-bottom: 10px; background: #fff; }
+            </style>
+        </head>
+        <body>
+            <div class="invoice-header">
+                <table class="meta-table">
+                    <tr>
+                        <td><span class="invoice-title">ARMS Financial Statement</span></td>
+                        <td style="text-align: right;"><strong>Date:</strong> <?php echo date('Y-m-d'); ?></td>
+                    </tr>
+                </table>
+            </div>
+
+            <table class="meta-table">
+                <tr>
+                    <td><strong>Report Target Metric:</strong> <?php echo strtoupper($report_type); ?> (<?php echo esc_html($sub_criteria); ?>)</td>
+                    <td style="text-align: right;"><strong>Statement Period:</strong> <?php echo esc_html($date_from) . ' to ' . esc_html($date_to); ?></td>
+                </tr>
+            </table>
+
+            <?php if ( $report_type === 'profit' ) : ?>
+                <div class="matrix-container">
+                    <div class="matrix-card" style="border-left: 4px solid #16a34a;"><h4>GROSS SYSTEM REVENUE</h4><h3><?php echo number_format($pdf_inc, 2); ?> BDT</h3></div>
+                    <div class="matrix-card" style="border-left: 4px solid #dc2626;"><h4>TOTAL OPERATIONAL DEDUCTIONS</h4><h3><?php echo number_format($pdf_exp, 2); ?> BDT</h3></div>
+                    <div class="matrix-card" style="border-left: 4px solid #2271b1;"><h4>NET MARGIN YIELD</h4><h3><?php echo number_format(($pdf_inc - $pdf_exp), 2); ?> BDT</h3></div>
+                </div>
+            <?php else : ?>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Reference Index</th>
+                            <th>Target Sector</th>
+                            <th>Supplemental Notes</th>
+                            <th style="text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $pdf_data as $item ) : ?>
+                            <tr>
+                                <td><?php echo date('Y-m-d H:i', strtotime($item->t_date)); ?></td>
+                                <td><code><?php echo esc_html($item->ref); ?></code></td>
+                                <td><?php echo strtoupper(esc_html($item->category)); ?></td>
+                                <td><?php echo esc_html($item->notes ?: 'N/A'); ?></td>
+                                <td style="text-align: right; font-weight: bold;">
+                                    <?php echo number_format($item->amount, 2); ?> BDT
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <div class="summary-box">
+                    Cumulated Accounting Aggregate: 
+                    <span style="color: #2271b1;"><?php echo number_format(($report_type === 'income' ? $pdf_inc : $pdf_exp), 2); ?> BDT</span>
+                </div>
+            <?php endif; ?>
+        </body>
+        </html>
+        <?php
+        $html = ob_get_clean();
+
+        // 3. Fire Dompdf Operations using Fully Qualified Paths directly
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true); 
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        if (ob_get_length()) ob_end_clean();
+
+        // Download Force Header Handlers
+        $filename = "ARMS_Report_" . $report_type . "_" . date('Ymd') . ".pdf";
+        $dompdf->stream($filename, array("Attachment" => true));
+        exit;
+    }
+
+    // ==========================================
+    // BACKEND ENGINE: SCREEN SCREEN GENERATOR
+    // ==========================================
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_trigger_report'] ) ) {
+        check_admin_referer( 'arms_system_reporting_nonce', 'security' );
+
+        $start_date = $date_from . ' 00:00:00';
+        $end_date   = $date_to . ' 23:59:59';
+
+        if ( $report_type === 'income' ) {
+            $bill_query = "SELECT invoice_id as ref, billing_type as category, total_price as amount, created_at as t_date, 'Patient Invoice' as notes FROM $table_billing WHERE created_at >= %s AND created_at <= %s";
+            $bill_args  = [ $start_date, $end_date ];
+            if ( $sub_criteria !== 'all' ) { $bill_query .= " AND billing_type = %s"; $bill_args[] = $sub_criteria; }
+            $compiled_data = $wpdb->get_results( $wpdb->prepare( $bill_query, $bill_args ) );
+            foreach ( $compiled_data as $row ) { $total_income += $row->amount; }
+        } elseif ( $report_type === 'expense' ) {
+            $exp_query = "SELECT id as ref, expense_category as category, total_amount as amount, transaction_date as t_date, notes FROM $table_expenses WHERE transaction_date >= %s AND transaction_date <= %s";
+            $exp_args  = [ $date_from, $date_to ];
+            if ( $sub_criteria !== 'all' && $sub_criteria !== 'payroll' ) { $exp_query .= " AND expense_category = %s"; $exp_args[] = $sub_criteria; }
+            $general_expenses = $wpdb->get_results( $wpdb->prepare( $exp_query, $exp_args ) );
+            $payroll_expenses = [];
+            if ( $sub_criteria === 'all' || $sub_criteria === 'payroll' ) {
+                $payroll_expenses = $wpdb->get_results( $wpdb->prepare( "SELECT p.id as ref, 'Staff Payroll' as category, p.net_payable as amount, p.payment_date as t_date, CONCAT('Salary Period: ', p.pay_period) as notes FROM $table_payroll p WHERE p.payment_date >= %s AND p.payment_date <= %s", $start_date, $end_date ) );
+            }
+            $compiled_data = array_merge( $general_expenses, $payroll_expenses );
+            foreach ( $compiled_data as $row ) { $total_expense += $row->amount; }
+            usort( $compiled_data, function($a, $b) { return strtotime($b->t_date) - strtotime($a->t_date); } );
+        } elseif ( $report_type === 'profit' ) {
+            $inc_bills = $wpdb->get_var( $wpdb->prepare( "SELECT SUM(total_price) FROM $table_billing WHERE created_at >= %s AND created_at <= %s", $start_date, $end_date ) ) ?: 0;
+            $exp_vouchers = $wpdb->get_var( $wpdb->prepare( "SELECT SUM(total_amount) FROM $table_expenses WHERE transaction_date >= %s AND transaction_date <= %s", $date_from, $date_to ) ) ?: 0;
+            $exp_salaries = $wpdb->get_var( $wpdb->prepare( "SELECT SUM(net_payable) FROM $table_payroll WHERE payment_date >= %s AND payment_date <= %s", $start_date, $end_date ) ) ?: 0;
+            $total_income  = floatval($inc_bills);
+            $total_expense = floatval($exp_vouchers) + floatval($exp_salaries);
+            $net_profit    = $total_income - $total_expense;
+        }
     }
     ?>
 
     <style>
-        .arms-report-wrapper { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .arms-report-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .arms-report-header { margin-top: 0; border-bottom: 1px solid #f0f0f1; padding-bottom: 12px; color: #2271b1; font-weight: 500; font-size: 18px; }
-        .arms-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; align-items: flex-end; }
-        .arms-filter-group { display: flex; flex-direction: column; }
-        .arms-filter-group label { font-weight: 600; margin-bottom: 6px; color: #1d2327; font-size: 13px; }
-        .arms-report-select, .arms-report-input { width: 100%; height: 36px; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; font-size: 14px; color: #2c3338; }
-        .arms-report-select:focus, .arms-report-input:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: 2px solid transparent; }
-        .arms-pdf-btn { height: 36px; background: #2271b1; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 1px 0 #0a4b78; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .arms-pdf-btn:hover { background: #135e96; border-color: #0a4b78; color: #fff; }
+        .arms-rep-box { margin: 20px 20px 0 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .arms-rep-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 20px; }
+        .arms-rep-title { margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #f0f0f1; color: #2271b1; font-size: 18px; font-weight: 500; }
+        .arms-rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: flex-end; }
+        .arms-rep-field { display: flex; flex-direction: column; }
+        .arms-rep-field label { font-weight: 600; margin-bottom: 6px; font-size: 13px; color: #1d2327; }
+        .arms-select-ctrl, .arms-input-ctrl { width: 100%; height: 36px; padding: 0 10px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .arms-btn-view { height: 36px; background: #f6f7f7; color: #2271b1; border: 1px solid #2271b1; border-radius: 4px; font-weight: 600; cursor: pointer; }
+        .arms-btn-view:hover { background: #f0f6fa; }
+        .arms-btn-pdf { height: 36px; background: #2271b1; color: #fff; border: 1px solid #0a4b78; border-radius: 4px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .arms-btn-pdf:hover { background: #135e96; color: #fff; }
         
-        .arms-table-ledger { width: 100%; border-collapse: collapse; margin-top: 24px; background: #fff; border: 1px solid #c3c4c7; }
-        .arms-table-ledger th, .arms-table-ledger td { padding: 12px; text-align: left; border-bottom: 1px solid #c3c4c7; font-size: 13px; }
-        .arms-table-ledger th { background: #f6f7f7; font-weight: 600; color: #1d2327; }
-        .arms-badge-summary { font-size: 14px; font-weight: bold; background: #f0f6fa; padding: 12px; border-left: 4px solid #2271b1; margin-top: 20px; display: flex; justify-content: space-between; }
+        .arms-table-rep { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; margin-top: 15px; }
+        .arms-table-rep th, .arms-table-rep td { padding: 12px; text-align: left; border-bottom: 1px solid #c3c4c7; font-size: 13px; }
+        .arms-table-rep th { background: #f6f7f7; font-weight: 600; }
+        .arms-summary-strip { background: #f0f6fa; padding: 15px; border-left: 4px solid #2271b1; font-size: 15px; font-weight: bold; margin-top: 20px; display: flex; justify-content: space-between; }
+        .arms-profit-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 15px; }
+        .matrix-widget { padding: 20px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; border-top-width: 4px; }
+        .matrix-widget.inc { border-top-color: #16a34a; }
+        .matrix-widget.exp { border-top-color: #dc2626; }
+        .matrix-widget.prf { border-top-color: #2271b1; }
+        .matrix-widget h4 { margin: 0 0 8px 0; color: #64748b; font-size: 13px; text-transform: uppercase; }
+        .matrix-widget .value { font-size: 24px; font-weight: 700; }
     </style>
 
-    <div class="arms-report-wrapper">
-        <div class="arms-report-card">
-            <h3 class="arms-report-header"><?php echo esc_html__( 'Financial Reports Configuration Desk', 'arms-textdomain' ); ?></h3>
+    <div class="arms-rep-box">
+        <div class="arms-rep-card">
+            <h3 class="arms-rep-title"><?php _e( 'Financial Statement Audits & Intelligence Desk', 'arms-textdomain' ); ?></h3>
             
-            <form method="POST" action="" id="armsReportEngineForm">
-                <?php wp_nonce_field( 'arms_reporting_engine_nonce', 'security' ); ?>
-                <input type="hidden" name="arms_generate_pdf_report" value="1">
+            <form method="POST" action="">
+                <?php wp_nonce_field( 'arms_system_reporting_nonce', 'security' ); ?>
 
-                <div class="arms-filter-grid">
-                    <div class="arms-filter-group">
-                        <label><?php _e( 'Select Report Core Metric', 'arms-textdomain' ); ?></label>
-                        <select name="report_type" id="arms_report_type" class="arms-report-select" required>
-                            <option value=""><?php _e( '-- Choose Target Metric --', 'arms-textdomain' ); ?></option>
+                <div class="arms-rep-grid">
+                    <div class="arms-rep-field">
+                        <label><?php _e( 'Primary Target Filter', 'arms-textdomain' ); ?></label>
+                        <select name="report_type" id="arms_report_type" class="arms-select-ctrl" required>
+                            <option value=""><?php _e( '-- Choose Ledger Sector --', 'arms-textdomain' ); ?></option>
                             <option value="income" <?php selected( $report_type, 'income' ); ?>><?php _e( 'Income Ledger', 'arms-textdomain' ); ?></option>
-                            <option value="expense" <?php selected( $report_type, 'expense' ); ?>><?php _e( 'Expense Statements', 'arms-textdomain' ); ?></option>
+                            <option value="expense" <?php selected( $report_type, 'expense' ); ?>><?php _e( 'Expense Sheets', 'arms-textdomain' ); ?></option>
                             <option value="profit" <?php selected( $report_type, 'profit' ); ?>><?php _e( 'Net Profit Matrix', 'arms-textdomain' ); ?></option>
                         </select>
                     </div>
 
-                    <div class="arms-filter-group" id="container_sub_criteria" style="display: none;">
-                        <label id="label_sub_criteria"><?php _e( 'Context Category Filter', 'arms-textdomain' ); ?></label>
-                        <select name="sub_criteria" id="arms_sub_criteria" class="arms-report-select">
-                            </select>
+                    <div class="arms-rep-field" id="criteria_wrapper" style="display: none;">
+                        <label id="criteria_label"><?php _e( 'Context Category Filter', 'arms-textdomain' ); ?></label>
+                        <select name="sub_criteria" id="arms_sub_criteria" class="arms-select-ctrl"></select>
                     </div>
 
-                    <div class="arms-filter-group">
-                        <label><?php _e( 'Statement Timeline (From)', 'arms-textdomain' ); ?></label>
-                        <input type="date" name="date_from" class="arms-report-input" value="<?php echo esc_attr( $date_from ); ?>" required>
+                    <div class="arms-rep-field">
+                        <label><?php _e( 'Timeline Bounds (From)', 'arms-textdomain' ); ?></label>
+                        <input type="date" name="date_from" class="arms-input-ctrl" value="<?php echo esc_attr( $date_from ); ?>" required>
                     </div>
 
-                    <div class="arms-filter-group">
-                        <label><?php _e( 'Statement Timeline (To)', 'arms-textdomain' ); ?></label>
-                        <input type="date" name="date_to" class="arms-report-input" value="<?php echo esc_attr( $date_to ); ?>" required>
+                    <div class="arms-rep-field">
+                        <label><?php _e( 'Timeline Bounds (To)', 'arms-textdomain' ); ?></label>
+                        <input type="date" name="date_to" class="arms-input-ctrl" value="<?php echo esc_attr( $date_to ); ?>" required>
                     </div>
 
-                    <button type="submit" class="arms-pdf-btn">
-                        <span class="dashicons dashicons-pdf"></span> <?php _e( 'Compile Statement Logs', 'arms-textdomain' ); ?>
+                    <!-- ACTION BUTTON 1: SCREEN ANALYSIS -->
+                    <button type="submit" name="arms_trigger_report" class="arms-btn-view">
+                        <?php _e( 'Preview on Screen', 'arms-textdomain' ); ?>
+                    </button>
+
+                    <!-- ACTION BUTTON 2: DOWNLOAD DIRECT PDF -->
+                    <button type="submit" name="arms_download_pdf" class="arms-btn-pdf">
+                        <span class="dashicons dashicons-pdf"></span> <?php _e( 'Download PDF', 'arms-textdomain' ); ?>
                     </button>
                 </div>
             </form>
         </div>
 
-        <?php if ( isset( $report_results ) ) : ?>
-            <div class="arms-report-card" style="margin-top: 20px;">
-                <h3 class="arms-report-header" style="color: #1d2327; border-color: #c3c4c7;">
-                    <?php echo esc_html( strtoupper( $report_type ) ) . ' ' . esc_html__( 'Statements Report Analysis View', 'arms-textdomain' ); ?>
-                    <span style="float: right; font-size: 12px; color: #64748b;"><?php echo esc_html( $date_from ) . ' to ' . esc_html( $date_to ); ?></span>
-                </h3>
-
-                <table class="arms-table-ledger">
-                    <thead>
-                        <tr>
-                            <th><?php _e( 'Payment Date', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Reference Staff', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Role Department', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Base Salary Structure', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Allowances (+)', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Deductions (-)', 'arms-textdomain' ); ?></th>
-                            <th><?php _e( 'Computed Operational Balance', 'arms-textdomain' ); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        $total_base       = 0;
-                        $total_allowance  = 0;
-                        $total_deductions = 0;
-                        $total_net        = 0;
-
-                        if ( empty( $report_results ) ) : 
-                        ?>
-                            <tr><td colspan="7" style="text-align:center; color:#64748b; font-style:italic;"><?php _e( 'No historic records verified inside specified context configurations.', 'arms-textdomain' ); ?></td></tr>
-                        <?php 
-                        else : 
-                            foreach ( $report_results as $statement ) : 
-                                $allowance  = $statement->bonus + $statement->incentives;
-                                $deduction  = $statement->attendance_deduction + $statement->tax_deduction;
-                                
-                                $total_base       += $statement->base_salary;
-                                $total_allowance  += $allowance;
-                                $total_deductions += $deduction;
-                                $total_net        += $statement->net_payable;
-                        ?>
-                            <tr>
-                                <td><?php echo date( 'Y-m-d', strtotime( $statement->payment_date ) ); ?></td>
-                                <td><strong><?php echo esc_html( $statement->first_name . ' ' . $statement->last_name ); ?></strong></td>
-                                <td><?php echo esc_html( ucfirst( str_replace( '_', ' ', $statement->role_category ) ) ); ?></td>
-                                <td><?php echo number_format( $statement->base_salary, 2 ); ?> BDT</td>
-                                <td style="color:#16a34a;">+ <?php echo number_format( $allowance, 2 ); ?> BDT</td>
-                                <td style="color:#dc2626;">- <?php echo number_format( $deduction, 2 ); ?> BDT</td>
-                                <td><strong><?php echo number_format( $statement->net_payable, 2 ); ?> BDT</strong></td>
-                            </tr>
-                        <?php 
-                            endforeach; 
-                        endif; 
-                        ?>
-                    </tbody>
-                </table>
-
-                <div class="arms-badge-summary">
-                    <span><?php _e( 'Cumulated Summary Total (Net Balance Flow Calculation Scheme):', 'arms-textdomain' ); ?></span>
-                    <span style="color: #2271b1;"><?php echo number_format( $total_net, 2 ); ?> BDT</span>
+        <!-- SCREEN DISPLAY LAYER -->
+        <?php if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_trigger_report'] ) ) : ?>
+            <?php if ( $report_type === 'profit' ) : ?>
+                <div class="arms-profit-matrix">
+                    <div class="matrix-widget inc"><h4>Gross Revenue</h4><div class="value" style="color: #16a34a;"><?php echo number_format($total_income, 2); ?> BDT</div></div>
+                    <div class="matrix-widget exp"><h4>Total Deductions</h4><div class="value" style="color: #dc2626;"><?php echo number_format($total_expense, 2); ?> BDT</div></div>
+                    <div class="matrix-widget prf"><h4>Net Yield</h4><div class="value" style="color: #2271b1;"><?php echo number_format($net_profit, 2); ?> BDT</div></div>
                 </div>
-            </div>
+            <?php else : ?>
+                <div class="arms-rep-card">
+                    <table class="arms-table-rep">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Reference Index</th>
+                                <th>Target Sector</th>
+                                <th>Memo Descriptions</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ( empty($compiled_data) ) : ?>
+                                <tr><td colspan="5" style="text-align:center; color:#64748b; font-style:italic;">No records found.</td></tr>
+                            <?php else : foreach ( $compiled_data as $item ) : ?>
+                                <tr>
+                                    <td><?php echo date('Y-m-d H:i', strtotime($item->t_date)); ?></td>
+                                    <td><code><?php echo esc_html($item->ref); ?></code></td>
+                                    <td><span style="background: #f0f0f1; padding: 2px 6px; border-radius: 3px; font-size:11px; font-weight:600; text-transform:uppercase;"><?php echo esc_html($item->category); ?></span></td>
+                                    <td><?php echo esc_html($item->notes ?: 'N/A'); ?></td>
+                                    <td style="font-weight: 600; color: <?php echo $report_type === 'income' ? '#16a34a' : '#dc2626'; ?>;">
+                                        <?php echo $report_type === 'income' ? '+' : '-'; ?> <?php echo number_format($item->amount, 2); ?> BDT
+                                    </td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                    <div class="arms-summary-strip">
+                        <span>Cumulated Accounting Aggregate:</span>
+                        <span style="color: <?php echo $report_type === 'income' ? '#16a34a' : '#dc2626'; ?>;"><?php echo number_format(($report_type === 'income' ? $total_income : $total_expense), 2); ?> BDT</span>
+                    </div>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 
+    <!-- FIELD REBUILD JAVASCRIPT ENGINE -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
-            var primaryMetric = document.getElementById('arms_report_type');
-            var subCriteriaContainer = document.getElementById('container_sub_criteria');
-            var subCriteriaLabel = document.getElementById('label_sub_criteria');
-            var subCriteriaDropdown = document.getElementById('arms_sub_criteria');
+            var primaryMenu = document.getElementById('arms_report_type');
+            var wrapper     = document.getElementById('criteria_wrapper');
+            var label       = document.getElementById('criteria_label');
+            var secondaryMenu = document.getElementById('arms_sub_criteria');
+            var currentStickyValue = "<?php echo esc_js($sub_criteria); ?>";
 
-            // Dynamic mapping objects built from server configurations
-            var incomeCategories = <?php echo wp_json_encode( $role_categories ); ?>;
-            var staffProfiles = <?php echo wp_json_encode( array_map( function($s) {
-                return [ 'id' => $s->id, 'name' => $s->first_name . ' ' . $s->last_name ];
-            }, $staff_entries ) ); ?>;
-
-            // Retain values on tracking reloads
-            var oldSubValue = "<?php echo esc_js( $sub_criteria ); ?>";
-
-            function processContextMapping(currentSelection, dynamicReload) {
-                // Clear active listings options
-                subCriteriaDropdown.innerHTML = '';
-
-                if (currentSelection === 'income') {
-                    subCriteriaContainer.style.display = 'flex';
-                    subCriteriaLabel.textContent = "<?php _e( 'Filter by Income Source (Role Category)', 'arms-textdomain' ); ?>";
-                    
-                    var allOpt = document.createElement('option'); allOpt.value = 'all'; allOpt.textContent = "<?php _e( 'All Income Categories', 'arms-textdomain' ); ?>";
-                    subCriteriaDropdown.appendChild(allOpt);
-
-                    incomeCategories.forEach(function(cat) {
-                        var opt = document.createElement('option');
-                        opt.value = cat;
-                        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
-                        if(dynamicReload && cat === oldSubValue) opt.selected = true;
-                        subCriteriaDropdown.appendChild(opt);
-                    });
-
-                } else if (currentSelection === 'expense') {
-                    subCriteriaContainer.style.display = 'flex';
-                    subCriteriaLabel.textContent = "<?php _e( 'Filter by Expense Payee (Employee Staff Profile)', 'arms-textdomain' ); ?>";
-
-                    var allOpt = document.createElement('option'); allOpt.value = 'all'; allOpt.textContent = "<?php _e( 'All Staff Expense Records', 'arms-textdomain' ); ?>";
-                    subCriteriaDropdown.appendChild(allOpt);
-
-                    staffProfiles.forEach(function(staff) {
-                        var opt = document.createElement('option');
-                        opt.value = staff.id;
-                        opt.textContent = staff.name;
-                        if(dynamicReload && staff.id.toString() === oldSubValue) opt.selected = true;
-                        subCriteriaDropdown.appendChild(opt);
-                    });
-
-                } else {
-                    // Hide dynamic filter if set to 'profit' metric calculations
-                    subCriteriaContainer.style.display = 'none';
-                    subCriteriaDropdown.removeAttribute('required');
-                }
+            function rebuildFormDropdownMap(selection, initialLoad) {
+                secondaryMenu.innerHTML = '';
+                if (selection === 'income') {
+                    wrapper.style.display = 'flex'; label.textContent = "Billing Channel Stream Source";
+                    secondaryMenu.add(new Option("All Revenue Streams (OPD & IPD)", "all"));
+                    secondaryMenu.add(new Option("Outpatient Care Department (OPD)", "opd"));
+                    secondaryMenu.add(new Option("Inpatient Admissions Ledger (IPD)", "ipd"));
+                } else if (selection === 'expense') {
+                    wrapper.style.display = 'flex'; label.textContent = "Expense Categorization Channels";
+                    secondaryMenu.add(new Option("All System Expenditures Combined", "all"));
+                    secondaryMenu.add(new Option("Staff Payroll Remittances", "payroll"));
+                    secondaryMenu.add(new Option("Utilities & Hospital Bills", "Utility"));
+                    secondaryMenu.add(new Option("Medical Equipment & Inventory", "Supplies"));
+                } else { wrapper.style.display = 'none'; return; }
+                if (initialLoad && currentStickyValue !== '') { secondaryMenu.value = currentStickyValue; }
             }
-
-            // Hook Event execution monitors
-            primaryMetric.addEventListener('change', function() {
-                processContextMapping(this.value, false);
-            });
-
-            // Maintain visual configurations state tracking directly upon page loading lifecycle
-            if(primaryMetric.value !== '') {
-                processContextMapping(primaryMetric.value, true);
-            }
+            primaryMenu.addEventListener('change', function() { rebuildFormDropdownMap(this.value, false); });
+            if (primaryMenu.value !== '') { rebuildFormDropdownMap(primaryMenu.value, true); }
         });
     </script>
     <?php
