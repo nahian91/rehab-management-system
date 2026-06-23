@@ -88,8 +88,8 @@ function arms_nursing_tab() {
         .arms-nurse-wrapper * { box-sizing: border-box; }
         .arms-subnav-bar { display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; margin-bottom: 24px; }
         .arms-subnav-link { padding: 10px 20px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 13px; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s ease; }
-        .arms-subnav-link:hover { color: #6366f1; }
-        .arms-subnav-link.active { color: #6366f1; border-bottom-color: #6366f1; }
+        .arms-subnav-link:hover { color: #003376; }
+        .arms-subnav-link.active { color: #003376; border-bottom-color: #003376; }
         .arms-card-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 24px; }
         .arms-card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
         .arms-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -97,12 +97,12 @@ function arms_nursing_tab() {
         .arms-form-group.fullwidth-col { grid-column: 1 / -1; }
         .arms-form-group label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; }
         .arms-form-group input, .arms-form-group select { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #0f172a; background-color: #fff; width: 100%; }
-        .arms-form-group input:focus, .arms-form-group select:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1); }
+        .arms-form-group input:focus, .arms-form-group select:focus { border-color: #003376; outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1); }
         
         .arms-searchable-group { background: #fdfdfd; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-bottom: 8px; }
         .arms-patient-search-input { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px !important; font-weight: 500; }
 
-        .arms-submit-btn { background: #6366f1; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; margin-top: 20px; }
+        .arms-submit-btn { background: #003376; color: #fff; border: none; padding: 11px 22px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s ease; text-decoration: none; display: inline-block; margin-top: 20px; }
         .arms-submit-btn:hover { background: #003376; }
         
         .arms-repeater-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -134,25 +134,24 @@ function arms_nursing_tab() {
         .arms-list-vitals-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding: 4px 0; gap: 10px; }
         .arms-list-vitals-row:last-child { border-bottom: none; }
         .arms-list-vitals-metrics { color: #475569; }
-        .arms-list-vitals-time { color: #6366f1; font-weight: 600; text-align: right; white-space: nowrap; }
+        .arms-list-vitals-time { color: #003376; font-weight: 600; text-align: right; white-space: nowrap; }
     </style>
 
     <div class="arms-nurse-wrapper">
-        <nav class="arms-subnav-bar">
-            <a href="<?php echo esc_url( $list_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'list') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-clipboard" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> All Services
-            </a>
-            <a href="<?php echo esc_url( $add_url ); ?>" class="arms-subnav-link <?php echo ($current_sub === 'add') ? 'active' : ''; ?>">
-                <span class="dashicons dashicons-welcome-write-blog" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Add Service
-            </a>
-        </nav>
+        <h2 class="nav-tab-wrapper arms-sub-tab-wrapper">
+    <a class="nav-tab <?php echo ($current_sub === 'list') ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( $list_url ); ?>">
+        All Services
+    </a>
+    <a class="nav-tab <?php echo ($current_sub === 'add') ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( $add_url ); ?>">
+        Add Service
+    </a>
+</h2>
 
         <?php 
         /* =========================================================================
            SUB-VIEW: ADD / EDIT LOG FILES
            ========================================================================= */
         if ( $current_sub === 'add' || $current_sub === 'edit' ) :
-            $form_heading = "Initiate Shift Level ICU/Ward Care Entry";
             $row_data = null;
             $existing_vitals = array();
 
@@ -165,7 +164,6 @@ function arms_nursing_tab() {
             }
             ?>
             <div class="arms-card-box">
-                <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 700; color:#1e293b;"><?php echo esc_html($form_heading); ?></h3>
                 
                 <form method="post" action="">
                     <?php wp_nonce_field( 'arms_nursing_nonce_action', 'arms_nursing_nonce' ); ?>
@@ -219,10 +217,6 @@ function arms_nursing_tab() {
                             </select>
                         </div>
                     </div>
-
-                    <h4 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #003376; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 20px;">
-                        Patient Facility Location assignment
-                    </h4>
                     <div class="arms-form-grid">
                         <div class="arms-form-group">
                             <label for="location_type">Ward / Location Type</label>
@@ -327,7 +321,7 @@ function arms_nursing_tab() {
                     </table>
 
                     <button type="submit" name="arms_save_nursing" class="arms-submit-btn">
-                        <span class="dashicons dashicons-database-add" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Commit Shift Record to Active Framework
+                        <span class="dashicons dashicons-database-add" style="font-size:16px; vertical-align:middle; margin-right:4px;"></span> Save Changes
                     </button>
                 </form>
             </div>
