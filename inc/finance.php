@@ -1,54 +1,15 @@
 <?php
-/*--------------------------------------------------------------
-# 1. AJAX Database Income Source Collector Processing Handler
---------------------------------------------------------------*/
-function arms_get_income_data_handler() {
-    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'arms_finance_secure_nonce')) {
-        wp_send_json_error('Security validation failed.', 403);
-    }
 
-    global $wpdb;
-    $table_billing = $wpdb->prefix . 'arms_billing';
-
-    $results = $wpdb->get_results("SELECT * FROM $table_billing ORDER BY created_at DESC", ARRAY_A);
-    $formatted_ledger_logs = array();
-
-    if (!empty($results)) {
-        foreach ($results as $row) {
-            $formatted_ledger_logs[] = array(
-                'id'             => intval($row['id']),
-                'invoice_id'     => esc_html($row['invoice_id']),
-                'billing_type'   => esc_html(strtolower($row['billing_type'])),
-                'payment_method' => esc_html($row['payment_method']),
-                'total_price'    => floatval($row['total_price']),
-                'date'           => date('Y-m-d', strtotime($row['created_at']))
-            );
-        }
-    }
-
-    wp_send_json_success(array('ledger' => $formatted_ledger_logs));
-}
-add_action('wp_ajax_arms_get_income_data', 'arms_get_income_data_handler');
-
-
-/*--------------------------------------------------------------
-# 2. Main Dashboard Tab Display Grid Architecture
---------------------------------------------------------------*/
+// 1. MAIN RENDER FUNCTION FOR THE FINANCE TAB
 function arms_finance_tab() {
     global $wpdb;
     $table_expenses = $wpdb->prefix . 'arms_expenses';
-    $table_billing = $wpdb->prefix . 'arms_billing';
     $security_nonce = wp_create_nonce('arms_finance_secure_nonce');
 
     // Fetch live entries from database logs
     $expenses_log = array();
     if ($wpdb->get_var("SHOW TABLES LIKE '$table_expenses'") === $table_expenses) {
         $expenses_log = $wpdb->get_results("SELECT * FROM $table_expenses ORDER BY id DESC", ARRAY_A);
-    }
-
-    $income_log = array();
-    if ($wpdb->get_var("SHOW TABLES LIKE '$table_billing'") === $table_billing) {
-        $income_log = $wpdb->get_results("SELECT * FROM $table_billing ORDER BY id DESC", ARRAY_A);
     }
 
     $fixed_lease_total = 0;
@@ -89,6 +50,7 @@ function arms_finance_tab() {
             padding: 4px;
             gap: 4px;
             margin-bottom: 28px;
+            width: 200px;
         }
         .arms-fin-btn {
             flex: 1;
@@ -289,63 +251,10 @@ function arms_finance_tab() {
     <div class="arms-fin-wrapper">
 
         <div class="arms-fin-nav">
-            <button type="button" class="arms-fin-btn active" id="btn-fin-income" onclick="armsSwitchFinTab('fin-income')">💵 Income</button>
-            <button type="button" class="arms-fin-btn" id="btn-fin-expenses" onclick="armsSwitchFinTab('fin-expenses')">💸 Expenses</button>
+            <button type="button" class="arms-fin-btn active" id="btn-fin-expenses" onclick="armsSwitchFinTab('fin-expenses')">💸 Expenses</button>
         </div>
 
-        <!-- 💵 INCOME PANEL -->
-        <div id="fin-income" class="arms-fin-panel active">
-            <div class="arms-table-toolbar">
-                <div class="arms-filter-group">
-                    <label>Category:</label>
-                    <select class="arms-select-field arms-income-filter-cat" onchange="armsFilterIncomeTable()">
-                        <option value="">All Categories</option>
-                        <option value="opd">OPD</option>
-                        <option value="ipd">IPD</option>
-                    </select>
-                </div>
-                <div class="arms-filter-group">
-                    <label>From Date:</label>
-                    <input type="date" class="arms-input-field arms-income-filter-start" onchange="armsFilterIncomeTable()" />
-                </div>
-                <div class="arms-filter-group">
-                    <label>To Date:</label>
-                    <input type="date" class="arms-input-field arms-income-filter-end" onchange="armsFilterIncomeTable()" />
-                </div>
-            </div>
-
-            <div class="arms-table-wrapper">
-                <table class="arms-data-table" id="arms-income-log-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice Reference Key</th>
-                            <th>Allocation Channel / Category</th>
-                            <th>Payment Transferred Via</th>
-                            <th>Value Transferred</th>
-                            <th>Transactional Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($income_log)): ?>
-                            <?php foreach ($income_log as $row): ?>
-                                <tr data-category="<?php echo esc_attr(strtolower($row['billing_type'])); ?>" data-date="<?php echo esc_attr(date('Y-m-d', strtotime($row['created_at']))); ?>">
-                                    <td><code><?php echo esc_html($row['invoice_id']); ?></code></td>
-                                    <td><b><?php echo esc_html(strtoupper($row['billing_type'])); ?> Stream</b></td>
-                                    <td><?php echo esc_html(ucfirst($row['payment_method'])); ?></td>
-                                    <td>৳<?php echo number_format(floatval($row['total_price']), 2); ?></td>
-                                    <td><?php echo esc_html(date('Y-m-d', strtotime($row['created_at']))); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr class="no-records-row"><td colspan="5" style="text-align:center; color:#94a3b8;">No revenue billing logs present.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 💸 EXPENSES PANEL -->
-        <div id="fin-expenses" class="arms-fin-panel">
+        <div id="fin-expenses" class="arms-fin-panel active">
             <div class="arms-sub-nav-tabs">
                 <button type="button" class="arms-sub-tab-btn active" id="btn-sub-exp-list" onclick="armsSwitchSubExpenseTab('sub-exp-list')">📋 Expense Ledger Log</button>
                 <button type="button" class="arms-sub-tab-btn" id="btn-sub-exp-add" onclick="armsSwitchSubExpenseTab('sub-exp-add')">➕ Add Expense Allocation</button>
@@ -353,9 +262,9 @@ function arms_finance_tab() {
 
             <div id="sub-exp-list" class="arms-form-matrix-block active">
                 <div class="arms-stat-grid">
-                    <div class="arms-stat-card"><span class="arms-stat-label">Fixed Lease Asset Obligations</span><span class="arms-stat-val" id="kpi-fixed-lease">৳<?php echo number_format($fixed_lease_total, 2); ?></span></div>
-                    <div class="arms-stat-card"><span class="arms-stat-label">Infrastructure Utility Matrix</span><span class="arms-stat-val" id="kpi-utility-matrix">৳<?php echo number_format($utility_matrix_total, 2); ?></span></div>
-                    <div class="arms-stat-card danger"><span class="arms-stat-label">Other Outflow Demands</span><span class="arms-stat-val" id="kpi-pending-outflow">৳<?php echo number_format($pending_outflow_total, 2); ?></span></div>
+                    <div class="arms-stat-card"><span class="arms-stat-label">Rent & Lease</span><span class="arms-stat-val" id="kpi-fixed-lease">৳<?php echo number_format($fixed_lease_total, 2); ?></span></div>
+                    <div class="arms-stat-card"><span class="arms-stat-label">Utilities</span><span class="arms-stat-val" id="kpi-utility-matrix">৳<?php echo number_format($utility_matrix_total, 2); ?></span></div>
+                    <div class="arms-stat-card danger"><span class="arms-stat-label">Other Expenses</span><span class="arms-stat-val" id="kpi-pending-outflow">৳<?php echo number_format($pending_outflow_total, 2); ?></span></div>
                 </div>
 
                 <div class="arms-table-toolbar">
@@ -382,12 +291,12 @@ function arms_finance_tab() {
                     <table class="arms-data-table" id="arms-expenses-log-table">
                         <thead>
                             <tr>
-                                <th>Operational Cost Line Element</th>
-                                <th>System Accounting Code</th>
-                                <th>Cost Classification Category</th>
-                                <th>Current Fiscal Cycle Demand</th>
-                                <th>Transactional Date</th>
-                                <th style="text-align: center; width: 140px;">Action Controllers</th>
+                                <th>Expense Type</th>
+                                <th>System Code</th>
+                                <th>Category</th>
+                                <th>Total Amount</th>
+                                <th>Date</th>
+                                <th style="text-align: center; width: 140px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -423,7 +332,6 @@ function arms_finance_tab() {
                 </div>
             </div>
 
-            <!-- Form Matrix Dropdown Input Panels -->
             <div id="sub-exp-add" class="arms-form-matrix-block">
                 <div style="margin-bottom: 16px;">
                     <label class="arms-label-inline" style="display:block; margin-bottom:6px;">Select Core Expense Matrix Category</label>
@@ -603,25 +511,6 @@ function arms_finance_tab() {
             }
         };
 
-        window.armsFilterIncomeTable = function() {
-            var category = jQuery('.arms-income-filter-cat').val();
-            var start = jQuery('.arms-income-filter-start').val();
-            var end = jQuery('.arms-income-filter-end').val();
-
-            jQuery('#arms-income-log-table tbody tr').each(function() {
-                var $row = jQuery(this);
-                var rowCat = $row.attr('data-category');
-                var rowDate = $row.attr('data-date');
-                var match = true;
-
-                if (category && rowCat !== category) match = false;
-                if (start && rowDate < start) match = false;
-                if (end && rowDate > end) match = false;
-
-                if (match) $row.show(); else $row.hide();
-            });
-        };
-
         window.armsFilterExpenseTable = function() {
             var category = jQuery('.arms-expense-filter-cat').val();
             var start = jQuery('.arms-expense-filter-start').val();
@@ -724,121 +613,91 @@ function arms_finance_tab() {
                 
                 var $form = $(this);
                 var activeCategory = $('#arms-main-expense-category').val();
-                var $activeContext = $('#ctx-fields-' + activeCategory);
-                var $btn = $activeContext.find('.arms-submit-btn');
-                var originalBtnText = $btn.text();
-                var rowId = $('#arms-expense-row-id').val();
+                var $ctx = $('#ctx-fields-' + activeCategory);
                 
-                var dataFields = {
-                    id               : rowId,
-                    expense_category : activeCategory,
-                    expense_type     : $activeContext.find('.arms-data-type').val() || '',
-                    target_month     : $activeContext.find('.arms-data-month').val() || '',
-                    target_year      : $activeContext.find('.arms-data-year').val() || '2026',
-                    base_amount      : $activeContext.find('.arms-data-base').val() || 0,
-                    adjustment_amount: $activeContext.find('.arms-data-adjustment').val() || 0,
-                    authorized_by    : $activeContext.find('.arms-data-auth').val() || '',
-                    transaction_date : $activeContext.find('.arms-data-date').val() || arms_fin_meta.current_date
+                var payload = {
+                    action: 'arms_save_finance_expense',
+                    nonce: arms_fin_meta.nonce,
+                    id: $('#arms-expense-row-id').val(),
+                    expense_category: activeCategory,
+                    expense_type: $ctx.find('.arms-data-type').val(),
+                    target_month: $ctx.find('.arms-data-month').val() || '',
+                    target_year: $ctx.find('.arms-data-year').val() || '',
+                    base_amount: $ctx.find('.arms-data-base').val() || 0,
+                    adjustment_amount: $ctx.find('.arms-data-adjustment').val() || 0,
+                    authorized_by: $ctx.find('.arms-data-auth').val() || '',
+                    transaction_date: $ctx.find('.arms-data-date').val() || arms_fin_meta.current_date
                 };
 
-                $btn.text('Saving...').prop('disabled', true);
+                $form.find('.arms-submit-btn').prop('disabled', true);
 
-                $.ajax({
-                    url: arms_fin_meta.ajaxurl,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        action: 'arms_save_expense_data',
-                        nonce: arms_fin_meta.nonce,
-                        fields: dataFields
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            var calculatedTotal = parseFloat(dataFields.base_amount) + parseFloat(dataFields.adjustment_amount);
-                            var formattedTotal = calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            var cleanLabel = dataFields.expense_type.charAt(0).toUpperCase() + dataFields.expense_type.slice(1);
-                            var codePrefix = 'EXP-' + activeCategory.substring(0, 3).toUpperCase();
-                            
-                            if (rowId !== '0') {
-                                // Update Existing DOM Row
-                                var $existingRow = $('#arms-expenses-log-table tbody tr[data-id="' + rowId + '"]');
-                                var oldAmt = parseFloat($existingRow.find('.row-total-amount').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                var oldType = $existingRow.attr('data-type');
-
-                                // Revert old amounts from KPIs
-                                if (activeCategory === 'operational' && oldType === 'rent') {
-                                    var cFixed = parseFloat($('#kpi-fixed-lease').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                    $('#kpi-fixed-lease').text('৳' + (cFixed - oldAmt).toFixed(2));
-                                } else if (activeCategory === 'utility') {
-                                    var cUtil = parseFloat($('#kpi-utility-matrix').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                    $('#kpi-utility-matrix').text('৳' + (cUtil - oldAmt).toFixed(2));
-                                } else {
-                                    var cOther = parseFloat($('#kpi-pending-outflow').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                    $('#kpi-pending-outflow').text('৳' + (cOther - oldAmt).toFixed(2));
-                                }
-
-                                // Inject updated parameters into element data attributes
-                                $existingRow.attr({
-                                    'data-type': dataFields.expense_type,
-                                    'data-month': dataFields.target_month,
-                                    'data-year': dataFields.target_year,
-                                    'data-base': dataFields.base_amount,
-                                    'data-adjustment': dataFields.adjustment_amount,
-                                    'data-auth': dataFields.authorized_by,
-                                    'data-date': dataFields.transaction_date
-                                });
-
-                                $existingRow.find('td:eq(0)').html('<b>' + cleanLabel + '</b>');
-                                $existingRow.find('.row-total-amount').text('৳' + formattedTotal);
-                                $existingRow.find('td:eq(4)').text(dataFields.transaction_date);
-                            } else {
-                                // Append New Row Log Node
-                                var insertedId = response.data.row_id || Date.now();
-                                var newRowHtml = '<tr data-id="' + insertedId + '" data-category="' + activeCategory + '" data-type="' + dataFields.expense_type + '" data-month="' + dataFields.target_month + '" data-year="' + dataFields.target_year + '" data-base="' + dataFields.base_amount + '" data-adjustment="' + dataFields.adjustment_amount + '" data-auth="' + dataFields.authorized_by + '" data-date="' + dataFields.transaction_date + '">' +
-                                    '<td><b>' + cleanLabel + '</b></td>' +
-                                    '<td><code>' + codePrefix + '</code></td>' +
-                                    '<td>' + activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1) + ' Matrix</td>' +
-                                    '<td class="row-total-amount">৳' + formattedTotal + '</td>' +
-                                    '<td>' + dataFields.transaction_date + '</td>' +
-                                    '<td>' +
-                                        '<div class="arms-actions-cell">' +
-                                            '<button type="button" class="arms-action-btn edit" onclick="armsEditExpenseRow(this)">Edit</button> ' +
-                                            '<button type="button" class="arms-action-btn delete" onclick="armsRowAction(\'delete\', ' + insertedId + ')">Delete</button>' +
-                                        '</div>' +
-                                    '</td>' +
-                                '</tr>';
-                                
-                                $('#arms-expenses-log-table tbody .no-records-row').remove();
-                                $('#arms-expenses-log-table tbody').prepend(newRowHtml);
-                            }
-                            
-                            // Re-calculate and patch metrics summary cards
-                            if (activeCategory === 'operational' && dataFields.expense_type === 'rent') {
-                                var currentFixed = parseFloat($('#kpi-fixed-lease').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                $('#kpi-fixed-lease').text('৳' + (currentFixed + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                            } else if (activeCategory === 'utility') {
-                                var currentUtil = parseFloat($('#kpi-utility-matrix').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                $('#kpi-utility-matrix').text('৳' + (currentUtil + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                            } else {
-                                var currentOther = parseFloat($('#kpi-pending-outflow').text().replace(/[^0-9.-]+/g,"")) || 0;
-                                $('#kpi-pending-outflow').text('৳' + (currentOther + calculatedTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                            }
-
-                            armsResetExpenseForm();
-                            armsSwitchSubExpenseTab('sub-exp-list');
-                        } else {
-                            alert('Submission Error: ' + response.data);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        alert('Server processing error.');
-                    },
-                    complete: function() {
-                        $btn.text(originalBtnText).prop('disabled', false);
+                $.post(arms_fin_meta.ajaxurl, payload, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.data || 'An error occurred while handling processing configurations.');
+                        $form.find('.arms-submit-btn').prop('disabled', false);
                     }
+                }).fail(function() {
+                    alert('Server communication configuration failure.');
+                    $form.find('.arms-submit-btn').prop('disabled', false);
                 });
             });
         });
     </script>
     <?php
+}
+
+// 2. BACKEND AJAX HANDLER FOR PROCESSING UPDATES AND INSERTS
+add_action('wp_ajax_arms_save_finance_expense', 'arms_save_finance_expense_handler');
+function arms_save_finance_expense_handler() {
+    check_ajax_referer('arms_finance_secure_nonce', 'nonce');
+
+    global $wpdb;
+    $table_expenses = $wpdb->prefix . 'arms_expenses';
+
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $expense_category = isset($_POST['expense_category']) ? sanitize_text_field($_POST['expense_category']) : '';
+    $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
+    $target_month = isset($_POST['target_month']) ? sanitize_text_field($_POST['target_month']) : '';
+    $target_year = isset($_POST['target_year']) ? sanitize_text_field($_POST['target_year']) : '';
+    $base_amount = isset($_POST['base_amount']) ? floatval($_POST['base_amount']) : 0.0;
+    $adjustment_amount = isset($_POST['adjustment_amount']) ? floatval($_POST['adjustment_amount']) : 0.0;
+    $authorized_by = isset($_POST['authorized_by']) ? sanitize_text_field($_POST['authorized_by']) : '';
+    $transaction_date = isset($_POST['transaction_date']) ? sanitize_text_field($_POST['transaction_date']) : current_time('Y-m-d');
+
+    // Calculate aggregated total amount automatically
+    $total_amount = $base_amount + $adjustment_amount;
+
+    $data = array(
+        'expense_category'  => $expense_category,
+        'expense_type'      => $expense_type,
+        'target_month'      => $target_month,
+        'target_year'       => $target_year,
+        'base_amount'       => $base_amount,
+        'adjustment_amount' => $adjustment_amount,
+        'total_amount'      => $total_amount,
+        'authorized_by'     => $authorized_by,
+        'transaction_date'  => $transaction_date,
+    );
+
+    $format = array('%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s');
+
+    if ($id > 0) {
+        // Run update query on existing entries
+        $updated = $wpdb->update($table_expenses, $data, array('id' => $id), $format, array('%d'));
+        if ($updated !== false) {
+            wp_send_json_success('Ledger record updated successfully.');
+        } else {
+            wp_send_json_error('Failed to update ledger record database entry.');
+        }
+    } else {
+        // Run insert query on new entries
+        $inserted = $wpdb->insert($table_expenses, $data, $format);
+        if ($inserted !== false) {
+            wp_send_json_success('Ledger record posted successfully.');
+        } else {
+            wp_send_json_error('Failed to save ledger record entry.');
+        }
+    }
 }
