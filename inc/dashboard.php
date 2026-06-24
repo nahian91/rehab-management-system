@@ -32,15 +32,10 @@ function arms_dashboard_tab() {
     ) );
 
     /* =========================================================================
-       2. ACTIVE ADMISSIONS & BED OCCUPANCY
+       2. ACTIVE ADMISSIONS
        ========================================================================= */
     $active_admissions_count = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM $table_admissions WHERE status = %s",
-        'admitted'
-    ) );
-
-    $occupancy_rows = $wpdb->get_results( $wpdb->prepare(
-        "SELECT accommodation_type, COUNT(*) as booked_count FROM $table_admissions WHERE status = %s GROUP BY accommodation_type",
         'admitted'
     ) );
 
@@ -99,22 +94,45 @@ function arms_dashboard_tab() {
     // Admin redirection routing anchors
     $patient_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=patients&sub=add' );
     $billing_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=finance' );
+    $inventory_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=inventory' );
+
+    /* =========================================================================
+       CUSTOM TIMELINE GREETING CALCULATOR ENGINE
+       ========================================================================= */
+    $current_hour = (int) current_time( 'H' ); // 24-hour scale format (00 - 23)
+    
+    if ( $current_hour >= 6 && $current_hour < 12 ) {
+        $greeting_prefix = 'Good Morning';
+    } elseif ( $current_hour >= 12 && $current_hour < 18 ) {
+        $greeting_prefix = 'Good Evening';
+    } else {
+        $greeting_prefix = 'Good Night';
+    }
+
+    $current_wp_user = wp_get_current_user();
+    $user_display_name = ! empty( $current_wp_user->display_name ) ? $current_wp_user->display_name : 'User';
+    $rendered_greeting = $greeting_prefix . ', ' . $user_display_name;
     ?>
 
-    <meta http-equiv="refresh" content="30">
+    <meta http-equiv="refresh" content="45">
 
     <style>
         :root {
             --arms-bg: #f8fafc;
             --arms-card: #ffffff;
             --arms-accent: #4f46e5;
+            --arms-accent-hover: #4338ca;
             --arms-text: #0f172a;
             --arms-muted: #64748b;
             --arms-border: #e2e8f0;
             --arms-success: #10b981;
+            --arms-success-bg: #e6f4ea;
             --arms-warning: #f59e0b;
+            --arms-warning-bg: #fef3c7;
             --arms-danger: #ef4444;
+            --arms-danger-bg: #fee2e2;
             --arms-info: #06b6d4;
+            --arms-info-bg: #ecfeff;
         }
 
         .arms-dashboard-wrapper {
@@ -122,337 +140,286 @@ function arms_dashboard_tab() {
             background: var(--arms-bg);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: var(--arms-text);
-            max-width: 1300px;
+            max-width: 1440px;
             margin: 20px auto;
             box-sizing: border-box;
         }
         .arms-dashboard-wrapper * { box-sizing: border-box; }
 
-        /* Header Layout Top Bar */
+        /* Header Layout Styling */
         .arms-header-block {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
             border-bottom: 1px solid var(--arms-border);
             padding-bottom: 20px;
         }
         .arms-header-block h1 {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             margin: 0 0 4px 0;
             color: var(--arms-text);
+            letter-spacing: -0.02em;
         }
         .arms-header-block p {
             margin: 0;
             color: var(--arms-muted);
-            font-size: 13px;
-            }
+            font-size: 14px;
+        }
         .arms-live-timer-container {
             display: flex;
             align-items: center;
             background: #ffffff;
-            padding: 10px 16px;
-            border-radius: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
             border: 1px solid var(--arms-border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            gap: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+            gap: 14px;
             font-size: 13px;
+            font-weight: 500;
         }
         .arms-ticker-digits {
-            padding-left: 12px;
-            border-left: 2px solid #e2e8f0;
+            padding-left: 14px;
+            border-left: 2px solid var(--arms-border);
             color: var(--arms-accent);
             font-weight: 700;
-            font-family: monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
 
-        /* Quick Actions Grid Array */
-        .arms-quick-actions-bar {
-            background: #ffffff;
-            border: 1px solid var(--arms-border);
-            padding: 16px 20px;
-            border-radius: 10px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-        }
-        .arms-action-buttons-group {
-            display: flex;
-            gap: 12px;
-        }
-        .arms-btn-action {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #0f172a;
-            color: #ffffff !important;
-            padding: 10px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            text-decoration: none;
-            transition: all 0.15s ease;
-        }
-        .arms-btn-action:hover {
-            background: var(--arms-accent);
-            transform: translateY(-1px);
-        }
-        .arms-btn-action.secondary {
-            background: #f1f5f9;
-            color: #0f172a !important;
-            border: 1px solid var(--arms-border);
-        }
-        .arms-btn-action.secondary:hover {
-            background: #e2e8f0;
-        }
-
-        /* Performance Stat Box Displays */
+        /* 8-Box Premium Responsive Grid Matrix */
         .arms-summary-grid-matrix {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
             margin-bottom: 24px;
         }
+        @media (max-width: 1200px) {
+            .arms-summary-grid-matrix { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .arms-summary-grid-matrix { grid-template-columns: 1fr; }
+        }
+
+        /* Enhanced Metric Cards */
         .arms-stat-card {
             background: var(--arms-card);
             border: 1px solid var(--arms-border);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .arms-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
         }
         .arms-stat-label {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             color: var(--arms-muted);
-            letter-spacing: 0.05em;
+            letter-spacing: 0.07em;
+            margin-bottom: 8px;
         }
         .arms-stat-counter {
-            font-size: 26px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 800;
             color: var(--arms-text);
-            margin-top: 6px;
-            line-height: 1.2;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
         }
+        
+        /* Interactive Card Subtext & Links */
+        .arms-card-footer {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px dashed #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--arms-muted);
+        }
+        .arms-card-link {
+            color: var(--arms-accent);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .arms-card-link:hover {
+            color: var(--arms-accent-hover);
+            text-decoration: underline;
+        }
+.arms-header-logo {
+	border: 1px solid #ddd;
+	background-color: #ffff;
+}
+        /* Semantic Dynamic Pill Indicators */
+        .arms-status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .arms-status-badge.info { background: var(--arms-info-bg); color: var(--arms-info); }
+        .arms-status-badge.success { background: var(--arms-success-bg); color: var(--arms-success); }
+        .arms-status-badge.warning { background: var(--arms-warning-bg); color: var(--arms-warning); }
+        .arms-status-badge.danger { background: var(--arms-danger-bg); color: var(--arms-danger); }
+        .arms-status-badge.neutral { background: #f1f5f9; color: var(--arms-muted); }
+
         .arms-card-indicator {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 8px;
-            height: 8px;
+            top: 24px;
+            right: 24px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: var(--arms-border);
         }
-        .arms-card-indicator.active-green { background: var(--arms-success); }
-        .arms-card-indicator.active-orange { background: var(--arms-warning); }
-        .arms-card-indicator.active-blue { background: var(--arms-info); }
-        .arms-card-indicator.active-indigo { background: var(--arms-accent); }
-
-        /* Split Operational Columns Panels */
-        .arms-split-dashboard-deck {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 20px;
-        }
-        @media (max-width: 900px) {
-            .arms-split-dashboard-deck { grid-template-columns: 1fr; }
-        }
-        .arms-dashboard-panel-box {
-            background: var(--arms-card);
-            border: 1px solid var(--arms-border);
-            border-radius: 10px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .arms-panel-title {
-            margin: 0 0 16px 0;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--arms-text);
-            border-bottom: 1px solid var(--arms-border);
-            padding-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        /* Data & Ledger Rows */
-        .arms-ledger-comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .arms-ledger-comparison-table th {
-            text-align: left;
-            padding: 10px 12px;
-            background: #f8fafc;
-            color: var(--arms-muted);
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .arms-ledger-comparison-table td {
-            padding: 12px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-        .arms-ledger-comparison-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .arms-amount-pill {
-            font-weight: 600;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            display: inline-block;
-        }
-        .arms-amount-pill.credit { background: #dcfce7; color: #15803d; }
-        .arms-amount-pill.debit { background: #fee2e2; color: #b91c1c; }
-
-        .arms-occupancy-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-        .arms-occupancy-row:last-child {
-            border-bottom: none;
-        }
-        .arms-occupancy-tag {
-            background: #f1f5f9;
-            color: #334155;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-        }
+        .arms-card-indicator.active-green { background: var(--arms-success); box-shadow: 0 0 8px var(--arms-success); }
+        .arms-card-indicator.active-orange { background: var(--arms-warning); box-shadow: 0 0 8px var(--arms-warning); }
+        .arms-card-indicator.active-blue { background: var(--arms-info); box-shadow: 0 0 8px var(--arms-info); }
+        .arms-card-indicator.active-indigo { background: var(--arms-accent); box-shadow: 0 0 8px var(--arms-accent); }
+        .arms-card-indicator.active-red { background: var(--arms-danger); box-shadow: 0 0 8px var(--arms-danger); }
     </style>
 
     <div class="arms-dashboard-wrapper">
         
-        <div class="arms-header-block" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <div class="arms-header-logo">
-            <img src="<?php echo esc_url( plugins_url( 'img/logo.png', __FILE__ ) ); ?>" 
-                 alt="System Logo" style="height: 60px; width: auto; display: block;">
-        </div>
-        
-        <div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #1d2327;">Advanced Rehab & Wellness</h1>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #646970;">Rehab Management System</p>
-        </div>
-    </div>
+        <div class="arms-header-block">
+            <div style="display: flex; align-items: center; gap: 18px;">
+                <div class="arms-header-logo">
+                    <img src="<?php echo esc_url( plugins_url( 'img/logo.png', __FILE__ ) ); ?>" 
+                         alt="System Logo" style="height: 64px; width: auto; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">
+                </div>
+                <div>
+                    <h1><?php echo esc_html( $rendered_greeting ); ?></h1>
+                    <p>Clinical Intelligence & Integrated Financial Operations Control Panel</p>
+                </div>
+            </div>
 
-    <div class="arms-live-timer-container">
-        <div><span class="dashicons dashicons-calendar-alt" style="font-size:16px; vertical-align:middle;"></span> <?php echo date( 'l, jS F Y' ); ?></div>
-        <div class="arms-ticker-digits">
-            <span class="dashicons dashicons-clock" style="font-size:14px; vertical-align:middle; margin-right:2px;"></span>
-            <span id="armsLiveTickerClock">00:00:00</span>
+            <div class="arms-live-timer-container">
+                <div><span class="dashicons dashicons-calendar-alt" style="font-size:16px; vertical-align:middle; margin-right:4px; color:var(--arms-muted);"></span> <?php echo date( 'l, jS F Y' ); ?></div>
+                <div class="arms-ticker-digits">
+                    <span class="dashicons dashicons-clock" style="font-size:14px; vertical-align:middle; margin-right:4px;"></span>
+                    <span id="armsLiveTickerClock">00:00:00</span>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <div class="arms-summary-grid-matrix">
             
             <div class="arms-stat-card">
-                <div class="arms-stat-label">Total Patients (Today)</div>
-                <div class="arms-stat-counter"><?php echo $total_patients_today; ?></div>
                 <span class="arms-card-indicator active-blue"></span>
-            </div>
-
-            <div class="arms-stat-card">
-                <div class="arms-stat-label">Active Admissions</div>
-                <div class="arms-stat-counter"><?php echo $active_admissions_count; ?></div>
-                <span class="arms-card-indicator active-green"></span>
-            </div>
-
-            <div class="arms-stat-card">
-                <div class="arms-stat-label">Today Appointments</div>
-                <div class="arms-stat-counter"><?php echo $today_appointments_count; ?></div>
-                <span class="arms-card-indicator active-indigo"></span>
-            </div>
-
-            <div class="arms-stat-card">
-                <div class="arms-stat-label">Pending Bills</div>
-                <div class="arms-stat-counter" style="color: var(--arms-danger);">৳<?php echo number_format( $pending_bills_amount, 2 ); ?></div>
-                <span class="arms-card-indicator active-orange"></span>
-            </div>
-        </div>
-
-        <div class="arms-split-dashboard-deck">
-            
-            <div class="arms-dashboard-panel-box">
-                <h3 class="arms-panel-title">
-                    <span>Financial Statement Ledgers</span>
-                    <span style="font-size: 11px; font-weight: normal; color: var(--arms-muted);">Reporting Cycle: Net Calculations</span>
-                </h3>
-                
-                <table class="arms-ledger-comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Timeline Interval</th>
-                            <th>Total Income Collections</th>
-                            <th>Total Operational Expenses</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><b>Today Performance</b></td>
-                            <td><span class="arms-amount-pill credit">৳<?php echo number_format( $today_income, 2 ); ?></span></td>
-                            <td><span class="arms-amount-pill debit">৳<?php echo number_format( $today_expense, 2 ); ?></span></td>
-                        </tr>
-                        <tr>
-                            <td><b>Current Month Stack</b></td>
-                            <td><span class="arms-amount-pill credit">৳<?php echo number_format( $month_income, 2 ); ?></span></td>
-                            <td><span class="arms-amount-pill debit">৳<?php echo number_format( $month_expense, 2 ); ?></span></td>
-                        </tr>
-                        <tr>
-                            <td><b>Statement Margin (Profit/Loss)</b></td>
-                            <td colspan="2" style="text-align: right; padding-top: 20px;">
-                                <span class="arms-amount-pill <?php echo ( $net_profit_loss >= 0 ) ? 'credit' : 'debit'; ?>" style="font-size:13px; padding:6px 12px;">
-                                    <?php echo ( $net_profit_loss >= 0 ) ? 'Net Profit: ৳' : 'Net Loss: ৳'; ?>
-                                    <?php echo number_format( abs( $net_profit_loss ), 2 ); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                
-                <div class="arms-dashboard-panel-box" style="flex: 1;">
-                    <h4 class="arms-panel-title" style="border-bottom:none; margin-bottom:10px; padding-bottom:0;">Bed/Cabin Occupancy</h4>
-                    <?php if ( ! empty( $occupancy_rows ) ) : 
-                        foreach ( $occupancy_rows as $row ) : ?>
-                        <div class="arms-occupancy-row">
-                            <span style="font-weight: 500; color:#334155;"><?php echo esc_html( ucwords( $row->accommodation_type ) ); ?></span>
-                            <span class="arms-occupancy-tag"><?php echo (int) $row->booked_count; ?> Occupied</span>
-                        </div>
-                    <?php endforeach; else : ?>
-                        <p style="color: var(--arms-muted); font-size: 13px; margin: 15px 0 0 0;">All clinical wards and cabins are vacant.</p>
-                    <?php endif; ?>
+                <div>
+                    <div class="arms-stat-label">Total Patients (Today)</div>
+                    <div class="arms-stat-counter"><?php echo $total_patients_today; ?></div>
                 </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge info">Active Registration</span>
+                    <a href="<?php echo esc_url( $patient_tab_url ); ?>" class="arms-card-link">Add Patient &rarr;</a>
+                </div>
+            </div>
 
-                <div class="arms-dashboard-panel-box" style="border-left: 4px solid <?php echo ($low_stock_alerts_count > 0) ? 'var(--arms-danger)' : 'var(--arms-success)'; ?>; padding: 16px 20px;">
-                    <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <span class="dashicons dashicons-warning" style="font-size: 20px; width: 20px; height: 20px; color: <?php echo ($low_stock_alerts_count > 0) ? 'var(--arms-danger)' : 'var(--arms-success)'; ?>; margin-top:2px;"></span>
-                        <div>
-                            <h5 style="margin:0; font-size:13px; font-weight:600; color:var(--arms-text);">Low Stock Alerts</h5>
-                            <p style="margin:4px 0 0 0; font-size:12px; color:var(--arms-muted); line-height:1.4;">
-                                <?php echo ( $low_stock_alerts_count > 0 ) ? $low_stock_alerts_count . ' Critical items require inventory replenishment.' : 'All logistics supply lines are within safe baseline thresholds.'; ?>
-                            </p>
-                        </div>
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator active-green"></span>
+                <div>
+                    <div class="arms-stat-label">Active Admissions</div>
+                    <div class="arms-stat-counter"><?php echo $active_admissions_count; ?></div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge success">In-Patient Care</span>
+                    <span style="font-weight:500;">Live Ward Load</span>
+                </div>
+            </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator active-indigo"></span>
+                <div>
+                    <div class="arms-stat-label">Today Appointments</div>
+                    <div class="arms-stat-counter"><?php echo $today_appointments_count; ?></div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge neutral">OPD Queue</span>
+                    <span style="font-weight:500;">Scheduled</span>
+                </div>
+            </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator active-red"></span>
+                <div>
+                    <div class="arms-stat-label">Pending Bills Balance</div>
+                    <div class="arms-stat-counter" style="color: var(--arms-danger);">৳<?php echo number_format( $pending_bills_amount, 2 ); ?></div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge danger">Receivables</span>
+                    <a href="<?php echo esc_url( $billing_tab_url ); ?>" class="arms-card-link">Collect &rarr;</a>
+                </div>
+            </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator active-green"></span>
+                <div>
+                    <div class="arms-stat-label">Today Income</div>
+                    <div class="arms-stat-counter" style="color: var(--arms-success);">৳<?php echo number_format( $today_income, 2 ); ?></div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge success">Gross Inflow</span>
+                    <span style="font-weight:500;">Real-time</span>
+                </div>
+            </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator"></span>
+                <div>
+                    <div class="arms-stat-label">Today Operational Expense</div>
+                    <div class="arms-stat-counter" style="color: var(--arms-muted);">৳<?php echo number_format( $today_expense, 2 ); ?></div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge neutral">Outflow Stack</span>
+                    <span style="font-weight:500;">Ledger Entry</span>
+                </div>
+            </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator <?php echo ( $net_profit_loss >= 0 ) ? 'active-green' : 'active-red'; ?>"></span>
+                <div>
+                    <div class="arms-stat-label">Net Margin (Current Month)</div>
+                    <div class="arms-stat-counter" style="color: <?php echo ( $net_profit_loss >= 0 ) ? 'var(--arms-success)' : 'var(--arms-danger)'; ?>;">
+                        ৳<?php echo number_format( $net_profit_loss, 2 ); ?>
                     </div>
                 </div>
-
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge <?php echo ( $net_profit_loss >= 0 ) ? 'success' : 'danger'; ?>">
+                        <?php echo ( $net_profit_loss >= 0 ) ? 'Net Profit' : 'Net Loss'; ?>
+                    </span>
+                    <a href="<?php echo esc_url( $billing_tab_url ); ?>" class="arms-card-link">Ledger &rarr;</a>
+                </div>
             </div>
+
+            <div class="arms-stat-card">
+                <span class="arms-card-indicator <?php echo ( $low_stock_alerts_count > 0 ) ? 'active-orange' : 'active-green'; ?>"></span>
+                <div>
+                    <div class="arms-stat-label">Low Stock Alerts</div>
+                    <div class="arms-stat-counter" style="color: <?php echo ( $low_stock_alerts_count > 0 ) ? 'var(--arms-warning)' : 'var(--arms-text)'; ?>;">
+                        <?php echo $low_stock_alerts_count; ?> <span style="font-size: 16px; font-weight: 500; color: var(--arms-muted);">Line Items</span>
+                    </div>
+                </div>
+                <div class="arms-card-footer">
+                    <span class="arms-status-badge <?php echo ( $low_stock_alerts_count > 0 ) ? 'warning' : 'success'; ?>">
+                        <?php echo ( $low_stock_alerts_count > 0 ) ? 'Replenish Required' : 'Inventory Safe'; ?>
+                    </span>
+                    <a href="<?php echo esc_url( $inventory_tab_url ); ?>" class="arms-card-link">Logistics &rarr;</a>
+                </div>
+            </div>
+
         </div>
     </div>
 

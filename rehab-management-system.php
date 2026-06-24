@@ -762,7 +762,12 @@ add_action( 'admin_head', function() {
 }
 .arms-author-profile .profile-name {
   margin-bottom: 0;
-  font-size: 16px
+  font-size: 14px;
+  font-weight: 700
+}
+  .profile-meta span {
+	font-size: 13px;
+	font-weight: 500;
 }
             .arms-left-tabs li a {
 	display: flex;
@@ -815,3 +820,172 @@ add_action( 'admin_head', function() {
         </style>';
     }
 });
+
+/**
+ * 1. ROOT HOMEPAGE TO WP-ADMIN REDIRECT
+ * Dynamically intercepts root homepage requests and forwards visitors straight to the admin space.
+ */
+function arms_root_to_admin_redirect() {
+    // Skip processing if we are inside the admin panel or handling an AJAX request
+    if ( is_admin() || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+        return;
+    }
+
+    // Safely extract paths to handle subfolder environments (e.g., /rehab-wellness-theme/) cleanly
+    $home_path   = upper_safe_path_parse( home_url() );
+    $request_uri = upper_safe_path_parse( $_SERVER['REQUEST_URI'] );
+
+    // If the clean requested path matches the home directory path exactly, execute the redirect
+    if ( $request_uri === $home_path ) {
+        wp_safe_redirect( admin_url(), 302 );
+        exit;
+    }
+}
+add_action( 'init', 'arms_root_to_admin_redirect', 5 );
+
+/**
+ * Helper function to normalize paths for safe tracking comparisons
+ */
+function upper_safe_path_parse( $url ) {
+    $path = parse_url( $url, PHP_URL_PATH );
+    return trim( $path, '/' );
+}
+
+
+/**
+ * 2. POST-LOGIN DASHBOARD REDIRECT
+ */
+function arms_custom_login_redirect( $redirect_to, $request, $user ) {
+    if ( isset( $user->roles ) && is_array( $user->roles ) ) {
+        return admin_url( 'admin.php?page=rehab_management_system' );
+    }
+    return $redirect_to;
+}
+add_filter( 'login_redirect', 'arms_custom_login_redirect', 10, 3 );
+
+
+/**
+ * 3. LOGOUT ROUTING OVERRIDE
+ */
+function arms_custom_logout_routing() {
+    wp_safe_redirect( home_url() );
+    exit;
+}
+add_action( 'wp_logout', 'arms_custom_logout_routing' );
+
+
+/**
+ * 4. CUSTOM WHITE-LABEL STYLES & DUMMY LOGO MASKING
+ */
+function arms_custom_login_styles() {
+    // Custom inline SVG serving as a modern, clean dummy logo markup asset
+    $custom_logo_url = plugin_dir_url( __FILE__ ) . 'assets/img/logo.png';
+    ?>
+    <style type="text/css">
+        #login h1 a, .login h1 a {
+            background-image: url('<?php echo $custom_logo_url; ?>') !important;
+            height: 80px !important;
+            width: 100% !important;
+            background-size: contain !important;
+            background-position: center !important;
+            margin-bottom: 25px !important;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+        .wp-core-ui .button-group.button-large .button, .wp-core-ui .button.button-large {
+            background-color: #003376 !important;
+        }
+
+        body.login {
+            background: #f0f4f8 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+
+        #login { padding: 6% 0 0 !important; width: 360px !important; }
+
+        .login form {
+            background: #ffffff !important;
+            border: 1px solid #e1e8ed !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 8px !important;
+            padding: 30px !important;
+        }
+
+        .login label { color: #4a5568 !important; font-weight: 500 !important; }
+
+        .login input[type="text"], .login input[type="password"] {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            padding: 8px 12px !important;
+            background: #f8fafc !important;
+            box-shadow: none !important;
+        }
+
+        .wp-core-ui .button-primary {
+            background: #3182ce !important;
+            border: none !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            font-weight: 600 !important;
+            height: 40px !important;
+            width: 100% !important;
+            margin-top: 15px !important;
+        }
+
+        .wp-core-ui .button-primary:hover { background: #2b6cb0 !important; }
+
+        /* Hide default WordPress footer navigation text links */
+        .login #backtoblog, .login #nav, .privacy-policy-page-link {
+            display: none !important;
+        }
+        
+        .arms-captcha-container { margin: 15px 0; }
+        .arms-captcha-label { display: block; margin-bottom: 5px; font-weight: bold; }
+    </style>
+    <?php
+}
+add_action( 'login_enqueue_scripts', 'arms_custom_login_styles' );
+
+function arms_login_logo_url() { return home_url(); }
+add_filter( 'login_headerurl', 'arms_login_logo_url' );
+
+function arms_login_logo_title() { return get_bloginfo( 'name' ); }
+add_filter( 'login_headertext', 'arms_login_logo_title' );
+
+
+/**
+ * 5. MATHEMATICAL CAPTCHA ENGINE
+ */
+function arms_display_login_captcha() {
+    $num1 = rand(1, 9);
+    $num2 = rand(1, 9);
+    $captcha_token = md5( uniqid( rand(), true ) );
+    set_transient( 'arms_captcha_' . $captcha_token, ($num1 + $num2), 300 );
+    ?>
+    <div class="arms-captcha-container">
+        <label class="arms-captcha-label" for="arms_captcha_answer">Security Verification</label>
+        <p style="margin: 0 0 8px 0; color: #718096; font-size: 13px;">
+            Please solve: <strong><?php echo $num1; ?> + <?php echo $num2; ?> = ?</strong>
+        </p>
+        <input type="text" name="arms_captcha_answer" id="arms_captcha_answer" class="input" value="" size="4" autocomplete="off" required />
+        <input type="hidden" name="arms_captcha_token" value="<?php echo esc_attr( $captcha_token ); ?>" />
+    </div>
+    <?php
+}
+add_action( 'login_form', 'arms_display_login_captcha' );
+
+function arms_validate_login_captcha( $user, $username, $password ) {
+    if ( is_wp_error( $user ) ) { return $user; }
+
+    $user_answer = isset( $_POST['arms_captcha_answer'] ) ? sanitize_text_field( $_POST['arms_captcha_answer'] ) : '';
+    $token       = isset( $_POST['arms_captcha_token'] ) ? sanitize_text_field( $_POST['arms_captcha_token'] ) : '';
+    
+    $correct_answer = get_transient( 'arms_captcha_' . $token );
+    delete_transient( 'arms_captcha_' . $token );
+
+    if ( $correct_answer === false || intval( $user_answer ) !== intval( $correct_answer ) ) {
+        return new WP_Error( 'authentication_failed', __( '<strong>ERROR</strong>: Incorrect security verification answer.' ) );
+    }
+    return $user;
+}
+add_filter( 'authenticate', 'arms_validate_login_captcha', 25, 3 );
