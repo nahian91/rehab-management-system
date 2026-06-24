@@ -251,7 +251,7 @@ function arms_finance_tab() {
     <div class="arms-fin-wrapper">
 
         <div class="arms-fin-nav">
-            <button type="button" class="arms-fin-btn active" id="btn-fin-expenses" onclick="armsSwitchFinTab('fin-expenses')">💸 Expenses</button>
+            <button type="button" class="arms-fin-btn active" id="btn-fin-expenses" onclick="armsSwitchFinTab('fin-expenses')">Expenses</button>
         </div>
 
         <div id="fin-expenses" class="arms-fin-panel active">
@@ -349,11 +349,17 @@ function arms_finance_tab() {
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Staff Category Type</label>
-                                <select class="arms-data-type arms-select-field">
+                                <select class="arms-data-type arms-select-field" id="arms-staff-role-selector">
                                     <option value="doctor">Doctor</option>
                                     <option value="physio">Physio</option>
                                     <option value="nurse">Nurse</option>
                                     <option value="staff">Staff</option>
+                                </select>
+                            </div>
+                            <div class="arms-form-element-group" id="arms-staff-profile-wrapper">
+                                <label>Select Employee Profile</label>
+                                <select class="arms-select-field" id="arms-staff-profile-dropdown" name="authorized_by_staff_sync">
+                                    <option value="">-- Select Personnel Profile --</option>
                                 </select>
                             </div>
                             <div class="arms-form-element-group">
@@ -374,7 +380,7 @@ function arms_finance_tab() {
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Base Line Net Amount (৳)</label>
-                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" required />
+                                <input type="number" step="0.01" placeholder="0.00" class="arms-data-base arms-input-field" id="arms-salary-base-input" required />
                             </div>
                             <div class="arms-form-element-group">
                                 <label>Bonus Adjustments (৳)</label>
@@ -498,6 +504,19 @@ function arms_finance_tab() {
             }
         };
 
+        // Helper promise function to reload staff rows safely asynchronously
+        window.armsFetchStaffOptionsPromise = function(chosenRole) {
+            return jQuery.ajax({
+                url: arms_fin_meta.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'arms_load_staff_by_role',
+                    nonce: arms_fin_meta.nonce,
+                    role_category: chosenRole
+                }
+            });
+        };
+
         window.armsRenderExpenseFormFields = function(targetCategory) {
             document.querySelectorAll('.arms-form-fields-context').forEach(function(ctxBlock) {
                 ctxBlock.style.display = 'none';
@@ -508,6 +527,10 @@ function arms_finance_tab() {
             if (targetedContextBlock) {
                 targetedContextBlock.style.display = 'block';
                 jQuery(targetedContextBlock).find('.arms-data-base').attr('required', 'required');
+                
+                if (targetCategory === 'salary' && jQuery('#arms-expense-row-id').val() == '0') {
+                    jQuery('#arms-staff-role-selector').trigger('change');
+                }
             }
         };
 
@@ -536,17 +559,39 @@ function arms_finance_tab() {
             var $row = jQuery(btn).closest('tr');
             var rowId = $row.attr('data-id');
             var category = $row.attr('data-category');
+            var staffType = $row.attr('data-type');
+            var storedName = $row.attr('data-auth');
             
             jQuery('#arms-expense-row-id').val(rowId);
-            jQuery('#arms-main-expense-category').val(category).trigger('change').prop('disabled', true);
+            jQuery('#arms-main-expense-category').val(category).prop('disabled', true);
             
+            // Show fields
+            armsRenderExpenseFormFields(category);
             var $ctx = jQuery('#ctx-fields-' + category);
-            $ctx.find('.arms-data-type').val($row.attr('data-type'));
+            
+            if (category === 'salary') {
+                $ctx.find('#arms-staff-role-selector').val(staffType);
+                
+                // Fetch dynamic elements synchronously via promise before choosing employee name text
+                window.armsFetchStaffOptionsPromise(staffType).done(function(response) {
+                    var dropdown = jQuery('#arms-staff-profile-dropdown');
+                    if (response.success && response.data.length > 0) {
+                        var dropdownOptions = '<option value="">-- Select Personnel Profile --</option>';
+                        jQuery.each(response.data, function(idx, staff) {
+                            dropdownOptions += '<option value="' + staff.id + '" data-salary="' + staff.salary + '"' + (staff.display_name === storedName ? ' selected' : '') + '>' + staff.display_name + '</option>';
+                        });
+                        dropdown.html(dropdownOptions);
+                    } else {
+                        dropdown.html('<option value="">No matching personnel found</option>');
+                    }
+                });
+            }
+
             $ctx.find('.arms-data-month').val($row.attr('data-month'));
             $ctx.find('.arms-data-year').val($row.attr('data-year'));
             $ctx.find('.arms-data-base').val($row.attr('data-base'));
             $ctx.find('.arms-data-adjustment').val($row.attr('data-adjustment'));
-            $ctx.find('.arms-data-auth').val($row.attr('data-auth'));
+            $ctx.find('.arms-data-auth').val(storedName);
             $ctx.find('.arms-data-date').val($row.attr('data-date'));
             
             jQuery('#arms-' + category + '-submit-text').text('Update Ledger Record');
@@ -560,6 +605,7 @@ function arms_finance_tab() {
             jQuery('#arms-expense-form')[0].reset();
             jQuery('#arms-expense-row-id').val('0');
             jQuery('#arms-main-expense-category').prop('disabled', false);
+            jQuery('#arms-staff-profile-dropdown').html('<option value="">-- Select Personnel Profile --</option>');
             
             document.querySelectorAll('.arms-data-date').forEach(function(el) {
                 el.value = arms_fin_meta.current_date;
@@ -583,7 +629,6 @@ function arms_finance_tab() {
                     var type = $row.attr('data-type');
                     var amt = parseFloat($row.find('.row-total-amount').text().replace(/[^0-9.-]+/g,"")) || 0;
 
-                    // Dynamically deduct from KPIs on successful mock delete transaction
                     if (category === 'operational' && type === 'rent') {
                         var currentFixed = parseFloat(jQuery('#kpi-fixed-lease').text().replace(/[^0-9.-]+/g,"")) || 0;
                         jQuery('#kpi-fixed-lease').text('৳' + Math.max(0, currentFixed - amt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
@@ -608,6 +653,38 @@ function arms_finance_tab() {
         jQuery(document).ready(function($) {
             armsRenderExpenseFormFields($('#arms-main-expense-category').val());
 
+            // Dynamic employee loading on clean manual category switch
+            $('#arms-staff-role-selector').on('change', function() {
+                var chosenRole = $(this).val();
+                var dropdown = $('#arms-staff-profile-dropdown');
+                dropdown.html('<option value="">-- Loading Employee Profiles --</option>');
+                
+                window.armsFetchStaffOptionsPromise(chosenRole).done(function(response) {
+                    if (response.success && response.data.length > 0) {
+                        var dropdownOptions = '<option value="">-- Select Personnel Profile --</option>';
+                        $.each(response.data, function(idx, staff) {
+                            dropdownOptions += '<option value="' + staff.id + '" data-salary="' + staff.salary + '">' + staff.display_name + '</option>';
+                        });
+                        dropdown.html(dropdownOptions);
+                    } else {
+                        dropdown.html('<option value="">No registered employees for this role</option>');
+                    }
+                }).fail(function(){
+                    dropdown.html('<option value="">Database communication error</option>');
+                });
+            });
+
+            // Sync contractual salary input field box on selection
+            $('#arms-staff-profile-dropdown').on('change', function() {
+                var chosenProfile = $(this).find('option:selected');
+                var salaryBaseline = chosenProfile.data('salary');
+                if (salaryBaseline) {
+                    $('#arms-salary-base-input').val(parseFloat(salaryBaseline).toFixed(2));
+                } else {
+                    $('#arms-salary-base-input').val('');
+                }
+            });
+
             $('#arms-expense-form').on('submit', function(e) {
                 e.preventDefault();
                 
@@ -615,6 +692,12 @@ function arms_finance_tab() {
                 var activeCategory = $('#arms-main-expense-category').val();
                 var $ctx = $('#ctx-fields-' + activeCategory);
                 
+                // Get display name string if Category is Salary, otherwise pull raw text field
+                var authorizedValue = $ctx.find('.arms-data-auth').val() || '';
+                if (activeCategory === 'salary') {
+                    authorizedValue = $('#arms-staff-profile-dropdown option:selected').text();
+                }
+
                 var payload = {
                     action: 'arms_save_finance_expense',
                     nonce: arms_fin_meta.nonce,
@@ -625,7 +708,7 @@ function arms_finance_tab() {
                     target_year: $ctx.find('.arms-data-year').val() || '',
                     base_amount: $ctx.find('.arms-data-base').val() || 0,
                     adjustment_amount: $ctx.find('.arms-data-adjustment').val() || 0,
-                    authorized_by: $ctx.find('.arms-data-auth').val() || '',
+                    authorized_by: authorizedValue,
                     transaction_date: $ctx.find('.arms-data-date').val() || arms_fin_meta.current_date
                 };
 
@@ -648,7 +731,43 @@ function arms_finance_tab() {
     <?php
 }
 
-// 2. BACKEND AJAX HANDLER FOR PROCESSING UPDATES AND INSERTS
+// 2. BACKEND AJAX HANDLER: Robust, case-insensitive mapping against wp_arms_staff
+add_action('wp_ajax_arms_load_staff_by_role', 'arms_load_staff_by_role_handler');
+function arms_load_staff_by_role_handler() {
+    check_ajax_referer('arms_finance_secure_nonce', 'nonce');
+    global $wpdb;
+
+    $role_category = isset($_POST['role_category']) ? sanitize_text_field($_POST['role_category']) : '';
+    $table_staff = $wpdb->prefix . 'arms_staff';
+
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_staff'") !== $table_staff) {
+        wp_send_json_error('Staff registry database table does not exist.');
+    }
+
+    // LOWER() matching handles both 'doctor' and 'Doctor' entries cleanly
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT id, first_name, last_name, salary FROM $table_staff WHERE LOWER(role_category) = LOWER(%s) AND status = 'active' ORDER BY first_name ASC",
+            $role_category
+        ),
+        ARRAY_A
+    );
+
+    $formatted_staff_profiles = array();
+    if (!empty($results)) {
+        foreach ($results as $row) {
+            $formatted_staff_profiles[] = array(
+                'id'           => intval($row['id']),
+                'display_name' => esc_html(trim($row['first_name'] . ' ' . $row['last_name'])),
+                'salary'       => floatval($row['salary'])
+            );
+        }
+    }
+
+    wp_send_json_success($formatted_staff_profiles);
+}
+
+// 3. BACKEND AJAX HANDLER FOR PROCESSING UPDATES AND INSERTS
 add_action('wp_ajax_arms_save_finance_expense', 'arms_save_finance_expense_handler');
 function arms_save_finance_expense_handler() {
     check_ajax_referer('arms_finance_secure_nonce', 'nonce');
@@ -666,7 +785,6 @@ function arms_save_finance_expense_handler() {
     $authorized_by = isset($_POST['authorized_by']) ? sanitize_text_field($_POST['authorized_by']) : '';
     $transaction_date = isset($_POST['transaction_date']) ? sanitize_text_field($_POST['transaction_date']) : current_time('Y-m-d');
 
-    // Calculate aggregated total amount automatically
     $total_amount = $base_amount + $adjustment_amount;
 
     $data = array(
@@ -684,7 +802,6 @@ function arms_save_finance_expense_handler() {
     $format = array('%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s');
 
     if ($id > 0) {
-        // Run update query on existing entries
         $updated = $wpdb->update($table_expenses, $data, array('id' => $id), $format, array('%d'));
         if ($updated !== false) {
             wp_send_json_success('Ledger record updated successfully.');
@@ -692,7 +809,6 @@ function arms_save_finance_expense_handler() {
             wp_send_json_error('Failed to update ledger record database entry.');
         }
     } else {
-        // Run insert query on new entries
         $inserted = $wpdb->insert($table_expenses, $data, $format);
         if ($inserted !== false) {
             wp_send_json_success('Ledger record posted successfully.');
