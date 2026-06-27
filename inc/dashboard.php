@@ -114,8 +114,6 @@ function arms_dashboard_tab() {
     $rendered_greeting = $greeting_prefix . ', ' . $user_display_name;
     ?>
 
-    <meta http-equiv="refresh" content="45">
-
     <style>
         :root {
             --arms-bg: #f8fafc;
