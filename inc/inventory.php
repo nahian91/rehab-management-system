@@ -2,21 +2,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
-
-/**
- * =========================================================================
- * REHAB HOSPITAL INVENTORY AND SUPPLY MANAGEMENT CORE MODULE (BDT EDITION)
- * =========================================================================
- * Operational Workflow Coverage:
- * - Stock Items: Medicines, PRP kits, Syringes, Needles, Consumables, etc.
- * - Stock In: Purchase entry tracking, Supplier info, Invoice records
- * - Security: Nonce Verification & Role-Based Access Guards
- */
-
-/**
- * Database Schema Creation Function
- * Call this function during plugin activation or system initialization.
- */
 function arms_create_inventory_tables() {
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();

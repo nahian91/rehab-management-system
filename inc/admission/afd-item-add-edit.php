@@ -3,11 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-/**
- * =========================================================================
- * 1. ADMISSION DATA TRANSACTION & SAVING ENGINE (CUSTOM DB ENGINE)
- * =========================================================================
- */
 function arms_process_admission_actions() {
     global $wpdb;
 
@@ -20,6 +15,7 @@ function arms_process_admission_actions() {
     }
 
     if ( isset( $_POST['arms_save_admission_action'] ) ) {
+        // Primary Key ID configuration mapping
         $admission_id = isset( $_POST['patient_id'] ) ? intval( $_POST['patient_id'] ) : 0; 
         
         $selected_patient_id = isset( $_POST['arms_selected_patient_id'] ) ? intval( $_POST['arms_selected_patient_id'] ) : 0;
@@ -31,9 +27,12 @@ function arms_process_admission_actions() {
         $room_type         = isset( $_POST['room_type'] ) ? sanitize_text_field( $_POST['room_type'] ) : 'Cabin';
         $room_no           = ( 'Cabin' === $room_type && isset( $_POST['room_no'] ) ) ? sanitize_text_field( $_POST['room_no'] ) : '';
         $ward_bed_no       = ( 'Ward Bed' === $room_type && isset( $_POST['ward_bed_no'] ) ) ? sanitize_text_field( $_POST['ward_bed_no'] ) : '';
-        $admission_date    = isset( $_POST['admission_date'] ) ? sanitize_text_field( $_POST['admission_date'] ) : date( 'Y-m-d' );
+        $admission_date    = ! empty( $_POST['admission_date'] ) ? sanitize_text_field( $_POST['admission_date'] ) : date( 'Y-m-d' );
         $advance_payment   = isset( $_POST['advance_payment'] ) ? max( 0, floatval( $_POST['advance_payment'] ) ) : 0;
+        
+        // Dynamic cleanup for discharge event logging
         $discharge_date    = ! empty( $_POST['discharge_date'] ) ? sanitize_text_field( $_POST['discharge_date'] ) : null;
+        
         $payment_status    = isset( $_POST['payment_status'] ) ? sanitize_text_field( $_POST['payment_status'] ) : 'Unpaid';
         $final_bill_amount = isset( $_POST['final_bill_amount'] ) ? floatval( $_POST['final_bill_amount'] ) : 0;
         $discharge_summary = isset( $_POST['discharge_summary'] ) ? sanitize_textarea_field( $_POST['discharge_summary'] ) : '';
@@ -54,7 +53,7 @@ function arms_process_admission_actions() {
             'discharge_summary' => $discharge_summary,
         );
 
-        $master_format = array( '%d', '%s', '%s', '%s', '%s', '%f', $discharge_date ? '%s' : '%s', '%f', '%s', '%s' );
+        $master_format = array( '%d', '%s', '%s', '%s', '%s', '%f', '%s', '%f', '%s', '%s' );
 
         if ( $admission_id > 0 ) {
             $wpdb->update( $table_admissions, $master_data, array( 'id' => $admission_id ), $master_format, array( '%d' ) );
@@ -74,7 +73,7 @@ function arms_process_admission_actions() {
                         array(
                             'admission_id'       => $target_admission_id,
                             'row_index'          => intval( $index ),
-                            'charge_date'        => isset( $row['charge_date'] ) ? sanitize_text_field( $row['charge_date'] ) : date( 'Y-m-d' ),
+                            'charge_date'        => ! empty( $row['charge_date'] ) ? sanitize_text_field( $row['charge_date'] ) : date( 'Y-m-d' ),
                             'room_rent'          => isset( $row['room_rent'] ) ? max( 0, floatval( $row['room_rent'] ) ) : 0,
                             'nursing_charge'     => isset( $row['nursing_charge'] ) ? max( 0, floatval( $row['nursing_charge'] ) ) : 0,
                             'physio_charge'      => isset( $row['physio_charge'] ) ? max( 0, floatval( $row['physio_charge'] ) ) : 0,
@@ -94,12 +93,6 @@ function arms_process_admission_actions() {
 }
 add_action( 'admin_init', 'arms_process_admission_actions' );
 
-
-/**
- * =========================================================================
- * 2. COMPREHENSIVE RENDER SYSTEM CORE ENGINE INTERFACE
- * =========================================================================
- */
 function arms_add_edit_admission_form( $admission_id = 0 ) {
     global $wpdb;
     $admission_id = intval( $admission_id );
@@ -146,11 +139,11 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                 }
             }
             $admission_data['status'] = ! empty( $admission_data['discharge_date'] ) ? 'Discharged Case' : 'Active Stay';
+        }
 
-            $db_charges = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_charges WHERE admission_id = %d ORDER BY row_index ASC", $admission_id ), ARRAY_A );
-            if ( ! empty( $db_charges ) ) {
-                $admission_data['repeater_charges'] = $db_charges;
-            }
+        $db_charges = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_charges WHERE admission_id = %d ORDER BY row_index ASC", $admission_id ), ARRAY_A );
+        if ( ! empty( $db_charges ) ) {
+            $admission_data['repeater_charges'] = $db_charges;
         }
     }
 
@@ -161,63 +154,6 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
         echo '<div class="notice notice-success is-dismissible"><p>System Integration Success: Ledger entry logs updated and verified cleanly.</p></div>';
     }
     ?>
-
-    <style>
-        .arms-adm-wrapper { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); max-width: 1200px; margin: 20px auto; }
-        .arms-adm-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
-        .arms-adm-header h2 { margin: 0 0 6px 0; font-size: 22px; font-weight: 700; color: #0f172a; }
-        .arms-adm-header p { margin: 0; font-size: 13px; color: #64748b; }
-        .arms-status-badge { background: #f0fdf4; color: #003376; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
-        .arms-nav-bar { display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 24px; padding-bottom: 1px; }
-        .arms-nav-btn { background: none; border: none; padding: 12px 16px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; }
-        .arms-nav-btn:hover { color: #0f172a; }
-        .arms-nav-btn.active { color: #003376; border-bottom-color: #003376; }
-        .arms-pane { display: none; }
-        .arms-pane.active { display: block; animation: armsFadeIn 0.2s ease-in-out; }
-        .arms-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; margin-bottom: 24px; }
-        .col-12 { grid-column: span 12; }
-        .col-4 { grid-column: span 4; width: 100%;}
-        .col-3 { grid-column: span 3; width: 100%;}
-        .section-subtitle { grid-column: span 12; font-size: 14px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-left: 3px solid #003376; padding-left: 10px; margin: 16px 0 8px 0; }
-        .arms-fgroup { display: flex; flex-direction: column; gap: 6px; }
-        .arms-label { font-size: 13px; font-weight: 600; color: #334155; }
-        .arms-input, .arms-select, .arms-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #334155; background: #fff; box-sizing: border-box; }
-        .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #003376; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .input-addon-wrap { position: relative; display: flex; align-items: center; }
-        .input-addon-wrap .addon { position: absolute; left: 12px; color: #94a3b8; font-size: 14px; }
-        .input-addon-wrap .arms-input { padding-left: 28px; }
-        
-        .select2-container--default .select2-selection--single { border: 1px solid #cbd5e1 !important; border-radius: 6px !important; height: 38px !important; padding: 4px 6px !important; }
-        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px !important; }
-
-        .arms-repeater-container { grid-column: span 12; display: flex; flex-direction: column; gap: 12px; }
-        .arms-repeater-row { display: grid; grid-template-columns: 130px repeat(6, 1fr) 45px; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; align-items: flex-end; position: relative; }
-        .arms-repeater-row .arms-fgroup { grid-column: auto; }
-        .arms-btn-remove { background: #ef4444; color: #fff; border: none; padding: 9px; border-radius: 6px; cursor: pointer; text-align: center; font-size: 14px; line-height: 1; transition: background 0.2s; height: 38px; display: flex; align-items: center; justify-content: center; }
-        .arms-btn-remove:hover { background: #dc2626; }
-        .arms-btn-add-row { background: #0f172a; color: #fff; border: none; padding: 10px 16px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; width: max-content; transition: background 0.2s; margin-top: 8px; }
-        .arms-btn-add-row:hover { background: #1e293b; }
-        
-        .arms-billing-summary-box { grid-column: span 12; background: #f0f5ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 20px; margin-top: 16px; }
-        .arms-bill-grid { display: flex; justify-content: space-around; text-align: center; }
-        .arms-bill-stat h4 { margin: 0 0 4px 0; font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
-        .arms-bill-stat .stat-price { font-size: 24px; font-weight: 800; color: #1e3a8a; }
-        .arms-bill-divider { border-left: 1px solid #cbd5e1; height: 40px; align-self: center; }
-        
-        .form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
-        .arms-btn { padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; transition: all 0.2s; text-decoration: none; }
-        .btn-primary { background: #003376; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #fff; color: #475569; border-color: #cbd5e1; }
-        .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
-        .btn-success { background: #003376; color: #fff; border: none; }
-        .btn-success:hover { background: #15803d; }
-        .btn-print { background: #003376; color: #fff; border: none; }
-        .btn-print:hover { background: #003376; }
-        
-        @keyframes armsFadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-
     <div class="arms-adm-wrapper" id="arms-printable-area">
         <div class="arms-adm-header">
             <div>
@@ -248,7 +184,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                     
                     <div class="arms-fgroup col-12">
                         <label class="arms-label">Patient Name</label>
-                        <select name="arms_selected_patient_id" id="arms_selected_patient_dropdown" class="arms-select2-patient" style="width: 100%;" required>
+                        <select name="arms_selected_patient_id" id="arms_selected_patient_dropdown" class="arms-select2-patient" style="width: 100%;">
                             <option value="">-- Type name, phone, or track record instantly via system lookups... --</option>
                             <?php 
                             if ( ! empty( $patients_query ) ) {
@@ -262,9 +198,17 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                         </select>
                     </div>
 
+                    <div class="arms-fgroup col-3 dpt-switcher-fgroup">
+                        <label class="arms-label">Patient Tracking Status</label>
+                        <select id="dpt_stay_leave_switcher" class="arms-select" onchange="armsHandleStayLeaveContext(this)">
+                            <option value="Stay" <?php selected( empty( $admission_data['discharge_date'] ), true ); ?>>🏠 Stay (Active Recovery Inpatient)</option>
+                            <option value="Leave" <?php selected( ! empty( $admission_data['discharge_date'] ), true ); ?>>🚪 Leave (Initiate Discharge Engine)</option>
+                        </select>
+                    </div>
+
                     <div class="arms-fgroup col-3">
                         <label class="arms-label">Room Allocation</label>
-                        <select name="room_type" id="arms_room_type_select" class="arms-select" onchange="armsToggleSpatialFields()" required>
+                        <select name="room_type" id="arms_room_type_select" class="arms-select" onchange="armsToggleSpatialFields()">
                             <option value="Cabin" <?php selected( $admission_data['room_type'], 'Cabin' ); ?>>Cabin (Single Luxury Suite)</option>
                             <option value="Ward Bed" <?php selected( $admission_data['room_type'], 'Ward Bed' ); ?>>General Ward Bed Layout</option>
                         </select>
@@ -282,7 +226,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
 
                     <div class="arms-fgroup col-3">
                         <label class="arms-label">Admission Date</label>
-                        <input type="date" name="admission_date" class="arms-input" value="<?php echo esc_attr( $admission_data['admission_date'] ); ?>" required />
+                        <input type="date" name="admission_date" class="arms-input" value="<?php echo esc_attr( $admission_data['admission_date'] ); ?>" />
                     </div>
 
                     <div class="arms-fgroup col-3">
@@ -310,7 +254,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                             <div class="arms-repeater-row" data-index="<?php echo $idx; ?>">
                                 <div class="arms-fgroup">
                                     <label class="arms-label">Entry Date</label>
-                                    <input type="date" name="repeater_charges[<?php echo $idx; ?>][charge_date]" class="arms-input" value="<?php echo esc_attr( $c_date ); ?>" required />
+                                    <input type="date" name="repeater_charges[<?php echo $idx; ?>][charge_date]" class="arms-input" value="<?php echo esc_attr( $c_date ); ?>" />
                                 </div>
                                 <div class="arms-fgroup">
                                     <label class="arms-label">Room Rent (৳)</label>
@@ -363,7 +307,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
                             </div>
                             <div class="arms-bill-divider"></div>
                             <div class="arms-bill-stat">
-                                <h4 id="arms-bill-net-label">Adjusted Net Due Payable</h4>
+                                <h4>Adjusted Net Due Payable</h4>
                                 <div class="stat-price" id="arms-bill-net-view" style="color: #003376;">৳0.00</div>
                             </div>
                         </div>
@@ -384,7 +328,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
 
                     <div class="arms-fgroup col-4">
                         <label class="arms-label">Discharge Event Closure Date</label>
-                        <input type="date" name="discharge_date" class="arms-input" value="<?php echo esc_attr( $admission_data['discharge_date'] ); ?>" />
+                        <input type="date" name="discharge_date" id="arms_discharge_date_input" class="arms-input" value="<?php echo esc_attr( $admission_data['discharge_date'] ); ?>" />
                     </div>
 
                     <div class="arms-fgroup col-4">
@@ -436,15 +380,43 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
             allowClear: true
         });
 
+        // Custom validation check prior to submission
+        $('#arms-admission-master-form').on('submit', function(e) {
+            const patientSelect = $('#arms_selected_patient_dropdown').val();
+            if (!patientSelect || patientSelect === "") {
+                e.preventDefault();
+                alert("Please select a valid patient file before finalizing deployment logs.");
+                armsMovePane('pane-alloc');
+                return false;
+            }
+        });
+
         armsCalculateLiveBillingTotals();
     });
+
+    function armsHandleStayLeaveContext(switcherElement) {
+        const selectedOption = switcherElement.value;
+        const dischargeDateInput = document.getElementById('arms_discharge_date_input');
+        
+        if (selectedOption === 'Leave') {
+            if (dischargeDateInput && !dischargeDateInput.value) {
+                const todayFormattedDate = new Date().toISOString().split('T')[0];
+                dischargeDateInput.value = todayFormattedDate;
+            }
+            armsMovePane('pane-discharge');
+        } else {
+            if (dischargeDateInput) {
+                dischargeDateInput.value = '';
+            }
+            armsMovePane('pane-alloc');
+        }
+    }
 
     function armsLaunchInvoicePrintCanvas(id) {
         if(!id || id <= 0) {
             alert("Please save the record deployment entries before printing invoice copies.");
             return;
         }
-        // Redirect target path location to your separate print engine canvas script dynamically
         const printUrl = `<?php echo plugin_dir_url(__FILE__); ?>print-invoice.php?admission_id=${id}`;
         window.open(printUrl, '_blank', 'width=900,height=800,toolbar=0,resizable=1');
     }
@@ -556,7 +528,7 @@ function arms_add_edit_admission_form( $admission_id = 0 ) {
             <div class="arms-repeater-row" data-index="${targetIdx}">
                 <div class="arms-fgroup">
                     <label class="arms-label">Entry Date</label>
-                    <input type="date" name="repeater_charges[${targetIdx}][charge_date]" class="arms-input" value="${currentDateString}" required />
+                    <input type="date" name="repeater_charges[${targetIdx}][charge_date]" class="arms-input" value="${currentDateString}" />
                 </div>
                 <div class="arms-fgroup">
                     <label class="arms-label">Room Rent (৳)</label>

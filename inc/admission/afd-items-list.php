@@ -206,7 +206,7 @@ function arms_admission_list_table() {
         <table class="arms-normal-table">
             <thead>
                 <tr>
-                    <th width="50">Log</th>
+                    <th width="140">Patient ID</th>
                     <th width="120">Admission ID</th>
                     <th>Patient Identification</th>
                     <th width="110">Live Status</th>
@@ -233,16 +233,14 @@ function arms_admission_list_table() {
                             $status_class = 'arms-status-partially-paid';
                         }
 
-                        // FIXED URLs: Built clearly per row to provide individual identifiers to the router matrix
+                        // FIXED FIXED URLs: Synchronized keys matching requirements for individual identity tracking routers
                         $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id );
-                        $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&patient=' . $patient_id );
+                        $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&id=' . $admission_id . '&patient=' . $patient_id );
                         $delete_nonce   = wp_create_nonce( 'arms_delete_admission_' . $admission_id );
                         ?>
                         <tr>
                             <td>
-                                <div class="arms-icon-wrap">
-                                    <span class="dashicons dashicons-id-alt"></span>
-                                </div>
+                                <code style="background: #f1f5f9; color: #0f172a; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">#ARMS-<?php echo esc_html(str_pad($patient_id, 5, '0', STR_PAD_LEFT)); ?></code>
                             </td>
                             <td>
                                 <code style="background: #f0f0f1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">ADM-<?php echo $admission_id; ?></code>
@@ -252,7 +250,6 @@ function arms_admission_list_table() {
                                 <span style="font-size: 11px; color:#646970;">Patient Reference ID: #<?php echo $patient_id; ?></span>
                             </td>
                             <td>
-                                <!-- LIVE TOGGLE SWITCH -->
                                 <label class="arms-switch">
                                     <input type="checkbox" <?php checked($is_staying, true); ?>>
                                     <span class="arms-slider"></span>

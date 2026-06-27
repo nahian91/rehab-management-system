@@ -154,7 +154,12 @@ function arms_create_system_tables() {
     ) $charset_collate;";
     dbDelta( $sql_staff );
 
-    // Physiotherapy Rehabilitation & Session Tracking logs
+    global $wpdb;
+
+// Define collation before utilizing it inside the SQL query string
+$charset_collate = $wpdb->get_charset_collate();
+
+// Physiotherapy Rehabilitation & Session Tracking logs table definition
 $table_physio = $wpdb->prefix . 'arms_physio_logs';
 $sql_physio = "CREATE TABLE $table_physio (
     id bigint(20) NOT NULL AUTO_INCREMENT,
@@ -165,6 +170,8 @@ $sql_physio = "CREATE TABLE $table_physio (
     daily_plan text NOT NULL,
     sessions_completed int(11) DEFAULT 0 NOT NULL,
     sessions_remaining int(11) DEFAULT 0 NOT NULL,
+    advance_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
+    per_session_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
     progress_notes text NOT NULL,
     created_at datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
     created_by bigint(20) UNSIGNED DEFAULT NULL,
@@ -172,10 +179,9 @@ $sql_physio = "CREATE TABLE $table_physio (
     KEY patient_log_idx (patient_id, log_date)
 ) $charset_collate;";
 
+// Standard WordPress upgrade wrapper interface for safe alterations
 require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 dbDelta( $sql_physio );
-
-$charset_collate = $wpdb->get_charset_collate();
 
     // 1. Core Monthly Ledger Records Table
     $table_payroll = $wpdb->prefix . 'arms_payroll';
