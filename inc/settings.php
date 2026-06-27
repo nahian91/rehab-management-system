@@ -1,159 +1,314 @@
 <?php
 /*--------------------------------------------------------------
-# 9. System Global Settings Tab Processor
+# 9. Dynamic System Fees Dashboard Matrix (Dynamic Tab View)
 --------------------------------------------------------------*/
 
 /**
- * Render and handle the Settings Tab Dashboard
+ * Render and handle the operational fees panels (Staff Fees & General Fees tabs)
  */
 function arms_settings_tab() {
+    global $wpdb;
+
     // 1. Authorization Guard Check
     if ( ! current_user_can( 'manage_options' ) && ! arms_has_access( array( 'admin_manager' ) ) ) {
         echo '<div class="notice notice-error"><p>Access Denied: Insufficient operational clearance.</p></div>';
         return;
     }
 
-    // 2. Process Save Operations on POST Request
-    if ( isset( $_POST['arms_save_settings'] ) ) {
+    // 2. Process Save Operations on POST Requests
+    if ( isset( $_POST['arms_save_fees_ledger'] ) ) {
         // Verify Security Nonce Matrix
-        if ( ! isset( $_POST['arms_settings_nonce_field'] ) || ! wp_verify_nonce( $_POST['arms_settings_nonce_field'], 'arms_save_settings_action' ) ) {
+        if ( ! isset( $_POST['arms_fees_nonce_field'] ) || ! wp_verify_nonce( $_POST['arms_fees_nonce_field'], 'arms_save_fees_action' ) ) {
             echo '<div class="notice notice-error is-dismissible"><p>Security verification failed. Please try again.</p></div>';
         } else {
-            // Sanitize and structure the option parameters map safely
-            $clean_settings = array(
-                // Profile Configuration
-                'clinic_name'             => sanitize_text_field( $_POST['clinic_name'] ?? '' ),
-                'clinic_address'          => sanitize_textarea_field( $_POST['clinic_address'] ?? '' ),
-                'currency_symbol'         => sanitize_text_field( $_POST['currency_symbol'] ?? '$' ),
-                
-                // Clinical Rate Master Matrix
-                'tax_rate'                => max( 0, floatval( $_POST['tax_rate'] ?? 0 ) ),
-                'fee_doctor'              => max( 0, floatval( $_POST['fee_doctor'] ?? 0 ) ),
-                'fee_physio'              => max( 0, floatval( $_POST['fee_physio'] ?? 0 ) ),
-                'fee_nursing'             => max( 0, floatval( $_POST['fee_nursing'] ?? 0 ) ),
-                'fee_acupuncture'         => max( 0, floatval( $_POST['fee_acupuncture'] ?? 0 ) ),
-                'fee_prp'                 => max( 0, floatval( $_POST['fee_prp'] ?? 0 ) ),
-                
-                // Inventory Operational Rules
-                'low_stock_threshold'     => max( 1, intval( $_POST['low_stock_threshold'] ?? 10 ) ),
-                
-                // Accommodation Setup
-                'room_rent_cabin'         => max( 0, floatval( $_POST['room_rent_cabin'] ?? 0 ) ),
-                'room_rent_ward'          => max( 0, floatval( $_POST['room_rent_ward'] ?? 0 ) ),
-                'room_rent_semi_private'  => max( 0, floatval( $_POST['room_rent_semi_private'] ?? 0 ) ),
-            );
+            // Process both sets of inputs simultaneously if they exist in the post array
+            
+            // Handle Staff Fees Repeater Data Processing
+            $raw_repeater = $_POST['arms_fees_repeater'] ?? array();
+            $clean_repeater = array();
+            if ( is_array( $raw_repeater ) ) {
+                foreach ( $raw_repeater as $row ) {
+                    if ( empty( $row['staff_id'] ) ) {
+                        continue;
+                    }
+                    $clean_repeater[] = array(
+                        'type'     => sanitize_text_field( $row['type'] ?? 'doctor' ),
+                        'staff_id' => intval( $row['staff_id'] ),
+                        'fee'      => max( 0, floatval( $row['fee'] ?? 0 ) )
+                    );
+                }
+            }
+            update_option( 'arms_individual_staff_fees', $clean_repeater );
 
-            // Update centralized serialized option table field
-            update_option( 'arms_global_settings', $clean_settings );
-            echo '<div class="notice notice-success is-dismissible"><p><strong>ARMS Control Desk:</strong> Configuration profiles saved successfully.</p></div>';
+            // Handle General Fees Repeater Data Processing
+            $raw_general = $_POST['arms_general_repeater'] ?? array();
+            $clean_general = array();
+            if ( is_array( $raw_general ) ) {
+                foreach ( $raw_general as $row ) {
+                    if ( empty( $row['fee_name'] ) ) {
+                        continue;
+                    }
+                    $clean_general[] = array(
+                        'fee_name'   => sanitize_text_field( $row['fee_name'] ),
+                        'fee_amount' => max( 0, floatval( $row['fee_amount'] ?? 0 ) )
+                    );
+                }
+            }
+            update_option( 'arms_general_bdt_fees', $clean_general );
+
+            echo '<div class="notice notice-success is-dismissible"><p><strong>ARMS Control Desk:</strong> All fee ledgers (Staff Matrix & General BDT Rates) compiled and updated successfully.</p></div>';
         }
     }
 
-    // 3. Fetch Existing Setup Data Profile Defaults
-    $defaults = array(
-        'clinic_name'             => 'ARMS Rehabilitation Center',
-        'clinic_address'          => '',
-        'currency_symbol'         => '$',
-        'tax_rate'                => 0,
-        'fee_doctor'              => 0,
-        'fee_physio'              => 0,
-        'fee_nursing'             => 0,
-        'fee_acupuncture'         => 0,
-        'fee_prp'                 => 0,
-        'low_stock_threshold'     => 10,
-        'room_rent_cabin'         => 0,
-        'room_rent_ward'          => 0,
-        'room_rent_semi_private'  => 0,
-    );
-
-    $settings = wp_parse_args( get_option( 'arms_global_settings', array() ), $defaults );
+    // 3. Load Datasets & Dependencies
+    $saved_staff_fees   = get_option( 'arms_individual_staff_fees', array() );
+    $saved_general_fees = get_option( 'arms_general_bdt_fees', array() );
+    $global_settings    = get_option( 'arms_global_settings', array() );
+    $currency           = $global_settings['currency_symbol'] ?? '$';
+    
+    // Pull complete user profiles for the Staff Dropdowns
+    $all_staff = get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) ); 
     ?>
 
-    <div class="arms-settings-container" style="padding: 20px; background: #fff; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <h2>System Global Parameters & Rules Configuration</h2>
-        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;" />
+    <style>
+        .arms-fees-wrapper { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 1200px; margin-top: 20px; }
+        .arms-tab-nav { display: flex; gap: 4px; margin-bottom: -1px; position: relative; z-index: 2; }
+        .arms-tab-link { padding: 10px 20px; background: #eaeaea; border: 1px solid #c3c4c7; border-bottom: none; color: #1d2327; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 4px 4px 0 0; cursor: pointer; transition: all 0.15s ease-in-out; }
+        .arms-tab-link:hover { background: #f6f7f7; color: #2271b1; }
+        .arms-tab-link.is-active { background: #fff; border-color: #c3c4c7; border-bottom: 1px solid #fff; color: #2271b1; }
+        .arms-panel-body { padding: 24px; background: #fff; border: 1px solid #c3c4c7; border-radius: 0 4px 4px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .arms-tab-content { display: none; }
+        .arms-tab-content.is-active { display: block; }
+        .arms-panel-title { margin: 0 0 10px 0; padding-bottom: 12px; color: #1d2327; font-size: 18px; font-weight: 600; }
+        .arms-repeater-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; margin-top: 15px; }
+        .arms-repeater-table th, .arms-repeater-table td { padding: 12px; text-align: left; border-bottom: 1px solid #c3c4c7; font-size: 13px; vertical-align: middle; }
+        .arms-repeater-table th { background: #f6f7f7; font-weight: 600; color: #1d2327; }
+        .repeater-select, .repeater-input { width: 100%; max-width: 280px; height: 34px; border-radius: 4px; border: 1px solid #8c8f94; padding: 0 8px; font-size: 13px; }
+        .fee-wrapper { display: flex; align-items: center; gap: 8px; }
+        .btn-remove-row { color: #b32d2e; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+        .btn-remove-row:hover { color: #d63638; text-decoration: underline; }
+        .add-row-container { margin: 15px 0 25px 0; }
+        .bdt-badge { background: #e2e8f0; color: #334155; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1; }
+    </style>
 
-        <form method="post" action="">
-            <?php wp_nonce_field( 'arms_save_settings_action', 'arms_settings_nonce_field' ); ?>
+    <div class="arms-fees-wrapper">
+        <!-- JS-POWERED TAB NAVIGATION HEADER -->
+        <nav class="arms-tab-nav">
+            <div data-target="arms-staff-tab" class="arms-tab-link is-active">
+                <span class="dashicons dashicons-businessman" style="vertical-align: text-top; margin-right: 4px;"></span> Staff Fees
+            </div>
+            <div data-target="arms-general-tab" class="arms-tab-link">
+                <span class="dashicons dashicons-money-alt" style="vertical-align: text-top; margin-right: 4px;"></span> General Fees (BDT)
+            </div>
+        </nav>
 
-            <h3 style="color: #2271b1;"><span class="dashicons dashicons-admin-home" style="vertical-align: middle; margin-right: 5px;"></span> 1. Clinic Information & Branding</h3>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="clinic_name">Official Clinic Name</label></th>
-                    <td><input type="text" id="clinic_name" name="clinic_name" value="<?php echo esc_attr( $settings['clinic_name'] ); ?>" class="regular-text" required /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="clinic_address">Print Layout Address</label></th>
-                    <td><textarea id="clinic_address" name="clinic_address" rows="3" class="large-text"><?php echo esc_textarea( $settings['clinic_address'] ); ?></textarea></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="currency_symbol">Global Currency Symbol</label></th>
-                    <td><input type="text" id="currency_symbol" name="currency_symbol" value="<?php echo esc_attr( $settings['currency_symbol'] ); ?>" style="width: 80px; text-align: center;" required /></td>
-                </tr>
-            </table>
+        <!-- CONTAINER MAIN VIEW PANEL -->
+        <div class="arms-panel-body">
+            <!-- Normal submission action maps directly back to the active page context seamlessly -->
+            <form method="post" action="">
+                <?php wp_nonce_field( 'arms_save_fees_action', 'arms_fees_nonce_field' ); ?>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+                <!-- VIEW 1: STAFF INDIVIDUAL FEES CONTENT -->
+                <div id="arms-staff-tab" class="arms-tab-content is-active">
+                    <h3 class="arms-panel-title">Staff Individual Fee Mapping Matrix</h3>
+                    <p class="description">Configure specialized standalone billing pricing distributions explicitly for Doctor & Physiotherapy profiles.</p>
 
-            <h3 style="color: #2271b1;"><span class="dashicons dashicons-cart" style="vertical-align: middle; margin-right: 5px;"></span> 2. Central Billing & Fee Matrix Settings</h3>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="tax_rate">Default Tax/VAT Rate (%)</label></th>
-                    <td><input type="number" step="0.01" id="tax_rate" name="tax_rate" value="<?php echo esc_attr( $settings['tax_rate'] ); ?>" class="small-text" /> <span class="description">Automatically calculated during active invoice drafting.</span></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="fee_doctor">Base Consultation Fee (Doctor)</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="fee_doctor" name="fee_doctor" value="<?php echo esc_attr( $settings['fee_doctor'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="fee_physio">Standard Physiotherapy Session Fee</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="fee_physio" name="fee_physio" value="<?php echo esc_attr( $settings['fee_physio'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="fee_nursing">Standard Daily Nursing Care Fee</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="fee_nursing" name="fee_nursing" value="<?php echo esc_attr( $settings['fee_nursing'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="fee_acupuncture">Specialty Acupuncture Rate</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="fee_acupuncture" name="fee_acupuncture" value="<?php echo esc_attr( $settings['fee_acupuncture'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="fee_prp">Platelet-Rich Plasma (PRP) Procedure Rate</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="fee_prp" name="fee_prp" value="<?php echo esc_attr( $settings['fee_prp'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-            </table>
+                    <table class="arms-repeater-table" id="arms-staff-repeater-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Service Profile Type</th>
+                                <th style="width: 40%;">Select Professional</th>
+                                <th style="width: 25%;">Custom Session Fee</th>
+                                <th style="width: 10%; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $staff_index = 0;
+                            if ( ! empty( $saved_staff_fees ) ) : 
+                                foreach ( $saved_staff_fees as $mapping ) : 
+                            ?>
+                                <tr>
+                                    <td>
+                                        <select name="arms_fees_repeater[<?php echo $staff_index; ?>][type]" class="repeater-select">
+                                            <option value="doctor" <?php selected( $mapping['type'], 'doctor' ); ?>>Doctor</option>
+                                            <option value="physiotherapy" <?php selected( $mapping['type'], 'physiotherapy' ); ?>>Physiotherapy</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="arms_fees_repeater[<?php echo $staff_index; ?>][staff_id]" class="repeater-select" style="max-width: 100%;">
+                                            <option value="">-- Choose Staff Member --</option>
+                                            <?php foreach ( $all_staff as $staff ) : ?>
+                                                <option value="<?php echo intval( $staff->ID ); ?>" <?php selected( $mapping['staff_id'], $staff->ID ); ?>>
+                                                    <?php echo esc_html( $staff->display_name ); ?> (#USR-<?php echo intval( $staff->ID ); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div class="fee-wrapper">
+                                            <span><strong><?php echo esc_html( $currency ); ?></strong></span>
+                                            <input type="number" step="0.01" name="arms_fees_repeater[<?php echo $staff_index; ?>][fee]" value="<?php echo esc_attr( $mapping['fee'] ); ?>" class="repeater-input" style="width: 140px;" placeholder="0.00" required />
+                                        </div>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <a class="btn-remove-row"><span class="dashicons dashicons-trash"></span> Remove</a>
+                                    </td>
+                                </tr>
+                            <?php 
+                                $staff_index++;
+                                endforeach; 
+                            endif; 
+                            ?>
+                        </tbody>
+                    </table>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+                    <div class="add-row-container">
+                        <button type="button" id="arms-add-staff-row" class="button button-secondary">
+                            <span class="dashicons dashicons-plus-alt" style="vertical-align: middle; margin-right: 4px;"></span> Add Professional Mapping
+                        </button>
+                    </div>
+                </div>
 
-            <h3 style="color: #2271b1;"><span class="dashicons dashicons-category" style="vertical-align: middle; margin-right: 5px;"></span> 3. Room & Accommodation Rate Allocation Rules</h3>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="room_rent_cabin">Private Cabin Daily Rent Price</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="room_rent_cabin" name="room_rent_cabin" value="<?php echo esc_attr( $settings['room_rent_cabin'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="room_rent_ward">General Ward Bed Daily Rent Price</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="room_rent_ward" name="room_rent_ward" value="<?php echo esc_attr( $settings['room_rent_ward'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="room_rent_semi_private">Semi-Private Room Daily Rent Price</label></th>
-                    <td><?php echo esc_html($settings['currency_symbol']); ?> <input type="number" step="0.01" id="room_rent_semi_private" name="room_rent_semi_private" value="<?php echo esc_attr( $settings['room_rent_semi_private'] ); ?>" class="regular-text" style="width: 120px;" /></td>
-                </tr>
-            </table>
+                <!-- VIEW 2: GENERAL FEES CONTENT (BDT EXCLUSIVE) -->
+                <div id="arms-general-tab" class="arms-tab-content">
+                    <h3 class="arms-panel-title">General Center Operating Fees Ledger</h3>
+                    <p class="description">Maintain universal utility facility rates, standard admissions, or ancillary clinical parameters directly calculated in BDT.</p>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+                    <table class="arms-repeater-table" id="arms-general-repeater-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 55%;">Fee Name / Operational Description</th>
+                                <th style="width: 35%;">Standard Base Rate Amount</th>
+                                <th style="width: 10%; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $general_index = 0;
+                            if ( ! empty( $saved_general_fees ) ) : 
+                                foreach ( $saved_general_fees as $fee_item ) : 
+                            ?>
+                                <tr>
+                                    <td>
+                                        <input type="text" name="arms_general_repeater[<?php echo $general_index; ?>][fee_name]" value="<?php echo esc_attr( $fee_item['fee_name'] ); ?>" class="repeater-input" style="max-width: 90%;" placeholder="e.g., Admission Processing Fee, Nebulization, Equipment Charge" required />
+                                    </td>
+                                    <td>
+                                        <div class="fee-wrapper">
+                                            <span class="bdt-badge">BDT</span>
+                                            <input type="number" step="0.01" name="arms_general_repeater[<?php echo $general_index; ?>][fee_amount]" value="<?php echo esc_attr( $fee_item['fee_amount'] ); ?>" class="repeater-input" style="width: 150px;" placeholder="0.00" required />
+                                        </div>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <a class="btn-remove-row"><span class="dashicons dashicons-trash"></span> Remove</a>
+                                    </td>
+                                </tr>
+                            <?php 
+                                $general_index++;
+                                endforeach; 
+                            endif; 
+                            ?>
+                        </tbody>
+                    </table>
 
-            <h3 style="color: #2271b1;"><span class="dashicons dashicons-warning" style="vertical-align: middle; margin-right: 5px;"></span> 4. Core Safeguards & Stock Inventory Alerts</h3>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="low_stock_threshold">Minimum Inventory Stock Trigger</label></th>
-                    <td><input type="number" id="low_stock_threshold" name="low_stock_threshold" value="<?php echo esc_attr( $settings['low_stock_threshold'] ); ?>" class="small-text" min="1" required /> <span class="description">Flags warnings on inventory lists when available stock count falls below this margin.</span></td>
-                </tr>
-            </table>
+                    <div class="add-row-container">
+                        <button type="button" id="arms-add-general-row" class="button button-secondary">
+                            <span class="dashicons dashicons-plus-alt" style="vertical-align: middle; margin-right: 4px;"></span> Add New General Fee Row
+                        </button>
+                    </div>
+                </div>
 
-            <p class="submit" style="margin-top: 30px;">
-                <input type="submit" name="arms_save_settings" id="submit" class="button button-primary button-large" value="Save System Parameters" />
-            </p>
-        </form>
+                <!-- SUBMIT BUTTON SECTIONS -->
+                <hr style="border:0; border-top:1px solid #f0f0f1; margin: 20px 0;" />
+                <p class="submit">
+                    <input type="submit" name="arms_save_fees_ledger" id="submit" class="button button-primary button-large" value="Save All Changes" />
+                </p>
+            </form>
+        </div>
     </div>
+
+    <!-- JavaScript Controller Matrix -->
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        
+        // --- Dynamic JS Tab Switching Engine ---
+        $('.arms-tab-link').on('click', function() {
+            let targetTab = $(this).data('target');
+            
+            // Adjust Navigation link active state
+            $('.arms-tab-link').removeClass('is-active');
+            $(this).addClass('is-active');
+            
+            // Display targeted content segment
+            $('.arms-tab-content').removeClass('is-active');
+            $('#' + targetTab).addClass('is-active');
+        });
+
+        // --- Staff Fees Repeater Script Matrix ---
+        let staffIndex = <?php echo isset($staff_index) ? $staff_index : 0; ?>;
+        $('#arms-add-staff-row').on('click', function(e) {
+            e.preventDefault();
+            let html = `
+                <tr>
+                    <td>
+                        <select name="arms_fees_repeater[${staffIndex}][type]" class="repeater-select">
+                            <option value="doctor">Doctor</option>
+                            <option value="physiotherapy">Physiotherapy</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select name="arms_fees_repeater[${staffIndex}][staff_id]" class="repeater-select" style="max-width: 100%;" required>
+                            <option value="">-- Choose Staff Member --</option>
+                            <?php foreach ( $all_staff as $staff ) : ?>
+                                <option value="<?php echo intval( $staff->ID ); ?>">
+                                    <?php echo esc_js( $staff->display_name ); ?> (#USR-<?php echo intval( $staff->ID ); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td>
+                        <div class="fee-wrapper">
+                            <span><strong><?php echo esc_js( $currency ); ?></strong></span>
+                            <input type="number" step="0.01" name="arms_fees_repeater[${staffIndex}][fee]" class="repeater-input" style="width: 140px;" placeholder="0.00" required />
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        <a class="btn-remove-row"><span class="dashicons dashicons-trash"></span> Remove</a>
+                    </td>
+                </tr>`;
+            $('#arms-staff-repeater-table tbody').append(html);
+            staffIndex++;
+        });
+
+        // --- General Fees Repeater Script Matrix ---
+        let generalIndex = <?php echo isset($general_index) ? $general_index : 0; ?>;
+        $('#arms-add-general-row').on('click', function(e) {
+            e.preventDefault();
+            let html = `
+                <tr>
+                    <td>
+                        <input type="text" name="arms_general_repeater[${generalIndex}][fee_name]" class="repeater-input" style="max-width: 90%;" placeholder="Fee Name Description" required />
+                    </td>
+                    <td>
+                        <div class="fee-wrapper">
+                            <span class="bdt-badge">BDT</span>
+                            <input type="number" step="0.01" name="arms_general_repeater[${generalIndex}][fee_amount]" class="repeater-input" style="width: 150px;" placeholder="0.00" required />
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        <a class="btn-remove-row"><span class="dashicons dashicons-trash"></span> Remove</a>
+                    </td>
+                </tr>`;
+            $('#arms-general-repeater-table tbody').append(html);
+            generalIndex++;
+        });
+
+        // Universal Event Delegation for Dynamic Table Rows Removals
+        $(document).on('click', '.btn-remove-row', function(e) {
+            e.preventDefault();
+            $(this).closest('tr').remove();
+        });
+    });
+    </script>
     <?php
 }

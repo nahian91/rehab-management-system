@@ -154,106 +154,58 @@ function arms_create_system_tables() {
     ) $charset_collate;";
     dbDelta( $sql_staff );
 
-    global $wpdb;
+    // Physiotherapy Rehabilitation & Session Tracking Logs
+    $table_physio = $wpdb->prefix . 'arms_physio_logs';
+    $sql_physio = "CREATE TABLE $table_physio (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        patient_id bigint(20) NOT NULL,
+        log_date date NOT NULL,
+        initial_assessment text NOT NULL,
+        rehab_goals text NOT NULL,
+        daily_plan text NOT NULL,
+        sessions_completed int(11) DEFAULT 0 NOT NULL,
+        sessions_remaining int(11) DEFAULT 0 NOT NULL,
+        advance_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
+        per_session_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
+        progress_notes text NOT NULL,
+        created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        created_by bigint(20) UNSIGNED DEFAULT NULL,
+        PRIMARY KEY  (id),
+        KEY patient_log_idx (patient_id, log_date)
+    ) $charset_collate;";
+    dbDelta( $sql_physio );
 
-// Define collation before utilizing it inside the SQL query string
-$charset_collate = $wpdb->get_charset_collate();
-
-// Physiotherapy Rehabilitation & Session Tracking logs table definition
-$table_physio = $wpdb->prefix . 'arms_physio_logs';
-$sql_physio = "CREATE TABLE $table_physio (
-    id bigint(20) NOT NULL AUTO_INCREMENT,
-    patient_id bigint(20) NOT NULL,
-    log_date date NOT NULL,
-    initial_assessment text NOT NULL,
-    rehab_goals text NOT NULL,
-    daily_plan text NOT NULL,
-    sessions_completed int(11) DEFAULT 0 NOT NULL,
-    sessions_remaining int(11) DEFAULT 0 NOT NULL,
-    advance_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
-    per_session_bill decimal(10,2) DEFAULT '0.00' NOT NULL,
-    progress_notes text NOT NULL,
-    created_at datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-    created_by bigint(20) UNSIGNED DEFAULT NULL,
-    PRIMARY KEY  (id),
-    KEY patient_log_idx (patient_id, log_date)
-) $charset_collate;";
-
-// Standard WordPress upgrade wrapper interface for safe alterations
-require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-dbDelta( $sql_physio );
-
-    // 1. Core Monthly Ledger Records Table
+    // Core Monthly Payroll Records Table
     $table_payroll = $wpdb->prefix . 'arms_payroll';
     $sql_payroll = "CREATE TABLE $table_payroll (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         staff_id mediumint(9) NOT NULL,
         pay_period DATE NOT NULL,
         base_salary DECIMAL(10,2) NOT NULL,
-        bonus DECIMAL(10,2) DEFAULT '0.00',
-        incentives DECIMAL(10,2) DEFAULT '0.00',
-        attendance_deduction DECIMAL(10,2) DEFAULT '0.00',
-        tax_deduction DECIMAL(10,2) DEFAULT '0.00',
+        bonus DECIMAL(10,2) DEFAULT '0.00' NOT NULL,
+        incentives DECIMAL(10,2) DEFAULT '0.00' NOT NULL,
+        attendance_deduction DECIMAL(10,2) DEFAULT '0.00' NOT NULL,
+        tax_deduction DECIMAL(10,2) DEFAULT '0.00' NOT NULL,
         net_payable DECIMAL(10,2) NOT NULL,
-        payment_date DATETIME NOT NULL,
-        status VARCHAR(20) DEFAULT 'unpaid',
+        payment_date DATETIME DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        status VARCHAR(20) DEFAULT 'unpaid' NOT NULL,
         PRIMARY KEY  (id),
         KEY staff_id (staff_id)
     ) $charset_collate;";
+    dbDelta( $sql_payroll );
 
-    // 2. Performance Tracking & Audits Logs Table
+    // Performance Tracking & Audits Logs Table
     $table_incentives = $wpdb->prefix . 'arms_payroll_incentives';
     $sql_incentives = "CREATE TABLE $table_incentives (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         staff_id mediumint(9) NOT NULL,
-        description VARCHAR(255),
+        description VARCHAR(255) DEFAULT '' NOT NULL,
         amount DECIMAL(10,2) NOT NULL,
         entry_date DATE NOT NULL,
         PRIMARY KEY  (id),
         KEY staff_id (staff_id)
     ) $charset_collate;";
-
-    // Load WordPress core database upgrade runtime layer
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    
-    dbDelta( $sql_payroll );
     dbDelta( $sql_incentives );
-    
-
-// 1. Payroll Monthly Records Table
-$table_payroll = $wpdb->prefix . 'arms_payroll';
-$sql_payroll = "CREATE TABLE $table_payroll (
-    id mediumint(9) NOT NULL AUTO_INCREMENT,
-    staff_id mediumint(9) NOT NULL,
-    pay_period DATE NOT NULL, 
-    base_salary DECIMAL(10,2) NOT NULL,
-    bonus DECIMAL(10,2) DEFAULT 0.00,
-    incentives DECIMAL(10,2) DEFAULT 0.00,
-    attendance_deduction DECIMAL(10,2) DEFAULT 0.00,
-    tax_deduction DECIMAL(10,2) DEFAULT 0.00,
-    net_payable DECIMAL(10,2) NOT NULL,
-    payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'unpaid',
-    PRIMARY KEY (id),
-    KEY staff_id (staff_id)
-) $charset_collate;";
-
-// 2. Individual Incentive/Performance Logs Table
-$table_incentives = $wpdb->prefix . 'arms_payroll_incentives';
-$sql_incentives = "CREATE TABLE $table_incentives (
-    id mediumint(9) NOT NULL AUTO_INCREMENT,
-    staff_id mediumint(9) NOT NULL,
-    description VARCHAR(255),
-    amount DECIMAL(10,2) NOT NULL,
-    entry_date DATE NOT NULL,
-    PRIMARY KEY (id),
-    KEY staff_id (staff_id)
-) $charset_collate;";
-
-// Execute using dbDelta
-require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-dbDelta( $sql_payroll );
-dbDelta( $sql_incentives );
 
     // Nursing Care & Clinical Logs
     $table_nursing = $wpdb->prefix . 'arms_nursing_logs';
@@ -297,6 +249,33 @@ dbDelta( $sql_incentives );
         UNIQUE KEY invoice_id (invoice_id)
     ) $charset_collate;";
     dbDelta( $sql_billing );
+
+    /*--------------------------------------------------------------
+    # NEW: Dedicated OPD Records Table (Out-Patient Log)
+    --------------------------------------------------------------*/
+    $table_opd = $wpdb->prefix . 'arms_opd_records';
+    $sql_opd = "CREATE TABLE $table_opd (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        ticket_no varchar(50) NOT NULL,
+        patient_name varchar(255) NOT NULL,
+        phone varchar(50) NOT NULL,
+        age int(3) unsigned DEFAULT NULL,
+        address text NOT NULL,
+        practitioner_id bigint(20) DEFAULT NULL,
+        practitioner_name varchar(255) NOT NULL,
+        consultation_fee decimal(10,2) DEFAULT '0.00' NOT NULL,
+        services_rendered longtext NOT NULL,
+        subtotal decimal(10,2) DEFAULT '0.00' NOT NULL,
+        discount_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+        net_total decimal(10,2) DEFAULT '0.00' NOT NULL,
+        payment_method varchar(50) DEFAULT 'cash' NOT NULL,
+        created_by bigint(20) NOT NULL,
+        created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY ticket_no (ticket_no),
+        KEY phone_idx (phone)
+    ) $charset_collate;";
+    dbDelta( $sql_opd );
 
     // Inpatient Admissions & Accommodation Log
     $table_admissions = $wpdb->prefix . 'arms_admissions';
@@ -383,12 +362,8 @@ dbDelta( $sql_incentives );
     ) $charset_collate;";
     dbDelta( $sql_audit );
 
-    global $wpdb;
-    $charset_collate = $wpdb->get_charset_collate();
-    $table_inventory = $wpdb->prefix . 'arms_inventory';
-    $table_movements = $wpdb->prefix . 'arms_stock_movements';
-
     // Core Inventory Table
+    $table_inventory = $wpdb->prefix . 'arms_inventory';
     $sql_inventory = "CREATE TABLE $table_inventory (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         item_code varchar(100) NOT NULL,
@@ -409,8 +384,10 @@ dbDelta( $sql_incentives );
         PRIMARY KEY  (id),
         UNIQUE KEY item_code (item_code)
     ) $charset_collate;";
+    dbDelta( $sql_inventory );
 
     // Stock Movement History Ledger Table
+    $table_movements = $wpdb->prefix . 'arms_stock_movements';
     $sql_movements = "CREATE TABLE $table_movements (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         item_id bigint(20) NOT NULL,
@@ -423,9 +400,6 @@ dbDelta( $sql_incentives );
         created_at datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
         PRIMARY KEY  (id)
     ) $charset_collate;";
-
-    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    dbDelta( $sql_inventory );
     dbDelta( $sql_movements );
 }
 register_activation_hook( __FILE__, 'arms_create_system_tables' );
