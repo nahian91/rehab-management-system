@@ -759,11 +759,9 @@
             box-shadow: 0 0 0 3px rgba(59, 131, 246, 0.15); 
             outline: none; 
         }
-        .arms-service-item input {
-	width: auto;
-}
+        
         .arms-form-group input:read-only {
-            background-color: var(--wp-admin-theme-color);
+            background-color: #f3f3f3;
             color: #64748b;
             cursor: not-allowed;
             border-color: #e2e8f0;

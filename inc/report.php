@@ -64,7 +64,7 @@ function arms_handle_early_print_request() {
                 $inventory_expenses = $wpdb->get_results( $wpdb->prepare( "SELECT id as ref, 'Equipment' as category, (purchase_price * available_stock) as amount, updated_at as t_date, CONCAT(item_name, ' (SKU: ', sku, ') Purchase Intake') as notes FROM $table_inventory WHERE updated_at >= %s AND updated_at <= %s", $start_date, $end_date ) );
             }
 
-            $compiled_data = array_merge( $general_expenses, $payroll_expenses, $inventory_expenses );
+            $compiled_data = array_merge( (array)$general_expenses, (array)$payroll_expenses, (array)$inventory_expenses );
             foreach ( $compiled_data as $row ) { $total_expense += $row->amount; }
             usort( $compiled_data, function($a, $b) { return strtotime($b->t_date) - strtotime($a->t_date); } );
 
@@ -146,7 +146,7 @@ function arms_reports_tab() {
                 $inventory_expenses = $wpdb->get_results( $wpdb->prepare( "SELECT id as ref, 'Equipment' as category, (purchase_price * available_stock) as amount, updated_at as t_date, CONCAT(item_name, ' (SKU: ', sku, ') Purchase Intake') as notes FROM $table_inventory WHERE updated_at >= %s AND updated_at <= %s", $start_date, $end_date ) );
             }
 
-            $compiled_data = array_merge( $general_expenses, $payroll_expenses, $inventory_expenses );
+            $compiled_data = array_merge( (array)$general_expenses, (array)$payroll_expenses, (array)$inventory_expenses );
             foreach ( $compiled_data as $row ) { $total_expense += $row->amount; }
             usort( $compiled_data, function($a, $b) { return strtotime($b->t_date) - strtotime($a->t_date); } );
 
@@ -402,8 +402,8 @@ function self_contained_print_stream($report_type, $sub_criteria, $date_from, $d
         <div class="scope-bar">
             <table style="width:100%; border:none; border-collapse:collapse;">
                 <tr>
-                    <td style="padding:0; border:none;"><strong>Ledger Filter Target:</strong> <?php echo strtoupper($report_type); ?> (<?php echo esc_html($sub_criteria); ?>)</td>
-                    <td style="padding:0; border:none; text-align:right;"><strong>Statement Timeline Window:</strong> <?php echo esc_html($date_from) . ' to ' . esc_html($date_to); ?></td>
+                    <td><strong>Ledger Filter Target:</strong> <?php echo esc_html(strtoupper($report_type)); ?> (<?php echo esc_html($sub_criteria); ?>)</td>
+                    <td style="text-align:right;"><strong>Statement Timeline Window:</strong> <?php echo esc_html($date_from) . ' to ' . esc_html($date_to); ?></td>
                 </tr>
             </table>
         </div>
@@ -432,18 +432,21 @@ function self_contained_print_stream($report_type, $sub_criteria, $date_from, $d
                         <tr>
                             <td><?php echo date('Y-m-d H:i', strtotime($item->t_date)); ?></td>
                             <td><code><?php echo esc_html($item->ref); ?></code></td>
-                            <td><strong><?php echo strtoupper(esc_html($item->category)); ?></strong></td>
-                            <td><?php echo esc_html($item->notes ?: '──'); ?></td>
-                            <td style="text-align: right; font-weight: 700;"><?php echo number_format($item->amount, 2); ?> BDT</td>
+                            <td><strong><?php echo esc_html(strtoupper($item->category)); ?></strong></td>
+                            <td><?php echo esc_html($item->notes ?: 'N/A'); ?></td>
+                            <td style="text-align: right; font-weight: 600; color: <?php echo $report_type === 'income' ? '#16a34a' : '#dc2626'; ?>;">
+                                <?php echo $report_type === 'income' ? '+' : '-'; ?> <?php echo number_format($item->amount, 2); ?> BDT
+                            </td>
                         </tr>
                     <?php endforeach; endif; ?>
                 </tbody>
             </table>
-            <div class="grand-total-strip">Cumulated Accounting Aggregate: <span style="color: #1e3a8a; margin-left: 10px; font-size:14px;"><?php echo number_format(($report_type === 'income' ? $total_income : $total_expense), 2); ?> BDT</span></div>
+            <div class="grand-total-strip">
+                Cumulated Accounting Aggregate: <?php echo number_format(($report_type === 'income' ? $total_income : $total_expense), 2); ?> BDT
+            </div>
         <?php endif; ?>
-        <script type="text/javascript">window.onload = function() { window.print(); };</script>
     </body>
     </html>
     <?php
-    exit;
+    exit; // Crucial fix: Prevents WordPress administration content from drawing inside the isolated frame
 }
