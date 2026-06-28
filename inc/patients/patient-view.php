@@ -437,189 +437,262 @@ function arms_view_patient_profile($item_id) {
     </div>
 </div>
 
-        <!-- TAB 3: PHYSIOTHERAPY LOG -->
-        <div id="tab-physio" class="arms-tab-content">
-            <div class="arms-main-grid" style="grid-template-columns: 1fr;">
-                <div class="arms-card-panel">
-                    <h3 class="panel-title" style="color: #003376;">Physiotherapy Rehabilitation Clinical Summary Ledger</h3>
-                    
-                    <div class="arms-badge-deck">
-                        <?php 
-                        foreach ($conditions_map as $key => $label) {
-                            $is_active = is_array($patient['conditions']) && in_array($key, $patient['conditions']);
-                            $class = $is_active ? 'is-active' : '';
-                            echo '<span class="arms-badge-tag ' . $class . '">' . esc_html($label) . '</span>';
-                        }
-                        ?>
-                    </div>
+        <!-- TAB 3: PHYSIOTHERAPY CORE CLINICAL LEDGER & REPEATER RUNS -->
+<div id="tab-physio" class="arms-tab-content">
+    <div class="arms-main-grid" style="grid-template-columns: 1fr;">
+        <div class="arms-card-panel">
+            <h3 class="panel-title" style="color: #003376;">Physiotherapy Rehabilitation Clinical Summary & Treatment Ledger</h3>
+            
+            <!-- Diagnostic Classification Badges -->
+            <div class="arms-badge-deck" style="margin-bottom: 24px;">
+                <?php 
+                foreach ($conditions_map as $key => $label) {
+                    $is_active = is_array($patient['conditions']) && in_array($key, $patient['conditions']);
+                    echo '<span class="arms-badge-tag ' . ($is_active ? 'is-active' : '') . '" style="padding: 6px 14px; font-weight: 700; border-radius: 20px;">' . esc_html($label) . '</span>';
+                }
+                ?>
+            </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-                        <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px; text-align: center;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: #0369a1; font-weight:700; display:block; margin-bottom:4px;">Physio Done</span>
-                            <strong style="font-size: 16px; color: #0369a1;"><?php echo $physio_sessions; ?></strong>
-                        </div>
-                        <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 10px; text-align: center;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: #b45309; font-weight:700; display:block; margin-bottom:4px;">Remaining</span>
-                            <strong style="font-size: 16px; color: #b45309;"><?php echo $sessions_remaining; ?></strong>
-                        </div>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; text-align: center;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight:600; display:block; margin-bottom:4px;">Acupunct.</span>
-                            <strong style="font-size: 16px; color: #0f172a;"><?php echo $acupuncture_count; ?></strong>
-                        </div>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; text-align: center;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight:600; display:block; margin-bottom:4px;">PRP Runs</span>
-                            <strong style="font-size: 16px; color: #0f172a;"><?php echo $prp_count; ?></strong>
-                        </div>
-                    </div>
-
-                    <?php if(!empty($physio_log)): ?>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                            <div>
-                                <span class="strip-lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:0.5px;">Initial Evaluation Baseline</span>
-                                <div class="arms-narrative-box" style="margin-top:6px; min-height: 70px; background: #fafafa;"><?php echo nl2br(esc_html($physio_log['initial_assessment'])); ?></div>
-                            </div>
-                            <div>
-                                <span class="strip-lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:0.5px;">Target Milestones & Goals</span>
-                                <div class="arms-narrative-box" style="margin-top:6px; min-height: 70px; background: #fafafa;"><?php echo nl2br(esc_html($physio_log['rehab_goals'])); ?></div>
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 10px;">
-                            <div>
-                                <span class="strip-lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:0.5px;">Daily Operational Plan</span>
-                                <div class="arms-narrative-box" style="margin-top:6px; min-height: 70px; background: #fafafa;"><?php echo nl2br(esc_html($physio_log['daily_plan'])); ?></div>
-                            </div>
-                            <div>
-                                <span class="strip-lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:0.5px;">Progress Logs & Session Trackers</span>
-                                <div class="arms-narrative-box" style="margin-top:6px; min-height: 70px; background: #fafafa;">
-                                    <?php if (!empty($parsed_repeater_sessions)): ?>
-                                        <div style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                                            <h5 style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; color: #003376;">Individual Attended Runs:</h5>
-                                            <?php foreach ($parsed_repeater_sessions as $session): ?>
-                                                <div class="arms-session-item-row">
-                                                    <div>
-                                                        <span class="arms-session-item-date"><?php echo esc_html($session['date']); ?></span> — 
-                                                        <span style="color:#0f172a; font-weight:600;"><?php echo esc_html($session['name']); ?></span>
-                                                    </div>
-                                                    <div class="arms-session-item-meta">
-                                                        Qty: <strong><?php echo intval($session['count']); ?></strong> | <?php echo esc_html($currency) . ' ' . number_format($session['fee'], 2); ?>
-                                                    </div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div style="font-size:13px; color:#334155; line-height:1.5;">
-                                        <?php echo !empty($clean_progress_notes) ? nl2br(esc_html($clean_progress_notes)) : '<em>No session adjustments noted.</em>'; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <p style="font-style:italic; font-size:13px; color:#94a3b8; margin:0; padding:10px 0;">No active core Physiotherapy Rehabilitation records found inside `arms_physio_logs` for this patient profile.</p>
-                    <?php endif; ?>
+            <!-- Global Target Session Counter Metrics -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; max-width: 650px;">
+                <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 12px; padding: 14px; text-align: center;">
+                    <span style="font-size: 11px; text-transform: uppercase; color: #0369a1; font-weight:700; display:block; letter-spacing:0.5px;">Sessions Completed</span>
+                    <strong style="font-size: 22px; color: #0369a1; display:block; margin-top:4px;"><?php echo $physio_sessions; ?> Run Tracks</strong>
+                </div>
+                <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+                    <span style="font-size: 11px; text-transform: uppercase; color: #b45309; font-weight:700; display:block; letter-spacing:0.5px;">Remaining Track Balance</span>
+                    <strong style="font-size: 22px; color: #b45309; display:block; margin-top:4px;"><?php echo $sessions_remaining; ?> Prescribed</strong>
+                </div>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; text-align: center;">
+                    <span style="font-size: 11px; text-transform: uppercase; color: #166534; font-weight:700; display:block; letter-spacing:0.5px;">Repeater Rows Extracted</span>
+                    <strong style="font-size: 22px; color: #166534; display:block; margin-top:4px;"><?php echo count($parsed_repeater_sessions); ?> Items Indexed</strong>
                 </div>
             </div>
+
+            <?php if (!empty($physio_log)): ?>
+                <!-- Core Baseline Assessments -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <div>
+                        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#475569; letter-spacing:0.5px;">📋 Initial Evaluation Baseline Assessment</span>
+                        <div class="arms-narrative-box" style="margin-top:8px; min-height: 90px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size:13.5px;">
+                            <?php echo nl2br(esc_html($physio_log['initial_assessment'])); ?>
+                        </div>
+                    </div>
+                    <div>
+                        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#475569; letter-spacing:0.5px;">🎯 Target Milestones & Clinical Rehabilitation Goals</span>
+                        <div class="arms-narrative-box" style="margin-top:8px; min-height: 90px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size:13.5px;">
+                            <?php echo nl2br(esc_html($physio_log['rehab_goals'])); ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC REPEATER SESSION TRACK TIMELINE -->
+                <h4 style="margin: 32px 0 12px 0; font-size: 13px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#0284c7;"></span>
+                    Granular Continuous Session-by-Session Run Ledger (Repeater View)
+                </h4>
+
+                <div class="arms-table-responsive" style="border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <table class="arms-pricing-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <th style="padding:12px 16px; color:#475569; font-weight:700; width: 12%;">Session ID</th>
+                                <th style="padding:12px 16px; color:#475569; font-weight:700; width: 15%;">Treatment Date</th>
+                                <th style="padding:12px 16px; color:#475569; font-weight:700; width: 25%;">Modalities & Equipment Used</th>
+                                <th style="padding:12px 16px; color:#475569; font-weight:700; width: 13%; text-align:center;">Pain Profile Scale</th>
+                                <th style="padding:12px 16px; color:#475569; font-weight:700; width: 35%;">Therapist's Clinical Observations / Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($parsed_repeater_sessions)): ?>
+                                <?php foreach ($parsed_repeater_sessions as $index => $session): 
+                                    // Handle varying JSON field permutations cleanly with safe fallbacks
+                                    $session_no    = !empty($session['session_no']) ? $session['session_no'] : ($index + 1);
+                                    $raw_date      = !empty($session['session_date']) ? $session['session_date'] : (!empty($session['date']) ? $session['date'] : '');
+                                    $display_date  = !empty($raw_date) ? date_i18n(get_option('date_format'), strtotime($raw_date)) : '—';
+                                    
+                                    $modalities    = !empty($session['modalities_used']) ? $session['modalities_used'] : (!empty($session['modalities']) ? $session['modalities'] : 'Manual Therapy');
+                                    $pain_rating   = isset($session['pain_scale']) ? $session['pain_scale'] : (isset($session['pain_level']) ? $session['pain_level'] : '—');
+                                    $session_notes = !empty($session['comments']) ? $session['comments'] : (!empty($session['notes']) ? $session['notes'] : (!empty($session['therapist_notes']) ? $session['therapist_notes'] : 'Routine tracking entry recorded.'));
+                                ?>
+                                    <tr style="border-bottom:1px solid #e2e8f0; transition: background 0.1s ease;">
+                                        <td style="padding:12px 16px;">
+                                            <span style="background: #f1f5f9; color: #334155; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size:11.5px;">
+                                                RUN #<?php echo esc_html($session_no); ?>
+                                            </span>
+                                        </td>
+                                        <td style="padding:12px 16px; color: #0f172a; font-weight: 600;">
+                                            📅 <?php echo esc_html($display_date); ?>
+                                        </td>
+                                        <td style="padding:12px 16px; color: #0369a1; font-weight: 600;">
+                                            ⚡ <?php echo esc_html($modalities); ?>
+                                        </td>
+                                        <td style="padding:12px 16px; text-align: center;">
+                                            <?php if (intval($pain_rating) >= 7): ?>
+                                                <span style="background:#fee2e2; color:#991b1b; font-weight:700; padding:3px 9px; border-radius:6px; font-size:12px;">🚨 <?php echo esc_html($pain_rating); ?> / 10</span>
+                                            <?php elseif (intval($pain_rating) >= 4): ?>
+                                                <span style="background:#fef3c7; color:#92400e; font-weight:700; padding:3px 9px; border-radius:6px; font-size:12px;">⚠️ <?php echo esc_html($pain_rating); ?> / 10</span>
+                                            <?php else: ?>
+                                                <span style="background:#dcfce7; color:#166534; font-weight:700; padding:3px 9px; border-radius:6px; font-size:12px;">✅ <?php echo esc_html($pain_rating); ?> / 10</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="padding:12px 16px; color: #475569; font-style: italic; line-height: 1.4;">
+                                            <?php echo esc_html($session_notes); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" style="text-align:center; font-style:italic; color:#94a3b8; padding:24px; background:#f8fafc;">
+                                        No explicit chronological sub-session array payloads found encoded inside progress meta fields.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Clean Parsed Narrative Appendices -->
+                <div style="margin-top: 20px;">
+                    <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#475569; letter-spacing:0.5px;">📝 Consolidated Discharge or Cumulative Progress Summary Remarks</span>
+                    <div class="arms-narrative-box" style="margin-top:8px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 16px; line-height:1.6; color:#451a03;">
+                        <?php echo !empty($clean_progress_notes) ? nl2br(esc_html($clean_progress_notes)) : '<em>No master cumulative clinical remarks updated at this stage of execution.</em>'; ?>
+                    </div>
+                </div>
+
+            <?php else: ?>
+                <div style="text-align:center; padding:40px 20px; border: 2px dashed #cbd5e1; border-radius:12px; color:#94a3b8; font-style:italic; background:#f8fafc;">
+                    No active Physiotherapy case charts, session tracking registers, or initial baselines logged for this case file number.
+                </div>
+            <?php endif; ?>
         </div>
+    </div>
+</div>
 
-        <!-- TAB 4: NURSING LOG -->
         <div id="tab-nursing" class="arms-tab-content">
-            <div class="arms-main-grid" style="grid-template-columns: 1fr;">
-                <div class="arms-card-panel">
-                    <h3 class="panel-title" style="color: #0d9488;">Clinical Nursing Observation Timeline & Vitals Ledger (<?php echo count($nursing_logs); ?> Entries)</h3>
-                    
-                    <?php if (!empty($nursing_logs)): ?>
-                        <div style="max-height: 600px; overflow-y: auto; padding-right: 5px;">
-                            <?php foreach ($nursing_logs as $log): 
-                                $systolic  = intval($log['bp_systolic']);
-                                $diastolic = intval($log['bp_diastolic']);
-                                $pulse     = intval($log['pulse_rate']);
-                                $spo2      = intval($log['spo2_level']);
-                                $temp      = esc_html($log['body_temp']);
-                                $med_notes = $log['medication_chart'];
+    <div class="arms-main-grid" style="grid-template-columns: 1fr;">
+        <div class="arms-card-panel">
+            <h3 class="panel-title" style="color: #0d9488;">
+                Clinical Nursing Observation Timeline & Electronic Repeater Vitals Ledger (<?php echo count($nursing_logs); ?> Shifts Logged)
+            </h3>
+            
+            <?php if (!empty($nursing_logs)): ?>
+                <div style="max-height: 800px; overflow-y: auto; padding-right: 6px;">
+                    <?php foreach ($nursing_logs as $log): 
+                        // Initial operational data assignment fallbacks
+                        $systolic       = intval($log['bp_systolic']);
+                        $diastolic      = intval($log['bp_diastolic']);
+                        $pulse          = intval($log['pulse_rate']);
+                        $spo2           = intval($log['spo2_level']);
+                        $temp           = esc_html($log['body_temp']);
+                        $medication_raw = $log['medication_chart'];
+                        
+                        $repeater_entries = array();
 
-                                if (strpos($log['medication_chart'], '[{') !== false) {
-                                    $decoded_vitals = json_decode($log['medication_chart'], true);
-                                    if (is_array($decoded_vitals) && !empty($decoded_vitals[0])) {
-                                        $v = $decoded_vitals[0];
-                                        if (($systolic === 0 || $diastolic === 0) && !empty($v['bp'])) {
-                                            $bp_parts = explode('/', $v['bp']);
-                                            $systolic  = isset($bp_parts[0]) ? intval($bp_parts[0]) : $systolic;
-                                            $diastolic = isset($bp_parts[1]) ? intval($bp_parts[1]) : $diastolic;
-                                        }
-                                        if ($pulse === 0 && !empty($v['pulse']))          $pulse = intval($v['pulse']);
-                                        if ($spo2 === 0 && !empty($v['oxygen_sat']))      $spo2  = intval($v['oxygen_sat']);
-                                        if (($temp == '0.00' || $temp == 0) && !empty($v['temperature'])) $temp = esc_html($v['temperature']);
-                                        
-                                        if (isset($v['service_time'])) {
-                                            $med_notes = "Vitals logged electronically via system at " . date_i18n('g:i A', strtotime($v['service_time']));
-                                        }
+                        // PARSING REPEATER DATA: Detect if the field houses serialized arrays
+                        if (!empty($medication_raw) && (strpos($medication_raw, '[{') !== false || strpos($medication_raw, '{"') !== false)) {
+                            $decoded_repeater = json_decode($medication_raw, true);
+                            if (is_array($decoded_repeater)) {
+                                $repeater_entries = $decoded_repeater;
+                                
+                                // Fallback mapping: If primary shift columns are blank, extract baseline values from row 1 of repeater data
+                                if (!empty($repeater_entries[0])) {
+                                    $first_v = $repeater_entries[0];
+                                    if (($systolic === 0 || $diastolic === 0) && !empty($first_v['bp'])) {
+                                        $bp_split = explode('/', $first_v['bp']);
+                                        $systolic  = isset($bp_split[0]) ? intval($bp_split[0]) : $systolic;
+                                        $diastolic = isset($bp_split[1]) ? intval($bp_split[1]) : $diastolic;
+                                    }
+                                    if ($pulse === 0 && !empty($first_v['pulse'])) {
+                                        $pulse = intval($first_v['pulse']);
+                                    }
+                                    if ($spo2 === 0 && !empty($first_v['oxygen_sat'])) {
+                                        $spo2 = intval($first_v['oxygen_sat']);
+                                    }
+                                    if (($temp == '0.00' || $temp == 0) && !empty($first_v['temperature'])) {
+                                        $temp = esc_html($first_v['temperature']);
                                     }
                                 }
-                                ?>
-                                <div class="arms-nurse-row-card">
-                                    <div class="arms-nurse-meta-stripe">
-                                        <span style="font-size: 14px; font-weight: 700; color: #0f172a;">
-                                            📅 <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($log['log_date']))); ?>
-                                        </span>
-                                        <span class="arms-p-chip" style="background:#ccfbf1; color:#115e59; font-weight:700;">🌅 <?php echo esc_html($log['shift_type']); ?> Shift</span>
-                                        <span class="arms-p-chip" style="background:#e0f2fe; color:#0369a1;">🏥 Allocation: <?php echo esc_html($log['location_type']); ?></span>
-                                        <?php if (!empty($log['bed_no'])): ?>
-                                            <span class="arms-p-chip" style="background:#f1f5f9; color:#334155;">🛏️ Bed: <?php echo esc_html($log['bed_no']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
+                            }
+                        }
+                        ?>
+                        <div class="arms-nurse-row-card" style="border: 1px solid #cbd5e1; background: #ffffff; border-radius: 14px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            
+                            <div class="arms-nurse-meta-stripe" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px;">
+                                <span style="font-size: 15px; font-weight: 700; color: #0f172a;">📅 <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($log['log_date']))); ?></span>
+                                <span class="arms-p-chip" style="background:#ccfbf1; color:#115e59; font-weight: 700; border-radius: 6px; padding: 4px 10px;">🌅 <?php echo esc_html($log['shift_type'] ?? 'General'); ?> Shift</span>
+                                <span class="arms-p-chip" style="background:#e0f2fe; color:#0369a1; font-weight: 700; border-radius: 6px; padding: 4px 10px;">🏥 Facility: <?php echo esc_html($log['location_type'] ?? 'In-Patient'); ?></span>
+                                <span style="margin-left: auto; font-size: 11px; color: #64748b; font-weight: 500;">Logged on System: <?php echo esc_html(date_i18n('g:i A', strtotime($log['created_at']))); ?></span>
+                            </div>
 
-                                    <div class="arms-nurse-vitals-container">
-                                        <div class="arms-vital-box" style="border-left: 4px solid #ef4444;">
-                                            <span class="v-lbl">Blood Pressure</span>
-                                            <span class="v-val"><?php echo $systolic; ?>/<?php echo $diastolic; ?> <span style="font-size:10px; font-weight:normal; color:#64748b;">mmHg</span></span>
-                                        </div>
-                                        <div class="arms-vital-box" style="border-left: 4px solid #f97316;">
-                                            <span class="v-lbl">Pulse Rate</span>
-                                            <span class="v-val"><?php echo $pulse; ?> <span style="font-size:10px; font-weight:normal; color:#64748b;">bpm</span></span>
-                                        </div>
-                                        <div class="arms-vital-box" style="border-left: 4px solid #06b6d4;">
-                                            <span class="v-lbl">Blood Oxygen</span>
-                                            <span class="v-val"><?php echo $spo2; ?>%</span>
-                                        </div>
-                                        <div class="arms-vital-box" style="border-left: 4px solid #eab308;">
-                                            <span class="v-lbl">Body Temp</span>
-                                            <span class="v-val"><?php echo $temp; ?>°F</span>
-                                        </div>
-                                        <div class="arms-vital-box" style="border-left: 4px solid #a855f7; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                                            <span class="v-lbl" style="margin-bottom:0;">Log Checked</span>
-                                            <span style="font-size:10px; font-weight:700; color:#a855f7;"><?php echo esc_html(date_i18n('g:i A', strtotime($log['created_at']))); ?></span>
-                                        </div>
-                                    </div>
+                            <div class="arms-nurse-vitals-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;">
+                                <div class="arms-vital-box" style="border-left: 4px solid #ef4444; background: #fff5f5; border-radius: 10px; padding: 12px;"><span class="v-lbl" style="font-weight: 600; color:#991b1b;">Master Blood Pressure</span><span class="v-val" style="font-size:16px; font-weight:800;"><?php echo $systolic; ?>/<?php echo $diastolic; ?> <span style="font-size:11px; color:#64748b; font-weight:normal;">mmHg</span></span></div>
+                                <div class="arms-vital-box" style="border-left: 4px solid #f97316; background: #fff7ed; border-radius: 10px; padding: 12px;"><span class="v-lbl" style="font-weight: 600; color:#c2410c;">Pulse Evaluation</span><span class="v-val" style="font-size:16px; font-weight:800;"><?php echo $pulse; ?> <span style="font-size:11px; color:#64748b; font-weight:normal;">bpm</span></span></div>
+                                <div class="arms-vital-box" style="border-left: 4px solid #06b6d4; background: #ecfeff; border-radius: 10px; padding: 12px;"><span class="v-lbl" style="font-weight: 600; color:#0e7490;">Oxygen Concentration</span><span class="v-val" style="font-size:16px; font-weight:800;"><?php echo $spo2; ?>% <span style="font-size:11px; color:#64748b; font-weight:normal;">SpO₂</span></span></div>
+                                <div class="arms-vital-box" style="border-left: 4px solid #eab308; background: #fefce8; border-radius: 10px; padding: 12px;"><span class="v-lbl" style="font-weight: 600; color:#854d0e;">Thermal Body Temp</span><span class="v-val" style="font-size:16px; font-weight:800;"><?php echo $temp; ?>°F</span></div>
+                            </div>
 
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
-                                        <div>
-                                            <h5 style="margin:0 0 4px 0; font-size:11px; text-transform:uppercase; color:#475569;">📋 Medication Chart & Administration</h5>
-                                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; font-size:12.5px; min-height:45px; color:#475569; line-height:1.4;">
-                                                <?php echo !empty($med_notes) ? nl2br(esc_html($med_notes)) : '<em>No pharmaceutical charting specified.</em>'; ?>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h5 style="margin:0 0 4px 0; font-size:11px; text-transform:uppercase; color:#475569;">📝 Shift Report & Nursing Handover Notes</h5>
-                                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; font-size:12.5px; min-height:45px; color:#475569; line-height:1.4;">
-                                                <?php echo !empty($log['shift_report']) ? nl2br(esc_html($log['shift_report'])) : '<em>No narrative shift summary provided.</em>'; ?>
-                                            </div>
-                                        </div>
+                            <?php if (!empty($repeater_entries)): ?>
+                                <div style="margin-top: 16px; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                                    <h4 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px;">
+                                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#0d9488;"></span>
+                                        Chronological Periodic Run Tracks (Repeater Records)
+                                    </h4>
+                                    <div class="arms-table-responsive" style="border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
+                                        <table class="arms-pricing-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                                            <thead>
+                                                <tr style="background:#f1f5f9;">
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">Check Instance/Time</th>
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">Blood Pressure</th>
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">Pulse</th>
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">O₂ Saturation</th>
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">Temperature</th>
+                                                    <th style="padding:8px 12px; color:#475569; font-weight:700;">Assigned Medication/Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($repeater_entries as $idx => $v_row): ?>
+                                                    <tr>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9;">
+                                                            <strong>Run #<?php echo ($idx + 1); ?></strong> 
+                                                            <?php if(!empty($v_row['service_time'])): ?>
+                                                                <span style="color:#64748b; font-weight:normal; margin-left:4px;">(@ <?php echo esc_html(date('g:i A', strtotime($v_row['service_time']))); ?>)</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9; color:#dc2626; font-weight:600;"><?php echo esc_html($v_row['bp'] ?? '—'); ?></td>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9; color:#ea580c; font-weight:600;"><?php echo !empty($v_row['pulse']) ? esc_html($v_row['pulse']) . ' bpm' : '—'; ?></td>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9; color:#0891b2; font-weight:600;"><?php echo !empty($v_row['oxygen_sat']) ? esc_html($v_row['oxygen_sat']) . '%' : '—'; ?></td>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9; color:#ca8a04; font-weight:600;"><?php echo !empty($v_row['temperature']) ? esc_html($v_row['temperature']) . '°F' : '—'; ?></td>
+                                                        <td style="padding:8px 12px; border-bottom:1px solid #f1f5f9; color:#334155; font-style:italic;">
+                                                            <?php echo !empty($v_row['medication']) ? esc_html($v_row['medication']) : 'Routine Observation Check'; ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    
-                                    <?php if(!empty($log['nursing_notes'])): ?>
-                                        <div style="margin-top: 8px; font-size:12px; color:#64748b; background:#f1f5f9; padding:6px 10px; border-radius:6px;">
-                                            <strong>Internal Notes:</strong> <?php echo esc_html($log['nursing_notes']); ?>
-                                        </div>
-                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
+                            <?php endif; ?>
+
+                            <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 14px;">
+                                <div>
+                                    <h5 style="margin:0 0 6px 0; font-size:11px; text-transform:uppercase; color:#475569; font-weight:700; letter-spacing:0.5px;">📝 Shift Handover & Clinical Status Notes</h5>
+                                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; font-size:13px; line-height:1.6; color:#334155;">
+                                        <?php echo !empty($log['shift_report']) ? nl2br(esc_html($log['shift_report'])) : '<em>No raw descriptive evaluation logged during shift completion handover.</em>'; ?>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    <?php else: ?>
-                        <p style="font-style:italic; font-size:13px; color:#94a3b8; margin:0; padding:10px 0;">No diagnostic vital sheets or shift round logs uploaded into `arms_nursing_logs` for this profile.</p>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
                 </div>
-            </div>
+            <?php else: ?>
+                <div style="text-align:center; padding:40px 20px; border: 2px dashed #cbd5e1; border-radius:12px; color:#94a3b8; font-style:italic; background:#f8fafc;">
+                    No clinical nursing operations or automated vital logs populated inside system data pipelines.
+                </div>
+            <?php endif; ?>
         </div>
+    </div>
+</div>
 
     </div>
 
