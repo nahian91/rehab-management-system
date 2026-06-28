@@ -71,67 +71,6 @@ function arms_patients_list_table() {
     wp_enqueue_style('datatables-css', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', [], '1.13.6');
     wp_enqueue_script('datatables-js', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', ['jquery'], '1.13.6', true);
     ?>
-    <style>
-        .arms-container { margin: 20px 20px 0 0; max-width: 100%; }
-        .arms-title-wrapper { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .arms-title-left { display: flex; align-items: center; gap: 15px; }
-        .arms-title-wrapper h2 { font-size: 23px; font-weight: 400; margin: 0; color: #1d2327; }
-        .arms-btn-add-new { display: inline-block; text-decoration: none; padding: 4px 12px; font-size: 13px; font-weight: 600; border: 1px solid #003376; border-radius: 3px; color: #003376; background: #f6f7f7; cursor: pointer; vertical-align: middle; }
-        .arms-btn-add-new:hover { background: #f0f6fa; color: #0a4b78; border-color: #0a4b78; }
-        
-        .arms-filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
-        .arms-filters-form { display: flex; gap: 10px; align-items: center; width: 100%; }
-        
-        .arms-input-search { padding: 0 8px; font-size: 14px; border: 1px solid #8c8f94; border-radius: 4px; min-width: 220px; height: 32px; box-sizing: border-box; background-color: #fff; color: #2c3338; }
-        .arms-btn-filter { height: 32px; background: #f6f7f7; color: #003376; border: 1px solid #003376; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .arms-btn-filter:hover { background: #f0f6fa; }
-        
-        .wp-list-table.arms-patient-table th.sortable a { display: inline-block; padding-right: 15px; position: relative; text-decoration: none; color: #1d2327; }
-        .wp-list-table.arms-patient-table th.sorted.asc a::after { content: '▲'; position: absolute; right: 0; font-size: 10px; top: 2px; }
-        .wp-list-table.arms-patient-table th.sorted.desc a::after { content: '▼'; position: absolute; right: 0; font-size: 10px; top: 2px; }
-        .wp-list-table.arms-patient-table td { vertical-align: middle; }
-
-        .arms-actions-wrapper { display: flex; gap: 8px; align-items: center; }
-        .arms-action-btn { 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            padding: 10px 15px;
-            font-size: 12px;
-            font-weight: 500;
-            border-radius: 4px; 
-            border: 1px solid #8c8f94; 
-            background: #fff; 
-            cursor: pointer; 
-            text-decoration: none; 
-            line-height: 1;
-        }
-        .arms-action-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-        
-        .arms-btn-view { color: #fff;background-color: #003376} 
-        .arms-btn-view:hover { background: #003376; color: #fff; }
-        
-        .arms-btn-edit { color: #fff; background-color: #198754; } 
-        .arms-btn-edit:hover { background: #8a5300; color: #fff; border-color: #8a5300; }
-        
-        .arms-btn-delete { color: #fff; background-color: #b32d2e; } 
-        .arms-btn-delete:hover { background: #b32d2e; color: #fff; }
-
-        .arms-pagination-nav { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .arms-pagination-info { color: #646970; font-size: 13px; }
-        .arms-pagination-buttons { display: flex; gap: 5px; }
-        .arms-page-link { display: inline-block; padding: 4px 10px; min-width: 15px; text-align: center; background: #f6f7f7; border: 1px solid #8c8f94; border-radius: 3px; text-decoration: none; color: #003376; font-size: 13px; }
-        .arms-page-link:hover { background: #f0f6fa; border-color: #003376; }
-        .arms-page-link.arms-active-page { background: #003376; border-color: #003376; color: #fff; font-weight: 600; cursor: default; }
-        .arms-page-link.disabled { color: #a7aaad; background: #f6f7f7; border-color: #dcdcde; cursor: not-allowed; pointer-events: none; }
-
-        .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_paginate, .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_info {
-            display: none !important; 
-        }
-        table.dataTable {
-            border-collapse: collapse !important;
-        }
-    </style>
 
     <div class="arms-container">
         
