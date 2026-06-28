@@ -275,42 +275,39 @@ function arms_create_system_tables() {
     ) $charset_collate;";
     dbDelta( $sql_opd );
 
-    // Inpatient Admissions & Accommodation Log
-    $table_admissions = $wpdb->prefix . 'arms_admissions';
-    $sql_admissions = "CREATE TABLE $table_admissions (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        patient_id bigint(20) NOT NULL,
-        room_type varchar(50) NOT NULL,
-        room_no varchar(50) DEFAULT '' NOT NULL,
-        ward_bed_no varchar(50) DEFAULT '' NOT NULL,
-        admission_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        advance_payment decimal(10,2) DEFAULT '0.00' NOT NULL,
-        discharge_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
-        final_bill_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
-        payment_status varchar(30) DEFAULT 'Unpaid' NOT NULL,
-        discharge_summary longtext NOT NULL,
-        PRIMARY KEY  (id),
-        KEY patient_id (patient_id),
-        KEY payment_status (payment_status)
-    ) $charset_collate;";
-    dbDelta( $sql_admissions );
+    // Integrated Inpatient Admissions & Charges Log
+$table_admissions = $wpdb->prefix . 'arms_admissions';
+$sql_admissions = "CREATE TABLE $table_admissions (
+    id bigint(20) NOT NULL AUTO_INCREMENT,
+    patient_id bigint(20) NOT NULL,
+    room_type varchar(50) NOT NULL,
+    room_no varchar(50) DEFAULT '' NOT NULL,
+    ward_bed_no varchar(50) DEFAULT '' NOT NULL,
+    admission_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+    discharge_date datetime DEFAULT '1970-01-01 00:00:00' NOT NULL,
+    
+    -- Charge-Tracking Matrix Fields (Merged from Charges Table)
+    charge_date date DEFAULT '1970-01-01' NOT NULL,
+    room_rent decimal(10,2) DEFAULT '0.00' NOT NULL,
+    nursing_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
+    physio_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
+    doctor_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
+    acupuncture_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
+    prp_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
+    
+    -- Billing Summary Fields
+    advance_payment decimal(10,2) DEFAULT '0.00' NOT NULL,
+    final_bill_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+    payment_status varchar(30) DEFAULT 'Unpaid' NOT NULL,
+    discharge_summary longtext NOT NULL,
+    
+    PRIMARY KEY  (id),
+    KEY patient_id (patient_id),
+    KEY payment_status (payment_status),
+    KEY charge_date (charge_date)
+) $charset_collate;";
 
-    // Repeater Row / Daily Service Logs Table
-    $table_charges = $wpdb->prefix . 'arms_admission_charges';
-    $sql_admission_charges = "CREATE TABLE $table_charges (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        admission_id bigint(20) NOT NULL,
-        row_index int(11) NOT NULL,
-        room_rent decimal(10,2) DEFAULT '0.00' NOT NULL,
-        nursing_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
-        physio_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
-        doctor_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
-        acupuncture_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
-        prp_charge decimal(10,2) DEFAULT '0.00' NOT NULL,
-        PRIMARY KEY  (id),
-        KEY admission_id (admission_id)
-    ) $charset_collate;";
-    dbDelta( $sql_admission_charges );
+dbDelta( $sql_admissions );
 
     // Ledger entries for General Income & Expense Bookkeeping
     $table_ledger = $wpdb->prefix . 'arms_ledger';

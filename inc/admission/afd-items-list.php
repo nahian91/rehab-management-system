@@ -222,7 +222,13 @@ function arms_admission_list_table() {
                         $patient_id   = intval( $row['patient_id'] );
                         $patient_name = ! empty( $row['patient_name'] ) ? esc_html( $row['patient_name'] ) : 'Unknown Patient';
                         
-                        $is_staying = ( empty($row['discharge_date']) || $row['discharge_date'] === '0000-00-00 00:00:00' || string_to_datetime_null_check($row['discharge_date']) );
+                        // Streamlined explicit checks logic for determining active status
+                        $discharge_raw = ! empty( $row['discharge_date'] ) ? trim( $row['discharge_date'] ) : '';
+                        $is_staying = ( 
+                            empty( $discharge_raw ) || 
+                            $discharge_raw === '0000-00-00 00:00:00' || 
+                            strpos( $discharge_raw, '1970' ) === 0 
+                        );
 
                         // Determine standard clean class names matching billing states
                         $payment_status = sanitize_text_field( $row['payment_status'] );
@@ -234,8 +240,7 @@ function arms_admission_list_table() {
                         }
 
                         // Explicit clean routing setup to prevent index parameter collision
-                        // FIX: Appended patient ID parameter to satisfy internal ledger lookups
-$view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id . '&patient=' . $patient_id );
+                        $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id . '&patient=' . $patient_id );
                         $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&id=' . $admission_id . '&patient=' . $patient_id );
                         $delete_nonce   = wp_create_nonce( 'arms_delete_admission_' . $admission_id );
                         ?>
@@ -252,7 +257,7 @@ $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admissi
                             </td>
                             <td>
                                 <label class="arms-switch">
-                                    <input type="checkbox" <?php checked($is_staying, true); ?>>
+                                    <input type="checkbox" <?php checked($is_staying, true); ?> disabled>
                                     <span class="arms-slider"></span>
                                 </label>
                             </td>
@@ -296,11 +301,4 @@ $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admissi
         </table>
     </div>
     <?php
-}
-
-/**
- * Helper condition string validator to maintain explicit datetimes
- */
-function string_to_datetime_null_check( $date_string ) {
-    return ( strpos($date_string, '1970') === 0 );
 }
