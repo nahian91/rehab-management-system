@@ -1,10 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-/**
- * Early Request Interceptor for Clean A4 Printing
- * Fully isolates print outputs to bypass standard WordPress theme wrappers
- */
 add_action( 'admin_init', 'arms_handle_early_print_request' );
 function arms_handle_early_print_request() {
     if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['arms_download_pdf'] ) ) {

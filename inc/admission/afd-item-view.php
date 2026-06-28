@@ -38,7 +38,7 @@ function arms_view_admission_details( $admission_id ) {
         ? date_i18n( $wp_date_format, strtotime( $stay->admission_date ) ) 
         : '—';
         
-    $is_active_stay = ( empty( $stay->discharge_date ) || $stay->discharge_date === '0000-00-00' );
+    $is_active_stay = ( empty( $stay->discharge_date ) || $stay->discharge_date === '0000-00-00' || $stay->discharge_date === '1970-01-01' );
     $dis_date = ! $is_active_stay 
         ? date_i18n( $wp_date_format, strtotime( $stay->discharge_date ) ) 
         : '<span class="arms-active-admit" style="background:#fdf2f2; color:#d63638; padding:4px 12px; border-radius:4px; font-weight:700; font-size:12px; border:1px solid #f8b4b4;">Active Stay</span>';
@@ -148,9 +148,12 @@ function arms_view_admission_details( $admission_id ) {
                             <tbody>
                                 <?php foreach ( $charges_rows as $c_row ) : 
                                     $row_subtotal = floatval($c_row->room_rent) + floatval($c_row->nursing_charge) + floatval($c_row->physio_charge) + floatval($c_row->doctor_charge) + floatval($c_row->acupuncture_charge) + floatval($c_row->prp_charge);
+                                    
+                                    // Fallback for custom log columns that might fall out of bounds
+                                    $row_date_string = !empty($c_row->log_date) ? $c_row->log_date : (!empty($c_row->created_at) ? $c_row->created_at : 'now');
                                     ?>
                                     <tr>
-                                        <td><strong><?php echo date_i18n( $wp_date_format, strtotime( $c_row->charge_date ) ); ?></strong></td>
+                                        <td><strong><?php echo date_i18n( $wp_date_format, strtotime( $row_date_string ) ); ?></strong></td>
                                         <td>৳<?php echo number_format($c_row->room_rent, 2); ?></td>
                                         <td>৳<?php echo number_format($c_row->nursing_charge, 2); ?></td>
                                         <td>৳<?php echo number_format($c_row->physio_charge, 2); ?></td>

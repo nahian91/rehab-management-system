@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * =========================================================================
- * INPATIENT ADMISSIONS & ACCOMMODATION LEDGER
+ * INPATIENT ADMISSIONS & ACCOMMODATION LEDGER LIST TABLE
  * =========================================================================
  */
 function arms_admission_list_table() {
@@ -222,7 +222,7 @@ function arms_admission_list_table() {
                         $patient_id   = intval( $row['patient_id'] );
                         $patient_name = ! empty( $row['patient_name'] ) ? esc_html( $row['patient_name'] ) : 'Unknown Patient';
                         
-                        $is_staying = ( empty($row['discharge_date']) || $row['discharge_date'] === '0000-00-00 00:00:00' );
+                        $is_staying = ( empty($row['discharge_date']) || $row['discharge_date'] === '0000-00-00 00:00:00' || string_to_datetime_null_check($row['discharge_date']) );
 
                         // Determine standard clean class names matching billing states
                         $payment_status = sanitize_text_field( $row['payment_status'] );
@@ -233,8 +233,9 @@ function arms_admission_list_table() {
                             $status_class = 'arms-status-partially-paid';
                         }
 
-                        // FIXED FIXED URLs: Synchronized keys matching requirements for individual identity tracking routers
-                        $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id );
+                        // Explicit clean routing setup to prevent index parameter collision
+                        // FIX: Appended patient ID parameter to satisfy internal ledger lookups
+$view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id . '&patient=' . $patient_id );
                         $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&id=' . $admission_id . '&patient=' . $patient_id );
                         $delete_nonce   = wp_create_nonce( 'arms_delete_admission_' . $admission_id );
                         ?>
@@ -295,4 +296,11 @@ function arms_admission_list_table() {
         </table>
     </div>
     <?php
+}
+
+/**
+ * Helper condition string validator to maintain explicit datetimes
+ */
+function string_to_datetime_null_check( $date_string ) {
+    return ( strpos($date_string, '1970') === 0 );
 }

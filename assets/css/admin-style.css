@@ -1295,3 +1295,9 @@
         @media(max-width: 1024px) {
             .arms-main-grid { grid-template-columns: 1fr; }
         }
+
+        .arms-service-item .arms-service-checkbox {
+	width: 20px;
+	border: 1px solid #dddd;
+	background-color: #ddd !important;
+}

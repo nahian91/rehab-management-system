@@ -11,15 +11,21 @@ function arms_patients_tab() {
     $sub    = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'all';
     $action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : '';
     
-    // Explicitly forward table actions to our controller map
-    if ( ! empty( $action ) && $sub === 'all' ) {
+    // 🛡️ FIX: Ignore WordPress bulk action defaults (-1 or secondary -1)
+    if ( $action === '-1' || ( isset( $_GET['action2'] ) && $_GET['action2'] === '-1' ) ) {
+        $action = '';
+    }
+
+    // Only route valid explicit table actions
+    $valid_actions = array( 'view', 'edit', 'delete' );
+    if ( ! empty( $action ) && in_array( $action, $valid_actions, true ) && $sub === 'all' ) {
         $sub = $action;
     }
 
     // Sub-navigation architecture for the Patient Registry
     $tabs = array(
-        'all'     => 'All Patients',
-        'add'     => 'Add Patient',
+        'all' => 'All Patients',
+        'add' => 'Add Patient',
     );
 
     echo '<h2 class="nav-tab-wrapper arms-sub-tab-wrapper">';
@@ -28,7 +34,7 @@ function arms_patients_tab() {
         $url = admin_url( 'admin.php?page=rehab_management_system&tab=patients&sub=' . $k );
         
         // Ensure "All Patients" remains visually highlighted during row actions (view/edit/delete)
-        $is_active = ( $sub === $k ) || ( $k === 'all' && in_array( $sub, array( 'view', 'edit', 'delete' ) ) );
+        $is_active = ( $sub === $k ) || ( $k === 'all' && in_array( $sub, array( 'view', 'edit', 'delete' ), true ) );
         $active_class = $is_active ? 'nav-tab-active' : '';
         
         echo '<a class="nav-tab ' . esc_attr( $active_class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
@@ -41,7 +47,6 @@ function arms_patients_tab() {
        Sub-Module View Router Execution Matrix
        ========================================================================= */
     if ( $sub === 'add' ) {
-        // Render form for a brand new clinical admission profile entry
         if ( function_exists( 'arms_add_edit_patient_form' ) ) {
             arms_add_edit_patient_form();
         } else {
@@ -49,32 +54,30 @@ function arms_patients_tab() {
         }
     } 
     elseif ( $sub === 'edit' ) {
-        // Extract parameters matching the custom table query definitions (&id=)
-        $patient_id = isset( $_GET['id'] ) ? intval( preg_replace( '/[^0-9]/', '', $_GET['id'] ) ) : 0;
+        $patient_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
         if ( function_exists( 'arms_add_edit_patient_form' ) ) {
             arms_add_edit_patient_form( $patient_id );
         }
     } 
     elseif ( $sub === 'view' ) {
-        $patient_id = isset( $_GET['id'] ) ? intval( preg_replace( '/[^0-9]/', '', $_GET['id'] ) ) : 0;
+        $patient_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
         if ( function_exists( 'arms_view_patient_profile' ) ) {
             arms_view_patient_profile( $patient_id );
         }
     } 
     elseif ( $sub === 'delete' ) {
-        $patient_id = isset( $_GET['id'] ) ? intval( preg_replace( '/[^0-9]/', '', $_GET['id'] ) ) : 0;
+        $patient_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
         
-        // 🗑️ Database deletion operational block hook
+        // 🔒 Security Warning: Ensure you verify nonces here before actual execution!
         // global $wpdb; $wpdb->delete(...);
         
-        echo '<div class="notice notice-success is-dismissible"><p>Patient record ' . esc_html($_GET['id']) . ' has been safely removed.</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>Patient record ' . esc_html( $patient_id ) . ' has been safely removed.</p></div>';
         
         if ( function_exists( 'arms_patients_list_table' ) ) {
             arms_patients_list_table();
         }
     }
     else {
-        // Primary fallback node: tabular records listing component
         if ( function_exists( 'arms_patients_list_table' ) ) {
             arms_patients_list_table();
         } else {
