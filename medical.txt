@@ -1,0 +1,287 @@
+🏥 COMPLETE ERP MENU (WITH FULL DETAILS)
+📊 Dashboard
+
+👉 পুরো সিস্টেমের real-time control panel
+
+Features:
+Total Patients (OPD + IPD)
+Active Admissions
+Today Appointments
+Income vs Expense (Today/Month)
+Profit/Loss
+Pending Bills
+Bed/Cabin Occupancy
+Low Stock Alerts
+Quick Actions (Add Patient, Create Bill)
+
+📌 Purpose: Management overview screen
+
+👨‍⚕️ Patients (CORE MODULE)
+
+👉 সব রোগীর master database
+
+➤ All Patients
+সব রোগীর list
+search / filter / status wise view
+Data:
+Patient ID
+Name
+Mobile
+Age/Gender
+Diagnosis
+Last visit
+➤ Add New Patient
+New registration form
+Fields:
+Auto Patient ID
+Name
+Age
+Gender
+Address
+Mobile
+Emergency Contact
+Initial Diagnosis
+➤ Patient Profile (MOST IMPORTANT)
+
+👉 এক রোগীর full system control
+
+📂 Tabs Inside Patient Profile
+🧾 Overview
+Basic info
+Current status (OPD / IPD)
+📅 Appointments
+Past + upcoming visits
+Follow-up schedule
+🧠 Medical Records
+Stroke
+Paralysis
+PLID
+SCI
+Osteoarthritis
+Custom diagnosis
+📄 Documents
+MRI
+X-Ray
+CT Scan
+Lab reports
+Patient images
+🏨 Admissions (IPD SECTION)
+
+👉 inpatient workflow
+
+Features:
+New Admission
+Active Stay
+Bed/Cabin allocation
+Room type
+Admission date
+Daily charges system
+Daily Charges:
+Room rent
+Doctor visit
+Nursing care
+Physiotherapy
+Acupuncture
+PRP therapy
+Discharge:
+Final bill
+Treatment summary
+Payment status
+Discharge report
+💰 Billing History
+All invoices
+Payment records
+Due amount
+💪 Treatment History
+All treatments
+Therapy progress
+Outcome tracking
+📅 Appointments
+
+👉 OPD scheduling system
+
+Features:
+New appointment
+Calendar view
+Today list
+Follow-up reminders
+Doctor assignment
+
+📌 Purpose: OPD flow management
+
+💪 Physiotherapy
+
+👉 rehab treatment system
+
+Modules:
+🧠 Assessment
+Pain scale
+ROM test
+Muscle strength
+📋 Treatment Plan
+Short term goals
+Long term goals
+Exercise plan
+Therapy type
+🔁 Session Tracking
+Total sessions
+Completed sessions
+Remaining sessions
+📈 Progress Notes
+Daily improvement
+Mobility progress
+Patient feedback
+📊 Outcome Reports
+Recovery rate
+Success tracking
+👩‍⚕️ Nursing Station
+
+👉 patient daily care system
+
+Features:
+Vital signs (BP, Pulse, Temp, SpO2)
+Medication chart
+Nursing notes
+Daily monitoring
+Shift report
+
+📌 Purpose: ICU / ward level care tracking
+
+💰 Finance (CORE ACCOUNTING SYSTEM)
+
+👉 full money management
+
+💵 Income
+Patient revenue
+Admission income
+OPD billing
+Product sales
+Training income
+Other income
+💸 Expenses
+Salary
+Electricity
+Water
+Internet
+Rent
+Equipment
+Consumables
+👨‍💼 Payroll
+Employee salary
+Bonus
+Incentives
+Deductions
+Salary history
+📊 Financial Reports
+Daily report
+Monthly report
+Annual report
+Cash flow
+Profit & Loss
+Balance sheet
+
+📌 Purpose: Accounting + business control
+
+📦 Inventory
+
+👉 hospital supply management
+
+📋 Stock Items
+Medicines
+PRP kits
+Syringes
+Needles
+Consumables
+Equipment
+📥 Stock In
+Purchase entry
+Supplier info
+Invoice tracking
+📤 Stock Out
+Usage tracking
+Treatment consumption
+⚠️ Low Stock Alerts
+Minimum stock warning
+Dashboard alert
+📊 Inventory Reports
+Usage report
+Stock valuation
+Fast moving items
+📈 Reports (ANALYTICS ENGINE)
+
+👉 management decision system
+
+📊 Patient Reports
+New vs returning patients
+Diagnosis distribution
+🏨 Admission Reports
+Bed occupancy
+Average stay duration
+Discharge rate
+💪 Physiotherapy Reports
+Recovery rate
+Session completion
+Treatment success
+💰 Financial Reports
+Profit/Loss
+Revenue trend
+Expense breakdown
+📦 Inventory Reports
+Stock usage
+Cost analysis
+Expiry tracking
+📈 Performance Analytics
+Growth tracking
+Department performance
+KPI dashboard
+👥 Staff Management
+
+👉 human resource system
+
+Includes:
+Doctors
+Physiotherapists
+Nurses
+Accountants
+Support staff
+Features:
+Staff profile
+Role assignment
+Work history
+
+📌 Purpose: workforce management
+
+⚙️ Administration (SUPER ADMIN ONLY)
+
+👉 system control panel
+
+Features:
+👤 User Management
+Create users
+Assign roles
+Enable/disable access
+🔐 Roles & Permissions
+Doctor
+Nurse
+Physio
+Accountant
+Admin Manager
+⚙️ System Settings
+Hospital info
+Logo
+Address
+Configuration
+💳 Payment Settings
+Payment gateway
+Billing rules
+📡 SMS / Email Settings
+Notification system
+💾 Backup & Restore
+Daily backup
+Restore system
+🧾 Audit Logs
+User activity tracking
+Security logs
+🔐 Security Settings
+Password rules
+Login control
