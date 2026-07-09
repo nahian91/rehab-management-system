@@ -3,11 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-/**
- * =========================================================================
- * 1. ENHANCED CLINICAL & FINANCIAL ADMISSION CONSOLE FORM (FIXED DB ENG)
- * =========================================================================
- */
 function arms_add_edit_admission_form() {
     global $wpdb;
     $table_admissions = $wpdb->prefix . 'arms_admissions';

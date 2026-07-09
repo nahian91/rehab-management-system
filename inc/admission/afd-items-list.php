@@ -151,6 +151,10 @@ function arms_admission_list_table() {
             content: 'Stay';
             left: 40%;
         }
+        .arms-switch input:disabled + .arms-slider {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         /* Modern SVG Action Layout System */
         .arms-actions-wrapper {
@@ -243,6 +247,7 @@ function arms_admission_list_table() {
                         $view_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=view&id=' . $admission_id . '&patient=' . $patient_id );
                         $edit_route_url = admin_url( 'admin.php?page=rehab_management_system&tab=admission&sub=edit&id=' . $admission_id . '&patient=' . $patient_id );
                         $delete_nonce   = wp_create_nonce( 'arms_delete_admission_' . $admission_id );
+                        $toggle_nonce   = wp_create_nonce( 'arms_toggle_status_' . $admission_id );
                         ?>
                         <tr>
                             <td>
@@ -257,7 +262,7 @@ function arms_admission_list_table() {
                             </td>
                             <td>
                                 <label class="arms-switch">
-                                    <input type="checkbox" <?php checked($is_staying, true); ?> disabled>
+                                    <input type="checkbox" class="arms-live-status-toggle" data-id="<?php echo $admission_id; ?>" data-nonce="<?php echo $toggle_nonce; ?>" <?php checked($is_staying, true); ?>>
                                     <span class="arms-slider"></span>
                                 </label>
                             </td>
@@ -300,5 +305,93 @@ function arms_admission_list_table() {
             </tbody>
         </table>
     </div>
+
+    <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggles = document.querySelectorAll('.arms-live-status-toggle');
+        
+        toggles.forEach(function(toggle) {
+            toggle.addEventListener('change', function() {
+                const checkbox = this;
+                const admissionId = checkbox.getAttribute('data-id');
+                const securityNonce = checkbox.getAttribute('data-nonce');
+                const isStaying = checkbox.checked ? 1 : 0;
+                
+                // Temporary lock to block race conditions
+                checkbox.disabled = true;
+                
+                const formData = new FormData();
+                formData.append('action', 'arms_update_live_status');
+                formData.append('id', admissionId);
+                formData.append('is_staying', isStaying);
+                formData.append('_wpnonce', securityNonce);
+                
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    checkbox.disabled = false;
+                    if (!data.success) {
+                        alert(data.data || 'An error occurred while updating the status.');
+                        checkbox.checked = !checkbox.checked; // Revert switch UI on backend failure
+                    }
+                })
+                .catch(error => {
+                    checkbox.disabled = false;
+                    alert('Network error encountered. Please check your connection.');
+                    checkbox.checked = !checkbox.checked; // Revert switch UI on engine crash
+                });
+            });
+        });
+    });
+    </script>
     <?php
 }
+
+/**
+ * =========================================================================
+ * AJAX BACKEND HANDLER FOR SECURE STATUS TOGGLING
+ * =========================================================================
+ */
+function arms_handle_live_status_toggle() {
+    // Capacity Authorization Check
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( 'Unauthorized administration access request denied.' );
+    }
+
+    $id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+    
+    // Explicit Validation Check Against Nonce Spoofing
+    if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'arms_toggle_status_' . $id ) ) {
+        wp_send_json_error( 'Security core authentication verification checkpoint failed.' );
+    }
+
+    if ( ! $id ) {
+        wp_send_json_error( 'Missing primary ledger unique key entry parameters.' );
+    }
+
+    global $wpdb;
+    $table_admissions = $wpdb->prefix . 'arms_admissions';
+    $is_staying       = isset( $_POST['is_staying'] ) ? intval( $_POST['is_staying'] ) : 0;
+
+    // Set discharge date based on live toggle intent state
+    // 'Stay' state leaves discharge_date as clean fallback placeholder
+    $discharge_date = ( $is_staying === 1 ) ? '1970-01-01 00:00:00' : current_time( 'mysql' );
+
+    $updated = $wpdb->update(
+        $table_admissions,
+        array( 'discharge_date' => $discharge_date ),
+        array( 'id' => $id ),
+        array( '%s' ),
+        array( '%d' )
+    );
+
+    if ( $updated !== false ) {
+        wp_send_json_success( 'Live tracking record structural timeline successfully synchronized.' );
+    } else {
+        wp_send_json_error( 'Failed to write record status adjustments into database engine.' );
+    }
+}
+add_action( 'wp_ajax_arms_update_live_status', 'arms_handle_live_status_toggle' );

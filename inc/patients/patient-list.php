@@ -20,10 +20,10 @@ function arms_patients_list_table() {
     // Server-Side Processing Setup (Sanitizing Filters)
     $search_query  = isset($_GET['arms_search']) ? sanitize_text_field(trim($_GET['arms_search'])) : '';
     
-    // Server-Side Sorting Setup matched to your valid schema columns
+    // Server-Side Sorting Setup matched to your valid schema columns - Modified defaults to order by latest
     $orderby_allowed = ['id', 'name', 'mobile', 'admission_date'];
     $orderby         = isset($_GET['orderby']) && in_array($_GET['orderby'], $orderby_allowed) ? $_GET['orderby'] : 'id';
-    $order           = isset($_GET['order']) && strtoupper($_GET['order']) === 'DESC' ? 'DESC' : 'ASC';
+    $order           = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';
     
     // Server-Side Pagination Metrics
     $per_page     = 10;

@@ -178,9 +178,16 @@ function arms_opd_tab() {
     if ( $wpdb->get_var("SHOW TABLES LIKE '$table_opd'") === $table_opd ) {
         $records = $wpdb->get_results("SELECT * FROM $table_opd ORDER BY id DESC LIMIT 50");
     }
+
+    // Dynamic Live Autofill Cache Layer: Pull master register dataset directly out of your global patients table
+    $patients_table = $wpdb->prefix . 'arms_patients';
+    $cached_patients = [];
+    if ($wpdb->get_var("SHOW TABLES LIKE '$patients_table'") === $patients_table) {
+        $cached_patients = $wpdb->get_results("SELECT id, name, mobile, age, address FROM $patients_table ORDER BY name ASC LIMIT 500", ARRAY_A);
+    }
     ?>
     
-    <!-- CSS Interface Enhancements -->
+    <!-- UI Layout Elements Stylesheet block -->
     <style>
         .arms-opd-wrapper { background: #fff; border: 1px solid #ccd0d4; box-shadow: 0 1px 3px rgba(0,0,0,0.04); font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; margin-top: 20px; }
         .arms-tabs-nav { background: #f6f7f7; border-bottom: 1px solid #ccd0d4; display: flex; list-style: none; margin: 0; padding: 0; }
@@ -192,13 +199,21 @@ function arms_opd_tab() {
         .arms-opd-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
         .arms-opd-form-panel { background: #fff; }
         .arms-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
-        .arms-form-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .arms-form-group { display: flex; flex-direction: column; margin-bottom: 15px; position: relative; }
         .arms-form-group label { color: #1d2327; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
         .arms-input, .arms-select, .arms-textarea { border: 1px solid #8c8f94; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box; font-size: 14px; padding: 8px 12px; width: 100%; }
         .arms-input:focus, .arms-select:focus, .arms-textarea:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
         .arms-textarea { height: 70px; resize: vertical; }
         
-        /* Premium Checked Box & Services CSS Setup */
+        /* Patient Autofill Dropdown Component Layout */
+        .arms-autofill-dropdown { position: absolute; top: 100%; left: 0; width: 100%; background: #fff; border: 1px solid #8c8f94; border-top: none; border-radius: 0 0 4px 4px; max-height: 220px; overflow-y: auto; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; margin-top: -1px; }
+        .arms-autofill-item { padding: 10px 14px; border-bottom: 1px solid #f0f0f1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
+        .arms-autofill-item:last-child { border-bottom: none; }
+        .arms-autofill-item:hover { background: #eff6ff; }
+        .arms-autofill-name { font-weight: 600; color: #1d2327; font-size: 13px; }
+        .arms-autofill-meta { font-size: 12px; color: #646970; background: #f0f0f1; padding: 2px 6px; border-radius: 4px; }
+        
+        /* Services Layout List Rendering */
         .arms-services-list { background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 6px; padding: 5px 0; }
         .arms-service-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #e0e0e0; transition: background 0.1s ease; }
         .arms-service-item:last-child { border-bottom: none; }
@@ -207,7 +222,7 @@ function arms_opd_tab() {
         .arms-service-checkbox { width: 16px; height: 16px; margin: 0 !important; cursor: pointer; }
         .arms-service-price { font-weight: 600; color: #475569; font-size: 13px; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; }
         
-        /* Receipt Panel Live Preview Settings */
+        /* Receipt Matrix Rendering Design Layout */
         .arms-opd-preview-panel { background: #f0f0f1; border-radius: 8px; padding: 20px; display: flex; justify-content: center; align-items: flex-start; }
         .receipt-ticket-box { background: #fff; border: 1px solid #c3c4c7; box-shadow: 0 4px 10px rgba(0,0,0,0.06); box-sizing: border-box; font-family: "Courier New", Courier, monospace; font-size: 13px; padding: 20px; width: 100%; max-width: 340px; color: #000; }
         .receipt-center { text-align: center; }
@@ -216,13 +231,13 @@ function arms_opd_tab() {
         .receipt-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .receipt-item-line { display: grid; grid-template-columns: 3fr 1fr; gap: 5px; margin-bottom: 4px; }
         
-        /* Interactive Panel Button Styling */
+        /* Interactive Controller Triggers Base styling */
         .arms-btn-save { background: #2271b1; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; padding: 10px 20px; transition: background 0.15s; }
         .arms-btn-save:hover { background: #135e96; }
         .arms-btn-reset { background: #f6f7f7; border: 1px solid #8c8f94; border-radius: 4px; color: #2c3338; cursor: pointer; font-size: 14px; font-weight: 600; padding: 9px 20px; margin-left: 10px; transition: all 0.15s; }
         .arms-btn-reset:hover { background: #f0f0f1; border-color: #50575e; }
         
-        /* Table Layout Configuration */
+        /* Display Panel Tables Core CSS configurations */
         .arms-management-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .arms-management-table th, .arms-management-table td { text-align: left; padding: 12px; border-bottom: 1px solid #ccd0d4; }
         .arms-management-table th { background: #f6f7f7; font-weight: 700; color: #1d2327; }
@@ -238,16 +253,16 @@ function arms_opd_tab() {
 
     <div class="arms-opd-wrapper">
         
-        <!-- Tab Controls Navigation Bar -->
+        <!-- Tab Layout Headers Container -->
         <ul class="arms-tabs-nav">
             <li class="arms-tab-link active-tab" data-target="arms-tab-billing"><?php _e('Add OPD / Billing Terminal', 'arms-textdomain'); ?></li>
             <li class="arms-tab-link" data-target="arms-tab-records"><?php _e('All OPD Ledger Records', 'arms-textdomain'); ?></li>
         </ul>
 
-        <!-- TAB 1: Billing Terminal -->
+        <!-- TAB 1: Core Billing Module -->
         <div id="arms-tab-billing" class="arms-tab-content active-tab-content">
             <div class="arms-opd-grid">
-                <!-- Form Input Section -->
+                <!-- Form Inputs Panel -->
                 <div class="arms-opd-form-panel">
                     <form id="arms-opd-billing-form" autocomplete="off">
                         <input type="hidden" id="record_id" value="0">
@@ -273,7 +288,9 @@ function arms_opd_tab() {
 
                         <div class="arms-form-group">
                             <label><?php _e('Patient Name *', 'arms-textdomain'); ?></label>
-                            <input type="text" id="patient_name" class="arms-input" placeholder="Enter patient name manually..." required>
+                            <input type="text" id="patient_name" class="arms-input" placeholder="Type name to filter registry or create manually..." required>
+                            <!-- Realtime Local Register Flyout Anchor Node -->
+                            <div id="arms-patient-autofill-container" class="arms-autofill-dropdown"></div>
                         </div>
 
                         <div class="arms-form-row">
@@ -289,7 +306,7 @@ function arms_opd_tab() {
 
                         <div class="arms-form-group">
                             <label><?php _e('Address', 'arms-textdomain'); ?></label>
-                            <textarea id="patient_address" class="arms-textarea" placeholder="Patient residential address..."></textarea>
+                            <textarea id="patient_address" class="arms-textarea" placeholder="Patient residential location address details..."></textarea>
                         </div>
 
                         <h3 style="border-bottom:1px solid #f0f0f1; padding-bottom:8px; color:#003376;"><?php _e('Services & Interventions', 'arms-textdomain'); ?></h3>
@@ -332,7 +349,7 @@ function arms_opd_tab() {
                     </form>
                 </div>
 
-                <!-- Terminal Invoice Live Preview Panel Container -->
+                <!-- Invoice Thermal Monitor Layout Output Block Previewer -->
                 <div class="arms-opd-preview-panel">
                     <div class="receipt-ticket-box">
                         <div class="receipt-center">
@@ -369,7 +386,7 @@ function arms_opd_tab() {
             </div>
         </div>
 
-        <!-- TAB 2: Ledger View History Grid -->
+        <!-- TAB 2: Ledger Transaction Logs Grid -->
         <div id="arms-tab-records" class="arms-tab-content">
             <div class="opd-history-section">
                 <div class="opd-section-header">
@@ -416,10 +433,16 @@ function arms_opd_tab() {
 
     </div>
 
+    <!-- Client Payload Payload Matrix Stack Block -->
+    <script type="text/javascript">
+        var armsPatientDataset = <?php echo json_encode($cached_patients); ?>;
+    </script>
+
+    <!-- Scripting Interactions Management Layer -->
     <script type="text/javascript">
         jQuery(document).ready(function($) {
             
-            // Core Tab Toggling
+            // Tab Display Controls Navigation Manager
             $('.arms-tab-link').on('click', function() {
                 const targetedContentId = $(this).data('target');
                 
@@ -430,6 +453,61 @@ function arms_opd_tab() {
                 $('#' + targetedContentId).addClass('active-tab-content');
             });
 
+            // Localized Register Filter Match Autofill Algorithm Engine
+            $('#patient_name').on('keyup input focus', function() {
+                var searchVal = $(this).val().toLowerCase().trim();
+                var dropdown = $('#arms-patient-autofill-container');
+                dropdown.empty();
+
+                if (searchVal.length < 1) {
+                    dropdown.hide();
+                    return;
+                }
+
+                // Scan locally through the arrays context to fetch name or cellphone matches
+                var filteredMatches = armsPatientDataset.filter(function(patient) {
+                    return patient.name.toLowerCase().indexOf(searchVal) > -1 || 
+                           patient.mobile.indexOf(searchVal) > -1;
+                });
+
+                if (filteredMatches.length > 0) {
+                    filteredMatches.forEach(function(patient) {
+                        var addressEscaped = patient.address ? patient.address.replace(/"/g, '&quot;') : '';
+                        var itemHtml = `
+                            <div class="arms-autofill-item" 
+                                 data-name="${patient.name}" 
+                                 data-phone="${patient.mobile}" 
+                                 data-age="${patient.age || ''}" 
+                                 data-address="${addressEscaped}">
+                                <span class="arms-autofill-name">${patient.name}</span>
+                                <span class="arms-autofill-meta">${patient.mobile}</span>
+                            </div>`;
+                        dropdown.append(itemHtml);
+                    });
+                    dropdown.show();
+                } else {
+                    dropdown.hide();
+                }
+            });
+
+            // Handle Row Selection Actions inside Autofill drop flyout layer
+            $(document).on('click', '.arms-autofill-item', function() {
+                $('#patient_name').val($(this).data('name'));
+                $('#patient_phone').val($(this).data('phone'));
+                $('#patient_age').val($(this).data('age'));
+                $('#patient_address').val($(this).data('address'));
+                
+                $('#arms-patient-autofill-container').hide();
+                updateOPDLedgerPreview();
+            });
+
+            // Close Flyout Overlay Context when user clicks outside boundaries
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#patient_name, #arms-patient-autofill-container').length) {
+                    $('#arms-patient-autofill-container').hide();
+                }
+            });
+
             function clearOPDForm() {
                 $('#record_id').val('0');
                 $('#arms-opd-billing-form')[0].reset();
@@ -438,7 +516,63 @@ function arms_opd_tab() {
                 updateOPDLedgerPreview();
             }
 
-            // High-Reliability Thermal Receipt Generation & Printing Strategy
+            // Sync Preview Live Invoice Screen Controller Functions
+            function updateOPDLedgerPreview() {
+                var name = $('#patient_name').val() || '---------';
+                var phone = $('#patient_phone').val() || '---------';
+                var age = $('#patient_age').val() || '--';
+                var practitioner = $('#practitioner_select').val() || 'None Selected';
+                var method = $('#payment_method').val() || 'cash';
+                
+                $('#rcpt_patient_name').text(name);
+                $('#rcpt_patient_meta').text(age + ' Yrs / ' + phone);
+                $('#rcpt_practitioner').text(practitioner);
+                $('#rcpt_pay_method').text(method);
+
+                var baseFee = parseFloat($('#consultation_fee').val()) || 0;
+                var subtotal = 0;
+                var itemsHtml = '';
+
+                if ($('#practitioner_select').val() !== "" && baseFee > 0) {
+                    subtotal += baseFee;
+                    itemsHtml += `<div class="receipt-item-line"><span>* Consultation Fee</span><span style="text-align:right;">${baseFee.toFixed(2)}</span></div>`;
+                }
+
+                $('.arms-service-checkbox:checked').each(function() {
+                    var sName = $(this).val();
+                    var sPrice = parseFloat($(this).data('price')) || 0;
+                    subtotal += sPrice;
+                    itemsHtml += `<div class="receipt-item-line"><span>* ${sName}</span><span style="text-align:right;">${sPrice.toFixed(2)}</span></div>`;
+                });
+
+                if(itemsHtml === '') {
+                    itemsHtml = '<div class="receipt-item-line" style="color:#555; font-style:italic; text-align:center; padding:10px 0;">No active services checked</div>';
+                }
+
+                var discount = parseFloat($('#discount_amount').val()) || 0;
+                var netTotal = Math.max(0, subtotal - discount);
+
+                $('#rcpt_ledger_items_container').html(itemsHtml);
+                $('#rcpt_subtotal').text(subtotal.toFixed(2) + ' BDT');
+                $('#rcpt_discount').text(discount.toFixed(2) + ' BDT');
+                $('#rcpt_net_total').text(netTotal.toFixed(2) + ' BDT');
+            }
+
+            // Bind Interface Listeners to Input Triggers 
+            $('#patient_name, #patient_phone, #patient_age, #consultation_fee, #discount_amount').on('keyup input change', updateOPDLedgerPreview);
+            $('#practitioner_select, #payment_method').on('change', updateOPDLedgerPreview);
+            
+            $('.arms-service-checkbox').on('change', function() {
+                updateOPDLedgerPreview();
+            });
+
+            $('#practitioner_select').on('change', function() {
+                var selectedFee = $(this).find(':selected').data('fee') || 0;
+                $('#consultation_fee').val(selectedFee);
+                updateOPDLedgerPreview();
+            });
+
+            // Thermal Isolated Printing Sandboxed Engine Block
             $(document).on('click', '.print-rec', function() {
                 const recordId = $(this).data('id');
                 
@@ -452,7 +586,6 @@ function arms_opd_tab() {
                     if(response.success) {
                         const data = response.data;
                         
-                        // Parse JSON formatted string arrays for rendering inside thermal loop
                         let itemsHtml = '';
                         try {
                             const parsedServices = JSON.parse(data.services_rendered || '[]');
@@ -463,7 +596,6 @@ function arms_opd_tab() {
                             itemsHtml = `<div class="receipt-item-line"><span>* Diagnostic Services</span><span style="text-align:right;">${parseFloat(data.subtotal).toFixed(2)}</span></div>`;
                         }
 
-                        // Format parsing dates safely
                         let formattedDate = data.created_at;
                         if(data.created_at) {
                             const d = new Date(data.created_at.replace(/-/g, "/"));
@@ -471,7 +603,6 @@ function arms_opd_tab() {
                             formattedDate = ("0" + d.getDate()).slice(-2) + "-" + months[d.getMonth()] + "-" + d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
                         }
 
-                        // Construct full thermal document layout dynamically inside standard sandboxed block template
                         const printHtml = `
                             <div class="receipt-center">
                                 <h4 style="margin:0 0 4px 0; text-transform:uppercase;">Advanced Rehab & Wellness</h4>
@@ -504,7 +635,6 @@ function arms_opd_tab() {
                             <div class="receipt-row"><span>PAYMENT METHOD:</span><span style="text-transform:uppercase; font-weight:bold;">${data.payment_method}</span></div>
                         `;
 
-                        // Render sandboxed isolated print sandbox to dodge admin css anomalies
                         const printFrame = $('<iframe id="arms-print-frame"></iframe>');
                         printFrame.css({ 'position': 'absolute', 'top': '-9999px', 'left': '-9999px', 'width': '0px', 'height': '0px' });
                         $('body').append(printFrame);
@@ -516,219 +646,151 @@ function arms_opd_tab() {
                             <head>
                                 <title>OPD Receipt - ${data.ticket_no}</title>
                                 <style>
-                                    @page { size: 74mm auto; margin: 0mm; }
-                                    body { font-family: "Courier New", Courier, monospace; font-size: 12px; color: #000; margin: 0; padding: 4mm 3mm; width: 68mm; background: #fff; }
+                                    body { font-family: "Courier New", Courier, monospace; font-size: 13px; color: #000; padding: 10px; margin: 0; width: 300px; }
                                     .receipt-center { text-align: center; }
                                     .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
                                     .receipt-double-divider { border-top: 3px double #000; margin: 10px 0; }
-                                    .receipt-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-                                    .receipt-item-line { display: grid; grid-template-columns: 3fr 1fr; gap: 5px; margin-bottom: 3px; }
-                                    h4 { margin: 0 0 4px 0; text-transform: uppercase; font-size: 13px; }
+                                    .receipt-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                                    .receipt-item-line { display: grid; grid-template-columns: 3fr 1fr; gap: 5px; margin-bottom: 4px; }
+                                    @media print { body { width: 100%; } }
                                 </style>
                             </head>
                             <body>
                                 ${printHtml}
+                                <script type="text/javascript">
+                                    window.onload = function() { window.print(); setTimeout(function() { window.frameElement.remove(); }, 100); };
+                                <\/script>
                             </body>
                             </html>
                         `);
                         frameDoc.document.close();
-                        
-                        setTimeout(function() {
-                            printFrame[0].contentWindow.focus();
-                            printFrame[0].contentWindow.print();
-                            setTimeout(function() { printFrame.remove(); }, 1000);
-                        }, 500);
-
                     } else {
-                        alert('Error loading dynamic ledger layout: ' + response.data.message);
+                        alert(response.data.message || 'Error printing ticket ledger receipt.');
                     }
                 });
             });
 
-            $('#arms-reset-opd-btn').on('click', function() {
-                clearOPDForm();
-            });
-
-            $('#practitioner_select').on('change', function() {
-                const defaultFee = parseFloat($(this).find('option:selected').data('fee')) || 0;
-                $('#consultation_fee').val(defaultFee).trigger('change');
-            });
-
-            $('#practitioner_select, #consultation_fee, #patient_name, #patient_phone, #patient_age, #patient_address, #payment_method, #discount_amount, .arms-service-checkbox').on('input change', function() {
-                updateOPDLedgerPreview();
-            });
-
-            function updateOPDLedgerPreview() {
-                const name = $('#patient_name').val().trim() || '---------';
-                const phone = $('#patient_phone').val().trim() || '---------';
-                const age = $('#patient_age').val().trim() || '--';
-                const docName = $('#practitioner_select option:selected').val() || 'None Selected';
-                const activeConsultationPrice = parseFloat($('#consultation_fee').val()) || 0;
-
-                $('#rcpt_patient_name').text(name);
-                $('#rcpt_patient_meta').text(age + ' Yrs / ' + phone);
-                $('#rcpt_practitioner').text(docName);
-
-                const consultationBox = $('.arms-service-checkbox[data-id="consultation"]');
-                consultationBox.data('price', activeConsultationPrice);
-                $('#price-display-consultation').text(activeConsultationPrice > 0 ? activeConsultationPrice + ' BDT' : 'Variable');
-
-                let subtotal = 0;
-                let htmlLines = '';
-
-                $('.arms-service-checkbox:checked').each(function() {
-                    const itemName = $(this).val();
-                    const itemPrice = parseFloat($(this).data('price')) || 0;
-                    subtotal += itemPrice;
-                    htmlLines += `<div class="receipt-item-line"><span>* ${itemName}</span><span style="text-align:right;">${itemPrice.toFixed(2)}</span></div>`;
-                });
-
-                if (htmlLines === '') {
-                    htmlLines = '<div style="color:#555; font-style:italic; text-align:center; padding:10px 0;">No active services checked</div>';
-                }
-
-                $('#rcpt_ledger_items_container').html(htmlLines);
-                const discount = parseFloat($('#discount_amount').val()) || 0;
-                const netTotal = Math.max(0, subtotal - discount);
-
-                $('#rcpt_subtotal').text(subtotal.toFixed(2) + ' BDT');
-                $('#rcpt_discount').text(discount.toFixed(2) + ' BDT');
-                $('#rcpt_net_total').text(netTotal.toFixed(2) + ' BDT');
-                $('#rcpt_pay_method').text($('#payment_method option:selected').text());
-            }
-
-            // AJAX Save/Update Ticket Action
+            // Save Records via Dynamic AJAX Request Pipeline Form Handler
             $('#arms-save-opd-btn').on('click', function() {
-                const $btn = $(this);
-                const checkedServices = [];
-                
-                $('.arms-service-checkbox:checked').each(function() {
-                    checkedServices.push({ 
-                        name: $(this).val(), 
-                        price: parseFloat($(this).data('price')) || 0 
-                    });
-                });
+                var pName = $('#patient_name').val();
+                var pPhone = $('#patient_phone').val();
 
-                // Compute financial lines safely inside UI execution flow
-                let subtotal = 0;
-                checkedServices.forEach(function(item) { subtotal += item.price; });
-                const discount = parseFloat($('#discount_amount').val()) || 0;
-                const netTotal = Math.max(0, subtotal - discount);
-
-                const patientName = $('#patient_name').val().trim();
-                const phone = $('#patient_phone').val().trim();
-
-                if (!patientName || !phone) {
-                    alert('Patient Name and Phone fields are strictly required.');
+                if(!pName || !pPhone) {
+                    alert('Patient Name and Phone components must be complete.');
                     return;
                 }
 
-                $btn.prop('disabled', true).text('Processing...');
+                var servicesArray = [];
+                var consultantFee = parseFloat($('#consultation_fee').val()) || 0;
+                
+                if ($('#practitioner_select').val() !== "" && consultantFee > 0) {
+                    servicesArray.push({ name: "Consultation Fee", price: consultantFee });
+                }
 
-                const dataPayload = {
+                $('.arms-service-checkbox:checked').each(function() {
+                    servicesArray.push({
+                        name: $(this).val(),
+                        price: parseFloat($(this).data('price')) || 0
+                    });
+                });
+
+                var subtotal = parseFloat($('#rcpt_subtotal').text()) || 0;
+                var discount = parseFloat($('#discount_amount').val()) || 0;
+                var netTotal = parseFloat($('#rcpt_net_total').text()) || 0;
+
+                var payload = {
                     action: 'arms_save_opd_record',
                     security: $('#arms_opd_nonce').val(),
                     record_id: $('#record_id').val(),
-                    patient_name: patientName,
-                    phone: phone,
+                    patient_name: pName,
+                    phone: pPhone,
                     age: $('#patient_age').val(),
                     address: $('#patient_address').val(),
-                    practitioner_id: $('#practitioner_select option:selected').data('id') || 0,
-                    practitioner_name: $('#practitioner_select option:selected').val() || 'None Assigned',
-                    consultation_fee: parseFloat($('#consultation_fee').val()) || 0,
-                    services_rendered: JSON.stringify(checkedServices), // Enqueue as JSON String array
+                    practitioner_id: $('#practitioner_select').find(':selected').data('id') || 0,
+                    practitioner_name: $('#practitioner_select').val(),
+                    consultation_fee: consultantFee,
+                    services_rendered: JSON.stringify(servicesArray),
                     subtotal: subtotal,
                     discount_amount: discount,
                     net_total: netTotal,
                     payment_method: $('#payment_method').val()
                 };
 
-                $.post(ajaxurl, dataPayload, function(response) {
-                    $btn.prop('disabled', false).text('Save Ticket');
+                $.post(ajaxurl, payload, function(response) {
                     if (response.success) {
                         alert(response.data.message);
-                        location.reload(); // Refresh screen state to synchronize updated ledger tables
+                        location.reload();
                     } else {
-                        alert('Operation Failed: ' + (response.data.message || 'Unknown database issue occurred.'));
+                        alert(response.data.message || 'Error occurred during ledger record storage transaction.');
                     }
-                }).fail(function() {
-                    $btn.prop('disabled', false).text('Save Ticket');
-                    alert('Server communication break. Please evaluate local network connection lines.');
                 });
             });
 
-            // Modify Data Trigger Handler (Edit)
+            // Populate Form Components for Modification Operations
             $(document).on('click', '.edit-rec', function() {
-                const recordId = $(this).data('id');
-                const dataPayload = {
+                var recordId = $(this).data('id');
+                var payload = {
                     action: 'arms_get_opd_record',
                     security: $('#arms_opd_nonce').val(),
                     id: recordId
                 };
 
-                $.post(ajaxurl, dataPayload, function(response) {
-                    if(response.success) {
-                        const data = response.data;
-                        
-                        // Switch active tabs safely
-                        $('.arms-tab-link[data-target="arms-tab-billing"]').trigger('click');
-                        
-                        // Hydrate native form input variables
+                $.post(ajaxurl, payload, function(response) {
+                    if (response.success) {
+                        var data = response.data;
                         $('#record_id').val(data.id);
                         $('#patient_name').val(data.patient_name);
                         $('#patient_phone').val(data.phone);
-                        $('#patient_age').val(data.age || '');
+                        $('#patient_age').val(data.age);
                         $('#patient_address').val(data.address);
-                        $('#consultation_fee').val(data.consultation_fee);
                         $('#discount_amount').val(data.discount_amount);
                         $('#payment_method').val(data.payment_method);
-                        
-                        // Set selected Personnel Option
-                        if(data.practitioner_name && data.practitioner_name !== 'None Assigned') {
+
+                        if(data.practitioner_name) {
                             $('#practitioner_select').val(data.practitioner_name);
                         } else {
                             $('#practitioner_select').val('');
                         }
+                        $('#consultation_fee').val(data.consultation_fee);
 
-                        // Reset checkboxes before re-evaluating matches
                         $('.arms-service-checkbox').prop('checked', false);
-                        
                         try {
-                            const parsedServices = JSON.parse(data.services_rendered || '[]');
-                            parsedServices.forEach(function(serv) {
-                                $(`.arms-service-checkbox[value="${serv.name}"]`).prop('checked', true);
+                            var services = JSON.parse(data.services_rendered || '[]');
+                            services.forEach(function(s) {
+                                if(s.name !== "Consultation Fee") {
+                                    $('.arms-service-checkbox[value="'+s.name+'"]').prop('checked', true);
+                                }
                             });
-                        } catch(e) {
-                            console.error('Failure parsing nested checked structures.');
-                        }
+                        } catch(e) {}
 
-                        $('#rcpt_invoice_no').text('#' + (data.ticket_no || 'OPD-MOD'));
+                        $('.arms-tab-link[data-target="arms-tab-billing"]').trigger('click');
+                        $('#rcpt_invoice_no').text(data.ticket_no);
                         updateOPDLedgerPreview();
-                        window.scrollTo({ top: $('.arms-opd-wrapper').offset().top - 40, behavior: 'smooth' });
-                    } else {
-                        alert('Failed to drop state onto editor: ' + response.data.message);
                     }
                 });
             });
 
-            // Drop Record Controller Handler (Delete)
+            // Drop Selected Ledger Line Entry Permanently From Table Database
             $(document).on('click', '.delete-rec', function() {
-                if (!confirm('Are you absolutely certain you want to purge this database ledger entry line?')) return;
-                
-                const recordId = $(this).data('id');
-                const dataPayload = {
+                if (!confirm('Are you completely sure you want to drop this ledger line record permanently?')) return;
+                var recordId = $(this).data('id');
+                var payload = {
                     action: 'arms_delete_opd_record',
                     security: $('#arms_opd_nonce').val(),
                     id: recordId
                 };
 
-                $.post(ajaxurl, dataPayload, function(response) {
-                    if(response.success) {
-                        $(`#row-opd-${recordId}`).fadeOut(400, function() { $(this).remove(); });
+                $.post(ajaxurl, payload, function(response) {
+                    if (response.success) {
+                        $('#row-opd-' + recordId).fadeOut(300, function() { $(this).remove(); });
                     } else {
-                        alert('Refused by server ledger access protocols: ' + response.data.message);
+                        alert(response.data.message);
                     }
                 });
+            });
+
+            $('#arms-reset-opd-btn').on('click', function() {
+                clearOPDForm();
             });
 
         });

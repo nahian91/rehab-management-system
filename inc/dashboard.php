@@ -5,16 +5,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Dashboard Tab - Clinical Operations & Financial Control Panel
- * Database Mapping: arms_billing, arms_admissions, arms_ledger, arms_inventory
+ * Database Mapping: arms_patients, arms_billing, arms_admissions, arms_ledger, arms_inventory, arms_opd_records
  */
 function arms_dashboard_tab() {
     global $wpdb;
 
     // Core Database Table Registries
+    $table_patients   = $wpdb->prefix . 'arms_patients';
     $table_billing    = $wpdb->prefix . 'arms_billing';
     $table_admissions = $wpdb->prefix . 'arms_admissions';
     $table_ledger     = $wpdb->prefix . 'arms_ledger';
     $table_inventory  = $wpdb->prefix . 'arms_inventory';
+    $table_opd        = $wpdb->prefix . 'arms_opd_records';
 
     // Time Frames & Ranges
     $today_start = current_time( 'Y-m-d 00:00:00' );
@@ -23,10 +25,10 @@ function arms_dashboard_tab() {
     $month_end   = current_time( 'Y-m-t 23:59:59' );
 
     /* =========================================================================
-       1. PATIENTS COUNT ENGINE (OPD + IPD)
+       1. PATIENTS COUNT ENGINE (Core Footfall Registration Today)
        ========================================================================= */
     $total_patients_today = (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(DISTINCT patient_id) FROM $table_billing WHERE created_at BETWEEN %s AND %s",
+        "SELECT COUNT(*) FROM $table_patients WHERE admission_date BETWEEN %s AND %s",
         $today_start,
         $today_end
     ) );
@@ -35,33 +37,52 @@ function arms_dashboard_tab() {
        2. ACTIVE ADMISSIONS
        ========================================================================= */
     $active_admissions_count = (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table_admissions WHERE status = %s",
-        'admitted'
+        "SELECT COUNT(*) FROM $table_admissions WHERE payment_status = %s",
+        'Unpaid'
     ) );
 
     /* =========================================================================
-       3. APPOINTMENTS MONITORING
+       3. OPD TICKETS MONITORING
        ========================================================================= */
     $today_appointments_count = (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM $table_billing WHERE billing_type = 'opd' AND created_at BETWEEN %s AND %s",
+        "SELECT COUNT(*) FROM $table_opd WHERE created_at BETWEEN %s AND %s",
         $today_start,
         $today_end
     ) );
 
     /* =========================================================================
-       4. FINANCIAL METRICS (INCOME VS EXPENSE, PROFIT/LOSS, PENDING)
+       4. FINANCIAL METRICS (AGGREGATED INCOME VS EXPENSE)
        ========================================================================= */
-    // Today's Ledger Records
-    $today_income = (float) $wpdb->get_var( $wpdb->prepare(
+    // Today's Income Aggregate (OPD Net Totals + Paid Billing Receipts + Income Ledger Entries)
+    $today_opd_income = (float) $wpdb->get_var( $wpdb->prepare(
+        "SELECT SUM(net_total) FROM $table_opd WHERE created_at BETWEEN %s AND %s",
+        $today_start,
+        $today_end
+    ) );
+
+    $today_billing_income = (float) $wpdb->get_var( $wpdb->prepare(
+        "SELECT SUM(total_price) FROM $table_billing WHERE payment_status = 'paid' AND created_at BETWEEN %s AND %s",
+        $today_start,
+        $today_end
+    ) );
+
+    $today_ledger_income = (float) $wpdb->get_var( $wpdb->prepare(
         "SELECT SUM(amount) FROM $table_ledger WHERE transaction_type = 'income' AND transaction_date BETWEEN %s AND %s",
         $today_start,
         $today_end
     ) );
+
+    $today_income = $today_opd_income + $today_billing_income + $today_ledger_income;
+
+    // Today's Ledger Expense Records
     $today_expense = (float) $wpdb->get_var( $wpdb->prepare(
         "SELECT SUM(amount) FROM $table_ledger WHERE transaction_type = 'expense' AND transaction_date BETWEEN %s AND %s",
         $today_start,
         $today_end
     ) );
+
+    // Today's Real-time Margin
+    $today_net_margin = $today_income - $today_expense;
 
     // Month's Ledger Records
     $month_income = (float) $wpdb->get_var( $wpdb->prepare(
@@ -75,14 +96,13 @@ function arms_dashboard_tab() {
         $month_end
     ) );
 
-    // Net Profit/Loss calculations
+    // Net Profit/Loss calculations (Current Month)
     $net_profit_loss = $month_income - $month_expense;
 
-    // Unpaid/Pending clinical accounts receivables tracking balance
-    $pending_bills_amount = (float) $wpdb->get_var( $wpdb->prepare(
-        "SELECT SUM(total_price) FROM $table_billing WHERE payment_status = %s",
-        'unpaid'
-    ) );
+    // Unpaid Accounts Receivables from Admissions Matrix (Final Bill minus Advances)
+    $pending_bills_amount = (float) $wpdb->get_var(
+        "SELECT SUM(final_bill_amount - advance_payment) FROM $table_admissions WHERE payment_status = 'Unpaid'"
+    );
 
     /* =========================================================================
        5. DYNAMIC INVENTORY STOCK MONITORING ENGINE
@@ -92,8 +112,8 @@ function arms_dashboard_tab() {
     );
 
     // Admin redirection routing anchors
-    $patient_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=patients&sub=add' );
-    $billing_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=finance' );
+    $patient_tab_url   = admin_url( 'admin.php?page=rehab_management_system&tab=patients&sub=add' );
+    $billing_tab_url   = admin_url( 'admin.php?page=rehab_management_system&tab=finance' );
     $inventory_tab_url = admin_url( 'admin.php?page=rehab_management_system&tab=inventory' );
 
     /* =========================================================================
@@ -109,7 +129,7 @@ function arms_dashboard_tab() {
         $greeting_prefix = 'Good Night';
     }
 
-    $current_wp_user = wp_get_current_user();
+    $current_wp_user   = wp_get_current_user();
     $user_display_name = ! empty( $current_wp_user->display_name ) ? $current_wp_user->display_name : 'User';
     $rendered_greeting = $greeting_prefix . ', ' . $user_display_name;
     ?>
@@ -211,18 +231,18 @@ function arms_dashboard_tab() {
             </div>
 
             <div class="arms-stat-card">
-                <span class="arms-card-indicator <?php echo ( $net_profit_loss >= 0 ) ? 'active-green' : 'active-red'; ?>"></span>
+                <span class="arms-card-indicator <?php echo ( $today_net_margin >= 0 ) ? 'active-green' : 'active-red'; ?>"></span>
                 <div>
-                    <div class="arms-stat-label">Net Margin (Current Month)</div>
-                    <div class="arms-stat-counter" style="color: <?php echo ( $net_profit_loss >= 0 ) ? 'var(--arms-success)' : 'var(--arms-danger)'; ?>;">
-                        ৳<?php echo number_format( $net_profit_loss, 2 ); ?>
+                    <div class="arms-stat-label">Net Margin (Today)</div>
+                    <div class="arms-stat-counter" style="color: <?php echo ( $today_net_margin >= 0 ) ? 'var(--arms-success)' : 'var(--arms-danger)'; ?>;">
+                        ৳<?php echo number_format( $today_net_margin, 2 ); ?>
                     </div>
                 </div>
                 <div class="arms-card-footer">
-                    <span class="arms-status-badge <?php echo ( $net_profit_loss >= 0 ) ? 'success' : 'danger'; ?>">
-                        <?php echo ( $net_profit_loss >= 0 ) ? 'Net Profit' : 'Net Loss'; ?>
+                    <span class="arms-status-badge <?php echo ( $today_net_margin >= 0 ) ? 'success' : 'danger'; ?>">
+                        <?php echo ( $today_net_margin >= 0 ) ? 'Net Profit' : 'Net Loss'; ?>
                     </span>
-                    <a href="<?php echo esc_url( $billing_tab_url ); ?>" class="arms-card-link">Ledger &rarr;</a>
+                    <span style="font-weight:500;">Daily Clear</span>
                 </div>
             </div>
 
